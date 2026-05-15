@@ -9,6 +9,11 @@ import {
   ArrowDownWideNarrow,
   LayoutGrid,
   Download,
+  ArrowLeftRight,
+  Mail,
+  Tag,
+  Trash2,
+  X,
 } from "lucide-react"
 import { Candidate } from "@/types/database"
 import { STAGE_LABELS, formatDate } from "@/lib/utils"
@@ -37,6 +42,31 @@ function initials(name: string) {
   const parts = name.trim().split(/\s+/)
   if (parts.length === 1) return parts[0].slice(0, 2)
   return parts[0][0] + "." + parts[1][0]
+}
+
+// ייצוא לאקסל — CSV עם BOM כדי שעברית תיפתח נכון באקסל
+function exportToExcel(rows: Candidate[]) {
+  const headers = ["שם", "אימייל", "טלפון", "עיר", "שלב", "תאריך הגשה"]
+  const lines = rows.map((c) =>
+    [
+      c.full_name,
+      c.email,
+      c.phone ?? "",
+      c.city ?? "",
+      STAGE_LABELS[c.stage] ?? c.stage,
+      formatDate(c.created_at),
+    ]
+      .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+      .join(",")
+  )
+  const csv = "﻿" + [headers.join(","), ...lines].join("\n")
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `מועמדים-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function CandidatesTable({
@@ -160,7 +190,10 @@ export default function CandidatesTable({
           <LayoutGrid className="h-3.5 w-3.5" />
           תצוגה
         </button>
-        <button className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[13px] text-fg-muted transition-colors hover:bg-[var(--bg-subtle)] hover:text-fg">
+        <button
+          onClick={() => exportToExcel(filtered)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[13px] text-fg-muted transition-colors hover:bg-[var(--bg-subtle)] hover:text-fg"
+        >
           <Download className="h-3.5 w-3.5" />
           ייצוא
         </button>
@@ -272,6 +305,37 @@ export default function CandidatesTable({
           </div>
         )}
       </div>
+
+      {/* סרגל פעולות צף — מופיע כשמסמנים שורות */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-7 start-1/2 z-50 flex -translate-x-1/2 items-center gap-3.5 rounded-md bg-fg px-3.5 py-2.5 text-[13px] text-bg shadow-[var(--shadow-lg)]">
+          <span className="font-semibold">{selected.size} נבחרו</span>
+          <span className="h-[18px] w-px bg-white/15" />
+          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
+            <ArrowLeftRight className="h-3.5 w-3.5" />
+            שינוי שלב
+          </button>
+          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
+            <Mail className="h-3.5 w-3.5" />
+            שליחת מייל
+          </button>
+          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
+            <Tag className="h-3.5 w-3.5" />
+            תיוג
+          </button>
+          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
+            <Trash2 className="h-3.5 w-3.5" />
+            מחיקה
+          </button>
+          <button
+            onClick={() => setSelected(new Set())}
+            aria-label="בטל בחירה"
+            className="ms-1 inline-grid h-6 w-6 place-items-center rounded opacity-60 transition-opacity hover:bg-white/10 hover:opacity-100"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
