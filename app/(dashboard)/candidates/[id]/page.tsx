@@ -1,7 +1,18 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronRight, Phone, MapPin, Calendar, Mail, FileText, User, Sparkles, Paperclip } from "lucide-react"
+import {
+  ChevronRight,
+  Phone,
+  MapPin,
+  Calendar,
+  Mail,
+  FileText,
+  User,
+  Sparkles,
+  Paperclip,
+  MoreHorizontal,
+} from "lucide-react"
 import { formatDate } from "@/lib/utils"
 import { FormField, Attachment } from "@/types/database"
 import StageSelector from "@/components/candidates/StageSelector"
@@ -59,6 +70,8 @@ export default async function CandidatePage({
     .eq("candidate_id", params.id)
     .order("created_at", { ascending: false })
 
+  const idTag = "#cnd_" + data.id.slice(0, 6)
+
   return (
     <div>
       {/* כותרת עליונה — נתיב */}
@@ -91,7 +104,10 @@ export default async function CandidatePage({
               {data.full_name}
             </h1>
             <div className="mt-2 flex flex-wrap items-center gap-x-[18px] gap-y-1.5 text-[12.5px] text-fg-muted">
-              <span className="inline-flex items-center gap-1.5 font-mono text-[12px]" dir="ltr">
+              <span
+                className="inline-flex items-center gap-1.5 font-mono text-[12px]"
+                dir="ltr"
+              >
                 <Mail className="h-[13px] w-[13px] text-[var(--fg-faint)]" />
                 {data.email}
               </span>
@@ -111,7 +127,34 @@ export default async function CandidatePage({
                 <Calendar className="h-[13px] w-[13px] text-[var(--fg-faint)]" />
                 נרשם {formatDate(data.created_at)}
               </span>
+              <span
+                className="rounded border border-line bg-[var(--bg-muted)] px-1.5 py-px font-mono text-[11px] text-fg-muted"
+                dir="ltr"
+              >
+                {idTag}
+              </span>
             </div>
+          </div>
+
+          {/* כפתורי פעולה */}
+          <div className="flex gap-2">
+            <a
+              href={`mailto:${data.email}`}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--line-strong)] bg-surface px-3.5 text-[13px] font-medium text-primary shadow-[var(--shadow-xs)] transition-colors hover:bg-[var(--bg-subtle)]"
+            >
+              <Mail className="h-4 w-4" />
+              שלח מייל
+            </a>
+            <Link
+              href="/calendar"
+              className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover"
+            >
+              <Calendar className="h-4 w-4" />
+              קבע ראיון
+            </Link>
+            <button className="inline-grid h-9 w-9 place-items-center rounded-md border border-[var(--line-strong)] bg-surface text-fg-muted transition-colors hover:bg-[var(--bg-subtle)] hover:text-fg">
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -234,7 +277,7 @@ export default async function CandidatePage({
           )}
         </div>
 
-        {/* טור צד — הערות */}
+        {/* טור צד — הערות + פעילות */}
         <div className="flex flex-col gap-3.5 lg:sticky lg:top-5">
           <div className="overflow-hidden rounded-lg border border-line bg-surface">
             <div className="border-b border-[var(--line-faint)] px-[18px] py-3.5">
