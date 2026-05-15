@@ -40,6 +40,9 @@ const AV_GRADIENTS = [
 
 const PAGE_SIZES = [12, 24, 48, 64]
 
+// כמה תווים להציג בתא ההערה לפני קיצור
+const NOTE_PREVIEW_LEN = 38
+
 type SortKey = "date" | "name"
 
 function initials(name: string) {
@@ -48,7 +51,6 @@ function initials(name: string) {
   return parts[0][0] + "." + parts[1][0]
 }
 
-// מספרי עמודים להצגה — ראשון, אחרון, שכני הנוכחי, ו-"…" באמצע.
 function pageNumbers(current: number, total: number): (number | "…")[] {
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1)
@@ -63,7 +65,6 @@ function pageNumbers(current: number, total: number): (number | "…")[] {
   return out
 }
 
-// ייצוא לאקסל — CSV עם BOM כדי שעברית תיפתח נכון
 function exportToExcel(rows: Candidate[]) {
   const headers = ["שם", "אימייל", "טלפון", "מקום מגורים", "שלב", "תאריך הגשה"]
   const lines = rows.map((c) =>
@@ -111,6 +112,12 @@ export default function CandidatesTable({
   const [noteText, setNoteText] = useState("")
   const [busy, setBusy] = useState(false)
 
+  // חלון צפייה בהערה מלאה (מהטבלה)
+  const [viewNote, setViewNote] = useState<{
+    name: string
+    note: string
+  } | null>(null)
+
   const cities = Array.from(
     new Set(candidates.map((c) => c.city).filter(Boolean))
   ) as string[]
@@ -140,6 +147,12 @@ export default function CandidatesTable({
     safePage * pageSize,
     safePage * pageSize + pageSize
   )
+
+  // המועמד היחיד שמסומן (אם בדיוק אחד) — לצורך עריכת הערה
+  const singleSelected =
+    selected.size === 1
+      ? candidates.find((c) => c.id === Array.from(selected)[0]) ?? null
+      : null
 
   function toggleRow(id: string) {
     setSelected((prev) => {
@@ -173,7 +186,6 @@ export default function CandidatesTable({
     setNoteText("")
   }
 
-  // פעולת bulk — שינוי שלב לכל הנבחרים
   async function bulkChangeStage(stage: string) {
     setBusy(true)
     const supabase = createClient()
@@ -187,7 +199,6 @@ export default function CandidatesTable({
     router.refresh()
   }
 
-  // פעולת bulk — מחיקת כל הנבחרים
   async function bulkDelete() {
     setBusy(true)
     const supabase = createClient()
@@ -198,15 +209,15 @@ export default function CandidatesTable({
     router.refresh()
   }
 
-  // פעולת bulk — הוספת הערה לכל הנבחרים
-  async function bulkAddNote() {
-    if (!noteText.trim()) return
+  // שמירת הערה — רק כשמסומן מועמד אחד
+  async function saveNote() {
+    if (!singleSelected) return
     setBusy(true)
     const supabase = createClient()
     await supabase
       .from("candidates")
-      .update({ notes: noteText.trim() })
-      .in("id", Array.from(selected))
+      .update({ notes: noteText.trim() || null })
+      .eq("id", singleSelected.id)
     setBusy(false)
     closeBulkMenus()
     setSelected(new Set())
@@ -289,7 +300,6 @@ export default function CandidatesTable({
           />
         </div>
 
-        {/* סינון נוסף */}
         <div className="relative">
           <button
             onClick={() => setFilterOpen((v) => !v)}
@@ -337,7 +347,6 @@ export default function CandidatesTable({
           )}
         </div>
 
-        {/* מיון */}
         <div className="relative">
           <button
             onClick={() => setSortOpen((v) => !v)}
@@ -379,7 +388,6 @@ export default function CandidatesTable({
           {filtered.length} מתוך {candidates.length}
         </span>
 
-        {/* תצוגה — כמות שורות בעמוד */}
         <select
           value={pageSize}
           onChange={(e) => {
@@ -444,48 +452,54 @@ export default function CandidatesTable({
             )}
           </div>
 
-          {/* הוסף הערה */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setNoteOpen((v) => !v)
-                setStageMenuOpen(false)
-                setConfirmDelete(false)
-              }}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100 disabled:opacity-50"
-            >
-              <MessageSquarePlus className="h-3.5 w-3.5" />
-              הוסף הערה
-            </button>
-            {noteOpen && (
-              <div className="absolute top-9 z-50 w-[260px] rounded-lg border border-line bg-surface p-3 text-fg shadow-[var(--shadow-lg)]">
-                <textarea
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  placeholder="הערה לכל הנבחרים…"
-                  rows={3}
-                  dir="rtl"
-                  className="w-full resize-none rounded-md border border-line bg-surface px-2.5 py-2 text-[13px] text-fg outline-none placeholder:text-fg-subtle focus:border-accent"
-                />
-                <div className="mt-2 flex justify-end gap-2">
-                  <button
-                    onClick={closeBulkMenus}
-                    className="rounded px-2.5 py-1 text-[12px] text-fg-muted hover:bg-[var(--bg-subtle)]"
-                  >
-                    ביטול
-                  </button>
-                  <button
-                    onClick={bulkAddNote}
-                    disabled={busy || !noteText.trim()}
-                    className="rounded bg-accent px-2.5 py-1 text-[12px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-                  >
-                    שמור הערה
-                  </button>
+          {/* הוסף הערה — רק כשמסומן מועמד אחד */}
+          {singleSelected && (
+            <div className="relative">
+              <button
+                onClick={() => {
+                  if (!noteOpen) setNoteText(singleSelected.notes ?? "")
+                  setNoteOpen((v) => !v)
+                  setStageMenuOpen(false)
+                  setConfirmDelete(false)
+                }}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100 disabled:opacity-50"
+              >
+                <MessageSquarePlus className="h-3.5 w-3.5" />
+                {singleSelected.notes ? "ערוך הערה" : "הוסף הערה"}
+              </button>
+              {noteOpen && (
+                <div className="absolute top-9 z-50 w-[280px] rounded-lg border border-line bg-surface p-3 text-fg shadow-[var(--shadow-lg)]">
+                  <div className="mb-1.5 text-[11px] font-medium text-fg-subtle">
+                    הערה ל{singleSelected.full_name}
+                  </div>
+                  <textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="כתוב הערה…"
+                    rows={4}
+                    dir="rtl"
+                    className="w-full resize-none rounded-md border border-line bg-surface px-2.5 py-2 text-[13px] text-fg outline-none placeholder:text-fg-subtle focus:border-accent"
+                  />
+                  <div className="mt-2 flex justify-end gap-2">
+                    <button
+                      onClick={closeBulkMenus}
+                      className="rounded px-2.5 py-1 text-[12px] text-fg-muted hover:bg-[var(--bg-subtle)]"
+                    >
+                      ביטול
+                    </button>
+                    <button
+                      onClick={saveNote}
+                      disabled={busy}
+                      className="rounded bg-accent px-2.5 py-1 text-[12px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+                    >
+                      {busy ? "שומר…" : "שמור הערה"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* מחיקה */}
           <div className="relative">
@@ -576,6 +590,8 @@ export default function CandidatesTable({
           <tbody>
             {paged.map((candidate, idx) => {
               const isSelected = selected.has(candidate.id)
+              const note = candidate.notes ?? ""
+              const isLong = note.length > NOTE_PREVIEW_LEN
               return (
                 <tr
                   key={candidate.id}
@@ -629,12 +645,26 @@ export default function CandidatesTable({
                     <StageBadge stage={candidate.stage} />
                   </td>
                   <td className="px-3.5 py-[11px] text-start text-fg-muted">
-                    {candidate.notes ? (
-                      <span
-                        title={candidate.notes}
-                        className="inline-block max-w-[180px] truncate text-[12px]"
-                      >
-                        {candidate.notes}
+                    {note ? (
+                      <span className="inline-flex max-w-[220px] items-center gap-1.5 text-[12px]">
+                        <span className="truncate">
+                          {isLong
+                            ? note.slice(0, NOTE_PREVIEW_LEN) + "…"
+                            : note}
+                        </span>
+                        {isLong && (
+                          <button
+                            onClick={() =>
+                              setViewNote({
+                                name: candidate.full_name,
+                                note,
+                              })
+                            }
+                            className="shrink-0 whitespace-nowrap text-[11px] font-medium text-accent hover:underline"
+                          >
+                            ראה עוד
+                          </button>
+                        )}
                       </span>
                     ) : (
                       <span className="text-[var(--fg-faint)]">—</span>
@@ -710,6 +740,37 @@ export default function CandidatesTable({
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* חלון צפייה בהערה מלאה */}
+      {viewNote && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+          style={{ background: "var(--overlay)" }}
+          onClick={() => setViewNote(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-lg border border-line bg-surface shadow-[var(--shadow-lg)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[var(--line-faint)] px-5 py-4">
+              <h2 className="m-0 text-[15px] font-semibold text-primary">
+                הערה · {viewNote.name}
+              </h2>
+              <button
+                onClick={() => setViewNote(null)}
+                className="inline-grid h-7 w-7 place-items-center rounded text-fg-subtle hover:bg-[var(--bg-subtle)] hover:text-fg"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              <p className="m-0 whitespace-pre-line text-[13px] leading-relaxed text-fg">
+                {viewNote.note}
+              </p>
+            </div>
           </div>
         </div>
       )}
