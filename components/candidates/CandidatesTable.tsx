@@ -379,7 +379,8 @@ export default function CandidatesTable({
                   className="h-3.5 w-3.5 cursor-pointer accent-[var(--accent)]"
                 />
               </th>
-              {["שם", "אימייל", "עיר", "שלב", "תאריך הגשה"].map((h, i) => (
+              {["שם", "אימייל", "טלפון", "מקום מגורים", "שלב", "תאריך הגשה"].map(
+                (h, i) => (
                 <th
                   key={i}
                   className="whitespace-nowrap border-b border-line bg-[var(--surface-2)] px-3.5 py-[11px] text-start font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-fg-subtle"
@@ -433,6 +434,12 @@ export default function CandidatesTable({
                     dir="ltr"
                   >
                     {candidate.email}
+                  </td>
+                  <td
+                    className="whitespace-nowrap px-3.5 py-[11px] font-mono text-[12px] text-fg-muted"
+                    dir="ltr"
+                  >
+                    {candidate.phone ?? "—"}
                   </td>
                   <td className="whitespace-nowrap px-3.5 py-[11px] text-fg-muted">
                     {candidate.city ?? "—"}
