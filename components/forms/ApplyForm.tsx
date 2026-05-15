@@ -340,14 +340,20 @@ export default function ApplyForm({
     setSubmitting(true)
     setError("")
 
-    // חיפוש שדות מיוחדים
+    // חיפוש שדות מיוחדים — נשמרים לעמודות ייעודיות, לא רק ל-answers
     const nameField = fields.find((f) => f.label === "שם מלא")
     const emailField = fields.find((f) => f.label === "אימייל")
     const phoneField = fields.find((f) => f.label === "טלפון")
+    const cityField = fields.find((f) => f.label === "עיר מגורים")
+    const schoolField = fields.find((f) => f.label === "בית ספר")
+    const birthField = fields.find((f) => f.label === "תאריך לידה")
 
     const fullName = nameField ? answers[nameField.id] ?? "" : ""
     const email = emailField ? answers[emailField.id] ?? "" : ""
     const phone = phoneField ? answers[phoneField.id] ?? "" : ""
+    const city = cityField ? answers[cityField.id] ?? "" : ""
+    const school = schoolField ? answers[schoolField.id] ?? "" : ""
+    const birthDate = birthField ? answers[birthField.id] ?? "" : ""
 
     const { error } = await supabase.from("candidates").insert({
       form_id: formId,
@@ -355,6 +361,9 @@ export default function ApplyForm({
       full_name: fullName,
       email: email,
       phone: phone || null,
+      city: city || null,
+      school: school || null,
+      birth_date: birthDate || null,
       answers,
     })
 
