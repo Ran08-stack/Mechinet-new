@@ -1,10 +1,20 @@
 import { createClient } from "@/lib/supabase/server"
-import { Plus } from "lucide-react"
 import { Topbar } from "@/app/(dashboard)/_components/Topbar"
 import CandidatesTable from "@/components/candidates/CandidatesTable"
+import NewCandidateButton from "@/components/candidates/NewCandidateButton"
 
 export default async function CandidatesPage() {
   const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { data: userData } = await supabase
+    .from("users")
+    .select("organization_id")
+    .eq("id", user?.id ?? "")
+    .single()
 
   const { data: candidates } = await supabase
     .from("candidates")
@@ -28,10 +38,9 @@ export default async function CandidatesPage() {
       <Topbar
         crumb="מועמדים"
         action={
-          <button className="inline-flex h-7 items-center gap-1.5 rounded-md bg-accent px-3 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover">
-            <Plus className="h-3.5 w-3.5" />
-            מועמד חדש
-          </button>
+          userData?.organization_id ? (
+            <NewCandidateButton organizationId={userData.organization_id} />
+          ) : null
         }
       />
 

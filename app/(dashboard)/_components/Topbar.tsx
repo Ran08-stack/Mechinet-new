@@ -1,9 +1,11 @@
-import { ReactNode } from "react"
-import { Search, Bell } from "lucide-react"
+"use client"
+
+import { ReactNode, useState } from "react"
+import { Search, Bell, X } from "lucide-react"
 
 // Topbar עליון — מופיע בכל מסכי המכינה.
-// breadcrumb משתנה לפי המסך. action — כפתור ימני אופציונלי (למשל "מועמד חדש").
-// חיפוש מהיר + פעמון התראות — ויזואלי כרגע, פיצ'רים בהמשך.
+// crumb משתנה לפי המסך. action — כפתור ימני אופציונלי.
+// חיפוש מהיר + פעמון התראות — הפאנל נפתח, התוכן יתמלא בפיצ'ר ההתראות.
 
 export function Topbar({
   crumb,
@@ -12,8 +14,10 @@ export function Topbar({
   crumb: string
   action?: ReactNode
 }) {
+  const [notifOpen, setNotifOpen] = useState(false)
+
   return (
-    <div className="flex h-[60px] flex-shrink-0 items-center gap-3.5 border-b border-line bg-surface px-7">
+    <div className="relative flex h-[60px] flex-shrink-0 items-center gap-3.5 border-b border-line bg-surface px-7">
       {/* breadcrumb */}
       <div className="flex items-center gap-2 text-[13px] text-fg-subtle">
         <span>ניווט</span>
@@ -27,21 +31,37 @@ export function Topbar({
         <button className="inline-flex h-7 items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 text-[13px] text-fg-muted transition-colors hover:bg-[var(--bg-subtle)]">
           <Search className="h-3.5 w-3.5" />
           חיפוש מהיר
-          <span
-            className="ms-1.5 rounded border border-line px-1 font-mono text-[10.5px] text-[var(--fg-faint)]"
-            dir="ltr"
-          >
-            ⌘K
-          </span>
         </button>
 
         {/* התראות */}
-        <button
-          aria-label="התראות"
-          className="relative inline-grid h-7 w-7 place-items-center rounded-md border border-line bg-surface text-fg-muted transition-colors hover:bg-[var(--bg-subtle)] hover:text-fg"
-        >
-          <Bell className="h-3.5 w-3.5" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setNotifOpen((v) => !v)}
+            aria-label="התראות"
+            className="inline-grid h-7 w-7 place-items-center rounded-md border border-line bg-surface text-fg-muted transition-colors hover:bg-[var(--bg-subtle)] hover:text-fg"
+          >
+            <Bell className="h-3.5 w-3.5" />
+          </button>
+
+          {notifOpen && (
+            <div className="absolute end-0 top-9 z-50 w-[300px] overflow-hidden rounded-lg border border-line bg-surface shadow-[var(--shadow-lg)]">
+              <div className="flex items-center justify-between border-b border-[var(--line-faint)] px-4 py-3">
+                <span className="text-[13px] font-semibold text-primary">
+                  התראות
+                </span>
+                <button
+                  onClick={() => setNotifOpen(false)}
+                  className="inline-grid h-6 w-6 place-items-center rounded text-fg-subtle hover:bg-[var(--bg-subtle)] hover:text-fg"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="px-4 py-8 text-center text-[12.5px] text-fg-subtle">
+                אין התראות חדשות
+              </div>
+            </div>
+          )}
+        </div>
 
         {action}
       </div>
