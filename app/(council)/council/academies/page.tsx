@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { Building2 } from "lucide-react"
 import { formatDate } from "@/lib/utils"
-import { InviteAcademyButton } from "../_components/InviteAcademyButton"
+import { InviteAcademyButton } from "../../_components/InviteAcademyButton"
 
 export default async function AcademiesPage() {
   const supabase = await createClient()
