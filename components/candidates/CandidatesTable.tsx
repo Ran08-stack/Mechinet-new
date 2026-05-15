@@ -85,7 +85,6 @@ export default function CandidatesTable({
   const [filterOpen, setFilterOpen] = useState(false)
   const [cityFilter, setCityFilter] = useState("")
 
-  // ערים ייחודיות לסינון
   const cities = Array.from(
     new Set(candidates.map((c) => c.city).filter(Boolean))
   ) as string[]
@@ -101,7 +100,6 @@ export default function CandidatesTable({
     return matchSearch && matchStage && matchCity
   })
 
-  // מיון
   filtered = [...filtered].sort((a, b) => {
     if (sortKey === "name") return a.full_name.localeCompare(b.full_name, "he")
     return (
@@ -110,7 +108,6 @@ export default function CandidatesTable({
     )
   })
 
-  // עימוד
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const safePage = Math.min(page, totalPages - 1)
   const paged = filtered.slice(
@@ -335,6 +332,37 @@ export default function CandidatesTable({
         </button>
       </div>
 
+      {/* סרגל פעולות — מתחת לטולבר, מופיע כשמסמנים שורות */}
+      {selected.size > 0 && (
+        <div className="mx-7 mb-3.5 flex items-center gap-3.5 rounded-md bg-fg px-3.5 py-2.5 text-[13px] text-bg shadow-[var(--shadow-md)]">
+          <span className="font-semibold">{selected.size} נבחרו</span>
+          <span className="h-[18px] w-px bg-white/15" />
+          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
+            <ArrowLeftRight className="h-3.5 w-3.5" />
+            שינוי שלב
+          </button>
+          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
+            <Mail className="h-3.5 w-3.5" />
+            שליחת מייל
+          </button>
+          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
+            <Tag className="h-3.5 w-3.5" />
+            תיוג
+          </button>
+          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
+            <Trash2 className="h-3.5 w-3.5" />
+            מחיקה
+          </button>
+          <button
+            onClick={() => setSelected(new Set())}
+            aria-label="בטל בחירה"
+            className="ms-auto inline-grid h-6 w-6 place-items-center rounded opacity-60 transition-opacity hover:bg-white/10 hover:opacity-100"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* טבלה */}
       <div className="mx-7 overflow-hidden rounded-lg border border-line bg-surface">
         <table className="w-full border-collapse text-[13px]">
@@ -454,37 +482,6 @@ export default function CandidatesTable({
               הבא
             </button>
           </div>
-        </div>
-      )}
-
-      {/* סרגל פעולות צף */}
-      {selected.size > 0 && (
-        <div className="fixed bottom-7 start-1/2 z-50 flex -translate-x-1/2 items-center gap-3.5 rounded-md bg-fg px-3.5 py-2.5 text-[13px] text-bg shadow-[var(--shadow-lg)]">
-          <span className="font-semibold">{selected.size} נבחרו</span>
-          <span className="h-[18px] w-px bg-white/15" />
-          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
-            <ArrowLeftRight className="h-3.5 w-3.5" />
-            שינוי שלב
-          </button>
-          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
-            <Mail className="h-3.5 w-3.5" />
-            שליחת מייל
-          </button>
-          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
-            <Tag className="h-3.5 w-3.5" />
-            תיוג
-          </button>
-          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
-            <Trash2 className="h-3.5 w-3.5" />
-            מחיקה
-          </button>
-          <button
-            onClick={() => setSelected(new Set())}
-            aria-label="בטל בחירה"
-            className="ms-1 inline-grid h-6 w-6 place-items-center rounded opacity-60 transition-opacity hover:bg-white/10 hover:opacity-100"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
         </div>
       )}
     </div>
