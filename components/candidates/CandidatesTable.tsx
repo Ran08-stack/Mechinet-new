@@ -429,19 +429,17 @@ export default function CandidatesTable({
                       </span>
                     </Link>
                   </td>
-                  <td
-                    className="whitespace-nowrap px-3.5 py-[11px] font-mono text-[12px] text-fg-muted"
-                    dir="ltr"
-                  >
-                    {candidate.email}
+                  <td className="whitespace-nowrap px-3.5 py-[11px] text-start font-mono text-[12px] text-fg-muted">
+                    <span dir="ltr" className="inline-block">
+                      {candidate.email}
+                    </span>
                   </td>
-                  <td
-                    className="whitespace-nowrap px-3.5 py-[11px] font-mono text-[12px] text-fg-muted"
-                    dir="ltr"
-                  >
-                    {candidate.phone ?? "—"}
+                  <td className="whitespace-nowrap px-3.5 py-[11px] text-start font-mono text-[12px] text-fg-muted">
+                    <span dir="ltr" className="inline-block">
+                      {candidate.phone ?? "—"}
+                    </span>
                   </td>
-                  <td className="whitespace-nowrap px-3.5 py-[11px] text-fg-muted">
+                  <td className="whitespace-nowrap px-3.5 py-[11px] text-start text-fg-muted">
                     {candidate.city ?? "—"}
                   </td>
                   <td className="px-3.5 py-[11px]">
