@@ -37,8 +37,12 @@ export function CouncilSidebar() {
           ניווט
         </div>
         {nav.map(({ href, icon: Icon, label }) => {
+          // "/council" — התאמה מדויקת בלבד, אחרת הוא נדלק גם על /council/academies.
+          // שאר הראוטים — startsWith כרגיל.
           const active =
-            pathname === href || pathname?.startsWith(href + "/")
+            href === "/council"
+              ? pathname === "/council"
+              : pathname === href || pathname?.startsWith(href + "/")
           return (
             <Link
               key={href}

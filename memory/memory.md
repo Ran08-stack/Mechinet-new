@@ -108,6 +108,10 @@
 - הפתרון שעבד: מחיקת .git לגמרי (Remove-Item -Recurse -Force .git), git init נקי, commit חדש (98 קבצים, 278KB בלבד — בלי node_modules), git push --force ל-GitHub.
 - מעכשיו ה-git repo נקי. deploy רגיל: git add/commit/push ואז vercel --prod. אין יותר היסטוריה מזוהמת.
 - כלל: ה-repo נבנה מחדש מאפס ב-2026-05-15. אם push נדחה — git push origin main --force בטוח (אנחנו מקור האמת).
+- 2026-05-15: באג /council/academies = 404. הסיבה: הקובץ היה ב-app/(council)/academies/page.tsx — אבל (council) הוא route group בסוגריים, לא חלק מה-URL. אז ה-route היה /academies ולא /council/academies.
+- התיקון: הועבר ל-app/(council)/council/academies/page.tsx. import של _components עודכן ל-../../. אחרי זה: push רגיל עבד (בלי force!) — ה-repo הנקי תקין.
+- כלל: route group בסוגריים = לא ב-URL. דף שאמור להיות תחת /council חייב לשבת ב-app/(council)/council/... לא ישירות ב-app/(council)/...
+- git push + vercel --prod עובדים סוף-סוף בצורה רגילה. סוף הסאגה של ה-deploy.
 - מסך 2 (דף התחברות) הושלם. קובץ: app/(auth)/login/page.tsx (הוחלף). עיצוב מפוצל: צד מותג כהה + טופס. נשמרה התחברות אימייל-סיסמה הקיימת + מעבר ל-/candidates. נוסף: הצג/הסתר סיסמה. הושמטו (אין קוד): OAuth, מתג תפקיד, שכחת סיסמה, מתג שפה. סטטיסטיקות צד המותג: דמה, בעתיד יסונכרן עם אתר המועצה, "מועמדים"→"טפסים שהוגשו". אומת: tsc נקי.
 - נוצר memory/todo-ui.md — רשימת מה שהושמט מהעיצוב ויצטרך השלמה אחרי Sprint 1.
 - 2026-05-14: רן ביקש סדר. נוצר memory/מעקב-מסכים.md — קובץ מרכזי אחד לכל 16 המסכים: מה יש, מה צריך, סטטוס. מתעדכן בכל התקדמות. todo-ui.md הוחלף בהפניה לקובץ החדש.
