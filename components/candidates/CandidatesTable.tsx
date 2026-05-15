@@ -4,6 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import {
   Search,
+  ChevronRight,
+  ChevronLeft,
   SlidersHorizontal,
   ArrowDownWideNarrow,
   Download,
@@ -43,6 +45,22 @@ function initials(name: string) {
   const parts = name.trim().split(/\s+/)
   if (parts.length === 1) return parts[0].slice(0, 2)
   return parts[0][0] + "." + parts[1][0]
+}
+
+// מספרי עמודים להצגה — ראשון, אחרון, שכני הנוכחי, ו-"…" באמצע.
+// current ו-total הם 1-based. מחזיר מערך של מספרים ו-"…".
+function pageNumbers(current: number, total: number): (number | "…")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const out: (number | "…")[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  if (start > 2) out.push("…")
+  for (let i = start; i <= end; i++) out.push(i)
+  if (end < total - 1) out.push("…")
+  out.push(total)
+  return out
 }
 
 // ייצוא לאקסל — CSV עם BOM כדי שעברית תיפתח נכון
@@ -464,27 +482,57 @@ export default function CandidatesTable({
       </div>
 
       {/* עימוד */}
-      {totalPages > 1 && (
-        <div className="mx-7 mt-3.5 flex items-center justify-between text-[13px] text-fg-muted">
+      {filtered.length > 0 && (
+        <div className="mx-7 mt-3.5 flex items-center justify-between pb-2 text-[13px] text-fg-muted">
           <span className="font-mono text-[11.5px] text-fg-subtle">
-            עמוד {safePage + 1} מתוך {totalPages}
+            מציג {safePage * pageSize + 1}–
+            {Math.min(filtered.length, (safePage + 1) * pageSize)} מתוך{" "}
+            {filtered.length} · עמוד {safePage + 1} מתוך {totalPages}
           </span>
-          <div className="flex gap-1.5">
+
+
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={safePage === 0}
-              className="h-7 rounded-md border border-line bg-surface px-3 text-[12px] transition-colors hover:bg-[var(--bg-subtle)] disabled:opacity-40"
+              aria-label="הקודם"
+              className="inline-grid h-7 w-7 place-items-center rounded-md border border-line bg-surface text-fg-muted transition-colors hover:bg-[var(--bg-subtle)] hover:text-fg disabled:opacity-40"
             >
-              הקודם
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
+
+            {pageNumbers(safePage + 1, totalPages).map((n, i) =>
+              n === "…" ? (
+                <span
+                  key={`dots-${i}`}
+                  className="px-1 text-[var(--fg-faint)]"
+                >
+                  …
+                </span>
+              ) : (
+                <button
+                  key={n}
+                  onClick={() => setPage(n - 1)}
+                  className={`h-7 min-w-7 rounded-md border px-2 font-mono text-[12px] transition-colors ${
+                    n === safePage + 1
+                      ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--accent-hover)]"
+                      : "border-line bg-surface text-fg-muted hover:bg-[var(--bg-subtle)] hover:text-fg"
+                  }`}
+                >
+                  {n}
+                </button>
+              )
+            )}
+
             <button
               onClick={() =>
                 setPage((p) => Math.min(totalPages - 1, p + 1))
               }
               disabled={safePage >= totalPages - 1}
-              className="h-7 rounded-md border border-line bg-surface px-3 text-[12px] transition-colors hover:bg-[var(--bg-subtle)] disabled:opacity-40"
+              aria-label="הבא"
+              className="inline-grid h-7 w-7 place-items-center rounded-md border border-line bg-surface text-fg-muted transition-colors hover:bg-[var(--bg-subtle)] hover:text-fg disabled:opacity-40"
             >
-              הבא
+              <ChevronLeft className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>

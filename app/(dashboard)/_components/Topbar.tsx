@@ -1,11 +1,11 @@
 "use client"
 
 import { ReactNode, useState } from "react"
-import { Search, Bell, X } from "lucide-react"
+import { Bell, X } from "lucide-react"
+import { QuickSearch } from "./QuickSearch"
 
 // Topbar עליון — מופיע בכל מסכי המכינה.
 // crumb משתנה לפי המסך. action — כפתור ימני אופציונלי.
-// חיפוש מהיר + פעמון התראות — הפאנל נפתח, התוכן יתמלא בפיצ'ר ההתראות.
 
 export function Topbar({
   crumb,
@@ -28,10 +28,7 @@ export function Topbar({
       {/* צד שמאל */}
       <div className="ms-auto flex items-center gap-2">
         {/* חיפוש מהיר */}
-        <button className="inline-flex h-7 items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 text-[13px] text-fg-muted transition-colors hover:bg-[var(--bg-subtle)]">
-          <Search className="h-3.5 w-3.5" />
-          חיפוש מהיר
-        </button>
+        <QuickSearch />
 
         {/* התראות */}
         <div className="relative">
