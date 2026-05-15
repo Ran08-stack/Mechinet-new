@@ -503,20 +503,24 @@ export default function CandidatesTable({
                 מחיקה
               </button>
             ) : (
-              <div className="inline-flex items-center gap-2 rounded bg-white/10 px-2 py-1">
-                <span className="text-[12px]">בטוח?</span>
+              <div className="inline-flex items-center gap-2.5 rounded-md bg-white/[0.08] py-1 pe-2 ps-1.5">
+                <span className="text-[12px] text-white/70">
+                  למחוק {selected.size}?
+                </span>
                 <button
                   onClick={bulkDelete}
                   disabled={busy}
-                  className="rounded bg-[var(--danger)] px-2 py-0.5 text-[12px] font-medium text-white disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded bg-[var(--danger)] px-2.5 py-1 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
-                  כן
+                  <Trash2 className="h-3 w-3" />
+                  {busy ? "מוחק…" : "כן, מחק"}
                 </button>
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="rounded px-2 py-0.5 text-[12px] opacity-85 hover:opacity-100"
+                  disabled={busy}
+                  className="rounded px-2 py-1 text-[12px] text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
                 >
-                  לא
+                  ביטול
                 </button>
               </div>
             )}
