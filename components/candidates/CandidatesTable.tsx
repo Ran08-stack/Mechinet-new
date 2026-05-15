@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import {
   Search,
   ChevronRight,
@@ -10,8 +12,7 @@ import {
   ArrowDownWideNarrow,
   Download,
   ArrowLeftRight,
-  Mail,
-  Tag,
+  MessageSquarePlus,
   Trash2,
   X,
 } from "lucide-react"
@@ -48,7 +49,6 @@ function initials(name: string) {
 }
 
 // מספרי עמודים להצגה — ראשון, אחרון, שכני הנוכחי, ו-"…" באמצע.
-// current ו-total הם 1-based. מחזיר מערך של מספרים ו-"…".
 function pageNumbers(current: number, total: number): (number | "…")[] {
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1)
@@ -65,7 +65,7 @@ function pageNumbers(current: number, total: number): (number | "…")[] {
 
 // ייצוא לאקסל — CSV עם BOM כדי שעברית תיפתח נכון
 function exportToExcel(rows: Candidate[]) {
-  const headers = ["שם", "אימייל", "טלפון", "עיר", "שלב", "תאריך הגשה"]
+  const headers = ["שם", "אימייל", "טלפון", "מקום מגורים", "שלב", "תאריך הגשה"]
   const lines = rows.map((c) =>
     [
       c.full_name,
@@ -93,6 +93,7 @@ export default function CandidatesTable({
 }: {
   candidates: Candidate[]
 }) {
+  const router = useRouter()
   const [search, setSearch] = useState("")
   const [stageFilter, setStageFilter] = useState<string>("all")
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -102,6 +103,13 @@ export default function CandidatesTable({
   const [page, setPage] = useState(0)
   const [filterOpen, setFilterOpen] = useState(false)
   const [cityFilter, setCityFilter] = useState("")
+
+  // מצבי ה-bulkbar
+  const [stageMenuOpen, setStageMenuOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
+  const [noteText, setNoteText] = useState("")
+  const [busy, setBusy] = useState(false)
 
   const cities = Array.from(
     new Set(candidates.map((c) => c.city).filter(Boolean))
@@ -156,6 +164,53 @@ export default function CandidatesTable({
         return next
       })
     }
+  }
+
+  function closeBulkMenus() {
+    setStageMenuOpen(false)
+    setConfirmDelete(false)
+    setNoteOpen(false)
+    setNoteText("")
+  }
+
+  // פעולת bulk — שינוי שלב לכל הנבחרים
+  async function bulkChangeStage(stage: string) {
+    setBusy(true)
+    const supabase = createClient()
+    await supabase
+      .from("candidates")
+      .update({ stage })
+      .in("id", Array.from(selected))
+    setBusy(false)
+    closeBulkMenus()
+    setSelected(new Set())
+    router.refresh()
+  }
+
+  // פעולת bulk — מחיקת כל הנבחרים
+  async function bulkDelete() {
+    setBusy(true)
+    const supabase = createClient()
+    await supabase.from("candidates").delete().in("id", Array.from(selected))
+    setBusy(false)
+    closeBulkMenus()
+    setSelected(new Set())
+    router.refresh()
+  }
+
+  // פעולת bulk — הוספת הערה לכל הנבחרים
+  async function bulkAddNote() {
+    if (!noteText.trim()) return
+    setBusy(true)
+    const supabase = createClient()
+    await supabase
+      .from("candidates")
+      .update({ notes: noteText.trim() })
+      .in("id", Array.from(selected))
+    setBusy(false)
+    closeBulkMenus()
+    setSelected(new Set())
+    router.refresh()
   }
 
   return (
@@ -352,27 +407,126 @@ export default function CandidatesTable({
 
       {/* סרגל פעולות — מתחת לטולבר, מופיע כשמסמנים שורות */}
       {selected.size > 0 && (
-        <div className="mx-7 mb-3.5 flex items-center gap-3.5 rounded-md bg-fg px-3.5 py-2.5 text-[13px] text-bg shadow-[var(--shadow-md)]">
+        <div className="mx-7 mb-3.5 flex flex-wrap items-center gap-3.5 rounded-md bg-fg px-3.5 py-2.5 text-[13px] text-bg shadow-[var(--shadow-md)]">
           <span className="font-semibold">{selected.size} נבחרו</span>
           <span className="h-[18px] w-px bg-white/15" />
-          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
-            <ArrowLeftRight className="h-3.5 w-3.5" />
-            שינוי שלב
-          </button>
-          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
-            <Mail className="h-3.5 w-3.5" />
-            שליחת מייל
-          </button>
-          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
-            <Tag className="h-3.5 w-3.5" />
-            תיוג
-          </button>
-          <button className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100">
-            <Trash2 className="h-3.5 w-3.5" />
-            מחיקה
-          </button>
+
+          {/* שינוי שלב */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setStageMenuOpen((v) => !v)
+                setConfirmDelete(false)
+                setNoteOpen(false)
+              }}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100 disabled:opacity-50"
+            >
+              <ArrowLeftRight className="h-3.5 w-3.5" />
+              שינוי שלב
+            </button>
+            {stageMenuOpen && (
+              <div className="absolute top-9 z-50 w-[150px] rounded-lg border border-line bg-surface p-1 text-fg shadow-[var(--shadow-lg)]">
+                {ALL_STAGES.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => bulkChangeStage(s)}
+                    className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-start text-[13px] text-fg-muted transition-colors hover:bg-[var(--bg-subtle)]"
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: STAGE_DOT[s] }}
+                    />
+                    {STAGE_LABELS[s]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* הוסף הערה */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setNoteOpen((v) => !v)
+                setStageMenuOpen(false)
+                setConfirmDelete(false)
+              }}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100 disabled:opacity-50"
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              הוסף הערה
+            </button>
+            {noteOpen && (
+              <div className="absolute top-9 z-50 w-[260px] rounded-lg border border-line bg-surface p-3 text-fg shadow-[var(--shadow-lg)]">
+                <textarea
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="הערה לכל הנבחרים…"
+                  rows={3}
+                  dir="rtl"
+                  className="w-full resize-none rounded-md border border-line bg-surface px-2.5 py-2 text-[13px] text-fg outline-none placeholder:text-fg-subtle focus:border-accent"
+                />
+                <div className="mt-2 flex justify-end gap-2">
+                  <button
+                    onClick={closeBulkMenus}
+                    className="rounded px-2.5 py-1 text-[12px] text-fg-muted hover:bg-[var(--bg-subtle)]"
+                  >
+                    ביטול
+                  </button>
+                  <button
+                    onClick={bulkAddNote}
+                    disabled={busy || !noteText.trim()}
+                    className="rounded bg-accent px-2.5 py-1 text-[12px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+                  >
+                    שמור הערה
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* מחיקה */}
+          <div className="relative">
+            {!confirmDelete ? (
+              <button
+                onClick={() => {
+                  setConfirmDelete(true)
+                  setStageMenuOpen(false)
+                  setNoteOpen(false)
+                }}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded px-2 py-1 opacity-85 transition-opacity hover:bg-white/10 hover:opacity-100 disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                מחיקה
+              </button>
+            ) : (
+              <div className="inline-flex items-center gap-2 rounded bg-white/10 px-2 py-1">
+                <span className="text-[12px]">בטוח?</span>
+                <button
+                  onClick={bulkDelete}
+                  disabled={busy}
+                  className="rounded bg-[var(--danger)] px-2 py-0.5 text-[12px] font-medium text-white disabled:opacity-50"
+                >
+                  כן
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="rounded px-2 py-0.5 text-[12px] opacity-85 hover:opacity-100"
+                >
+                  לא
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
-            onClick={() => setSelected(new Set())}
+            onClick={() => {
+              setSelected(new Set())
+              closeBulkMenus()
+            }}
             aria-label="בטל בחירה"
             className="ms-auto inline-grid h-6 w-6 place-items-center rounded opacity-60 transition-opacity hover:bg-white/10 hover:opacity-100"
           >
@@ -397,8 +551,15 @@ export default function CandidatesTable({
                   className="h-3.5 w-3.5 cursor-pointer accent-[var(--accent)]"
                 />
               </th>
-              {["שם", "אימייל", "טלפון", "מקום מגורים", "שלב", "תאריך הגשה"].map(
-                (h, i) => (
+              {[
+                "שם",
+                "אימייל",
+                "טלפון",
+                "מקום מגורים",
+                "שלב",
+                "הערה",
+                "תאריך הגשה",
+              ].map((h, i) => (
                 <th
                   key={i}
                   className="whitespace-nowrap border-b border-line bg-[var(--surface-2)] px-3.5 py-[11px] text-start font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-fg-subtle"
@@ -463,7 +624,19 @@ export default function CandidatesTable({
                   <td className="px-3.5 py-[11px]">
                     <StageBadge stage={candidate.stage} />
                   </td>
-                  <td className="whitespace-nowrap px-3.5 py-[11px] text-[12.5px] text-fg-muted [font-variant-numeric:tabular-nums]">
+                  <td className="px-3.5 py-[11px] text-start text-fg-muted">
+                    {candidate.notes ? (
+                      <span
+                        title={candidate.notes}
+                        className="inline-block max-w-[180px] truncate text-[12px]"
+                      >
+                        {candidate.notes}
+                      </span>
+                    ) : (
+                      <span className="text-[var(--fg-faint)]">—</span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-3.5 py-[11px] text-start text-[12.5px] text-fg-muted [font-variant-numeric:tabular-nums]">
                     {formatDate(candidate.created_at)}
                   </td>
                 </tr>
@@ -489,7 +662,6 @@ export default function CandidatesTable({
             {Math.min(filtered.length, (safePage + 1) * pageSize)} מתוך{" "}
             {filtered.length} · עמוד {safePage + 1} מתוך {totalPages}
           </span>
-
 
           <div className="flex items-center gap-1.5">
             <button
