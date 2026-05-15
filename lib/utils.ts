@@ -17,6 +17,12 @@ export function slugify(text: string): string {
     .replace(/[^\w-]/g, "")
 }
 
+// נרמול מספר טלפון — ספרות בלבד, מוגבל ל-10.
+// משמש בכל מקום שמזינים טלפון בפרויקט (טופס הגשה, מועמד חדש).
+export function normalizePhone(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 10)
+}
+
 export const STAGE_LABELS: Record<string, string> = {
   new: "חדש",
   review: "בבדיקה",

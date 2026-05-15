@@ -3,6 +3,7 @@
 import { useState, useRef } from "react"
 import { FormField } from "@/types/database"
 import { createClient } from "@/lib/supabase/client"
+import { normalizePhone } from "@/lib/utils"
 
 const ISRAEL_CITIES = [
   "אבו גוש", "אור יהודה", "אור עקיבא", "אילת", "אלעד", "אריאל", "אשדוד", "אשקלון",
@@ -396,14 +397,28 @@ export default function ApplyForm({
             {field.required && <span className="me-1 text-[var(--danger)]">*</span>}
           </label>
 
-          {field.type === "text" && (
-            <input
-              value={answers[field.id] ?? ""}
-              onChange={(e) => setAnswer(field.id, e.target.value)}
-              required={field.required}
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
-            />
-          )}
+          {field.type === "text" &&
+            (field.label === "טלפון" ? (
+              <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                value={answers[field.id] ?? ""}
+                onChange={(e) =>
+                  setAnswer(field.id, normalizePhone(e.target.value))
+                }
+                required={field.required}
+                placeholder="0500000000"
+                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none placeholder:text-fg-subtle focus:border-accent focus:shadow-[var(--shadow-focus)]"
+              />
+            ) : (
+              <input
+                value={answers[field.id] ?? ""}
+                onChange={(e) => setAnswer(field.id, e.target.value)}
+                required={field.required}
+                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
+              />
+            ))}
 
           {field.type === "textarea" && (
             <textarea

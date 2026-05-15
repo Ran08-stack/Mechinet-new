@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Plus, X, UserPlus } from "lucide-react"
+import { normalizePhone } from "@/lib/utils"
 
 const STAGES = [
   { value: "new", label: "חדש" },
@@ -134,9 +135,11 @@ export default function NewCandidateButton({
                   </label>
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="050-0000000"
+                    onChange={(e) => setPhone(normalizePhone(e.target.value))}
+                    placeholder="0500000000"
                     className="h-10 rounded-md border border-line bg-surface px-3 text-[13px] text-fg outline-none placeholder:text-fg-subtle focus:border-accent focus:shadow-[var(--shadow-focus)]"
                   />
                 </div>
