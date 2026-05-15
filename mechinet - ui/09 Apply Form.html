@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>הגשת מועמדות · מכינת אורות</title>
+<link rel="stylesheet" href="globals.css" />
+<style>
+  body { background: #eef2f7; }
+
+  .page {
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--bg);
+    min-height: 100vh;
+    box-shadow: 0 0 40px rgba(3, 22, 49, 0.06);
+    position: relative;
+  }
+
+  /* ── Sticky header ── */
+  .applicant-bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+  }
+  .applicant-bar .academy {
+    display: flex; align-items: center; gap: 10px;
+    flex: 1; min-width: 0;
+  }
+  .applicant-bar .logo {
+    width: 32px; height: 32px;
+    border-radius: var(--radius);
+    background: var(--primary);
+    color: var(--on-primary);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .applicant-bar .logo svg { width: 16px; height: 16px; }
+  .applicant-bar .academy b {
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--primary);
+    line-height: 1.15;
+    display: block;
+  }
+  .applicant-bar .academy small {
+    font-size: 11px;
+    color: var(--fg-subtle);
+    display: block;
+    margin-top: 1px;
+  }
+  .applicant-bar .secure {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--success);
+    font-weight: 500;
+  }
+  .applicant-bar .secure svg { width: 13px; height: 13px; }
+
+  /* ── Hero ── */
+  .hero {
+    position: relative;
+    background: linear-gradient(135deg, #0d2543 0%, #1a2b47 60%, #2d3f60 100%);
+    color: #fff;
+    padding: 32px 24px 28px;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 80% -20%, rgba(254, 111, 66, 0.18), transparent 50%),
+      radial-gradient(circle at -10% 100%, rgba(68, 221, 193, 0.10), transparent 50%);
+    pointer-events: none;
+  }
+  .hero > * { position: relative; z-index: 1; }
+  .hero .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--ai-bright);
+    margin-bottom: 12px;
+    padding: 4px 10px;
+    background: rgba(68, 221, 193, 0.12);
+    border: 1px solid rgba(68, 221, 193, 0.30);
+    border-radius: var(--radius-full);
+  }
+  .hero .eyebrow .pulse {
+    width: 6px; height: 6px;
+    background: var(--ai-bright);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(68, 221, 193, 0.25);
+    animation: heropulse 2s infinite;
+  }
+  @keyframes heropulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .hero h1 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+  .hero p {
+    margin: 12px 0 0;
+    font-size: var(--text-md);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.78);
+    max-width: 36ch;
+  }
+
+  /* Story preview video card */
+  .story-card {
+    margin: 18px 0 0;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background var(--duration);
+  }
+  .story-card:hover { background: rgba(255, 255, 255, 0.12); }
+  .story-card .play {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .story-card .play svg { width: 14px; height: 14px; margin-inline-start: 2px; }
+  .story-card .ftxt b {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+  .story-card .ftxt small {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.60);
+    margin-top: 1px;
+    display: block;
+  }
+
+  /* ── Stepper ── */
+  .stepper {
+    background: var(--surface);
+    padding: 16px 20px 18px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+  }
+  .step-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--fg-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .step-pill .num {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--bg-muted);
+    color: var(--fg-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    display: grid; place-items: center;
+  }
+  .step-pill.done {
+    color: var(--success);
+    background: var(--ai-soft);
+    border-color: var(--ai-line);
+  }
+  .step-pill.done .num {
+    background: var(--success);
+    color: #fff;
+  }
+  .step-pill.current {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+  }
+  .step-pill.current .num {
+    background: var(--accent);
+    color: #fff;
+  }
+  .step-pill.future {
+    color: var(--fg-faint);
+  }
+  .step-pill .check svg { width: 11px; height: 11px; }
+  .step-line {
+    flex: 0 0 12px;
+    height: 1px;
+    background: var(--line-strong);
+  }
+  .step-line.done { background: var(--success); }
+
+  /* ── Form area ── */
+  .form-section {
+    padding: 24px 20px;
+  }
+  .form-block {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .form-block.is-current {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-md);
+  }
+  .form-block.is-done {
+    background: var(--surface);
+  }
+  .form-block.is-locked {
+    background: var(--bg-subtle);
+    border-color: var(--line);
+  }
+  .block-head {
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .block-head .step-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .is-current .step-icon {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+  .is-done .step-icon {
+    background: var(--ai-soft);
+    color: var(--ai-deep);
+    border: 1px solid var(--ai-line);
+  }
+  .is-done .step-icon svg { width: 14px; height: 14px; }
+  .is-locked .step-icon {
+    background: var(--bg-muted);
+    color: var(--fg-faint);
+  }
+  .is-locked .step-icon svg { width: 13px; height: 13px; }
+
+  .block-head .title {
+    flex: 1;
+    min-width: 0;
+  }
+  .block-head h3 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--primary);
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+  }
+  .is-locked .block-head h3 { color: var(--fg-faint); }
+  .is-done .block-head h3 { color: var(--fg-muted); }
+  .block-head .helper {
+    font-size: 11.5px;
+    color: var(--fg-subtle);
+    margin-top: 2px;
+  }
+  .block-head .chev {
+    width: 22px; height: 22px;
+    display: grid; place-items: center;
+    color: var(--fg-faint);
+    flex-shrink: 0;
+  }
+  .block-head .chev svg { width: 14px; height: 14px; }
+
+  /* Field rows */
+  .block-body { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 16px; }
+  .is-current + .block-body { display: flex; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--fg);
+  }
+  .field label .req { color: var(--accent); margin-inline-start: 3px; }
+  .field input[type="text"], .field input[type="tel"], .field input[type="email"], .field textarea {
+    width: 100%;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: var(--text-base);
+    color: var(--fg);
+    outline: none;
+    transition: border-color var(--duration), box-shadow var(--duration);
+  }
+  .field textarea {
+    height: auto;
+    min-height: 100px;
+    padding: 12px 14px;
+    resize: vertical;
+    line-height: 1.55;
+  }
+  .field input:focus, .field textarea:focus {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-focus);
+  }
+  .field input::placeholder, .field textarea::placeholder { color: var(--fg-faint); }
+  .field .hint {
+    font-size: 11.5px;
+    color: var(--fg-subtle);
+    line-height: 1.45;
+  }
+  .field .filled {
+    height: 44px;
+    padding: 0 14px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    color: var(--fg);
+    font-size: var(--text-base);
+  }
+  .field .filled .ok {
+    margin-inline-start: auto;
+    color: var(--success);
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px;
+  }
+  .field .filled .ok svg { width: 13px; height: 13px; }
+
+  /* AI helper card */
+  .ai-helper {
+    margin: 0 18px 18px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, var(--ai-soft), #d4f5e9);
+    border: 1px solid var(--ai-line);
+    border-radius: var(--radius);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .ai-helper .ai-ava {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--ai);
+    color: #fff;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .ai-helper .ai-ava svg { width: 15px; height: 15px; }
+  .ai-helper .ai-body { flex: 1; }
+  .ai-helper .ai-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ai-deep);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ai-helper .ai-name .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ai);
+    animation: heropulse 2s infinite;
+  }
+  .ai-helper .ai-msg {
+    margin: 4px 0 8px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ai-deep);
+  }
+  .ai-helper .ai-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ai-helper .ai-act {
+    font-family: inherit;
+    background: var(--surface);
+    border: 1px solid var(--ai-line);
+    color: var(--ai-deep);
+    border-radius: var(--radius-full);
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .ai-helper .ai-act:hover { background: var(--ai); color: #fff; border-color: var(--ai); }
+
+  /* Save/continue footer */
+  .step-footer {
+    padding: 14px 18px;
+    border-top: 1px solid var(--line);
+    background: var(--bg-subtle);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .step-footer .save {
+    color: var(--primary);
+    background: transparent;
+    border: 0;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+  }
+  .step-footer .save:hover { background: var(--bg-muted); }
+  .step-footer .save svg { width: 13px; height: 13px; }
+  .step-footer .continue {
+    margin-inline-start: auto;
+    height: 40px;
+    padding: 0 18px;
+    background: var(--accent);
+    color: var(--fg-on-accent);
+    border: 0;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .step-footer .continue:hover { background: var(--accent-hover); }
+  .step-footer .continue svg { width: 14px; height: 14px; }
+
+  /* Bottom hint */
+  .footer-note {
+    padding: 20px 24px 32px;
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--fg-subtle);
+    line-height: 1.6;
+  }
+  .footer-note a { color: var(--primary); }
+  .footer-note .lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--fg-muted);
+  }
+  .footer-note .lock svg { width: 12px; height: 12px; }
+
+  /* Save badge (top) */
+  .save-banner {
+    margin: 8px 18px -4px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .save-banner svg { width: 14px; height: 14px; color: var(--success); flex-shrink: 0; }
+  .save-banner a { color: var(--primary); font-weight: 500; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ── Top bar ── -->
+  <div class="applicant-bar">
+    <div class="academy">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg>
+      </div>
+      <div>
+        <b>מכינת אורות</b>
+        <small>גיוס תשפ"ז · ספטמבר 2026</small>
+      </div>
+    </div>
+    <div class="secure">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      מאובטח
+    </div>
+  </div>
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="eyebrow">
+      <span class="pulse"></span>
+      רישום נפתח · 23 ימים נותרו
+    </div>
+    <h1>הצעד הראשון שלך<br/>למנהיגות משמעותית.</h1>
+    <p>מילוי הטופס נמשך כ־12 דקות. אפשר לשמור ולחזור בכל שלב — אנחנו נשלח אליך קישור אישי.</p>
+
+    <div class="story-card">
+      <div class="play"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+      <div class="ftxt">
+        <b>הכירו את המכינה</b>
+        <small>סרטון של 90 שניות · עם בוגרים</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Stepper ── -->
+  <div class="stepper">
+    <span class="step-pill done">
+      <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+      פרטים אישיים
+    </span>
+    <span class="step-line done"></span>
+    <span class="step-pill current">
+      <span class="num">2</span>
+      הצהרה אישית
+    </span>
+    <span class="step-line"></span>
+    <span class="step-pill future">
+      <span class="num">3</span>
+      העלאת מסמכים
+    </span>
+    <span class="step-line"></span>
+    <span class="step-pill future">
+      <span class="num">4</span>
+      הכרות בוידאו
+    </span>
+  </div>
+
+  <!-- ── Save banner ── -->
+  <div class="save-banner" style="margin-top: 16px;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <span style="flex:1;">ההתקדמות שלך נשמרת אוטומטית.</span>
+    <a href="#">שלח קישור חזרה לאימייל</a>
+  </div>
+
+  <!-- ── Form sections ── -->
+  <div class="form-section">
+
+    <!-- Step 1: done -->
+    <div class="form-block is-done">
+      <div class="block-head">
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="title">
+          <h3>פרטים אישיים</h3>
+          <div class="helper">5 שדות הושלמו · 2 דקות</div>
+        </div>
+        <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Step 2: current (expanded) -->
+    <div class="form-block is-current">
+      <div class="block-head">
+        <div class="step-icon">2</div>
+        <div class="title">
+          <h3>הצהרה אישית</h3>
+          <div class="helper">3 שאלות פתוחות · הזמן הוא שלך</div>
+        </div>
+      </div>
+
+      <div class="block-body">
+
+        <div class="field">
+          <label>למה את/ה רוצה להצטרף למכינת אורות? <span class="req">*</span></label>
+          <textarea placeholder="כתוב במילים שלך — מה מושך אותך למכינה, מה חשוב לך, ומה את/ה מצפה לקבל ולתת.">אני מחפשת שנה משמעותית לפני הצבא — שנה שתאפשר לי להעמיק בשאלות של זהות, מנהיגות וערכים, ולהכיר אנשים שמחפשים את אותו הדבר.</textarea>
+          <span class="hint">מינימום 50 מילים · כתבת 32 מילים עד כה</span>
+        </div>
+
+        <div class="field">
+          <label>פעילויות התנדבות / חברתיות בשנים האחרונות <span class="req">*</span></label>
+          <textarea placeholder="לדוגמה: הדרכה בתנועת נוער, פרויקטים חברתיים, יוזמות אישיות…"></textarea>
+        </div>
+
+        <div class="field">
+          <label>מי הם שלושת האנשים שהשפיעו עליך?</label>
+          <input type="text" placeholder="בני משפחה, מורים, דמויות ציבוריות — לא חובה" />
+          <span class="hint">שאלה רשות. תוכל לדלג ולחזור.</span>
+        </div>
+
+      </div>
+
+      <!-- AI helper for current step -->
+      <div class="ai-helper">
+        <div class="ai-ava">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+        </div>
+        <div class="ai-body">
+          <div class="ai-name">
+            עוזר אישי
+            <span class="live-dot"></span>
+            <span style="font-weight: 400; color: var(--fg-subtle); font-size: 11px;">פנוי לעזור</span>
+          </div>
+          <p class="ai-msg">אם קשה להתחיל — אני יכול לעזור לסדר את המחשבות. אל דאגה, השאלות הפתוחות הן הזדמנות לספר את הסיפור שלך, לא מבחן.</p>
+          <div class="ai-actions">
+            <button class="ai-act">עזור לי להתחיל</button>
+            <button class="ai-act">בדוק את הניסוח</button>
+            <button class="ai-act">תרגם מאנגלית</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-footer">
+        <button class="save">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          שמור והמשך אחר כך
+        </button>
+        <button class="continue">
+          המשך לשלב הבא
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3: locked -->
+    <div class="form-block is-locked">
+      <div class="block-head">
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="title">
+          <h3>העלאת מסמכים</h3>
+          <div class="helper">תעודת בגרות, תעודת זהות, מסמכי המלצה</div>
+        </div>
+        <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Step 4: locked -->
+    <div class="form-block is-locked">
+      <div class="block-head">
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="title">
+          <h3>הכרות בוידאו (90 שניות)</h3>
+          <div class="helper">ספר על עצמך בקטע קצר · אפשר להקליט במכשיר</div>
+        </div>
+        <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Footer note ── -->
+  <div class="footer-note">
+    <span class="lock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      המידע מוצפן ומאוחסן בהתאם לתקני אבטחת המידע של מועצת המכינות
+    </span>
+    <br/>
+    <span style="margin-top:8px;display:inline-block;">
+      <a href="#">מדיניות פרטיות</a> · <a href="#">תנאי שימוש</a> · <a href="#">צריך עזרה?</a>
+    </span>
+  </div>
+
+</div>
+
+</body>
+</html>

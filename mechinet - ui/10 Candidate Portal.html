@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>הפורטל שלי · Mechinet</title>
+<link rel="stylesheet" href="globals.css" />
+<style>
+  body { background: #eef2f7; }
+  .page {
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--bg);
+    min-height: 100vh;
+    box-shadow: 0 0 40px rgba(3, 22, 49, 0.06);
+    position: relative;
+    padding-bottom: 80px;
+  }
+
+  /* ── Top bar ── */
+  .top {
+    height: 60px;
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .top .me {
+    display: flex; align-items: center; gap: 10px;
+    flex: 1;
+  }
+  .top .me .ava {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #b6c7ea, #374765);
+    color: #fff;
+    display: grid; place-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35);
+  }
+  .top .me b {
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--primary);
+    display: block;
+    line-height: 1.1;
+  }
+  .top .me small {
+    font-size: 11px;
+    color: var(--fg-subtle);
+    display: block;
+    margin-top: 2px;
+  }
+  .top button {
+    width: 36px; height: 36px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius);
+    color: var(--fg-muted);
+    cursor: pointer;
+    display: inline-grid; place-items: center;
+    position: relative;
+  }
+  .top button svg { width: 16px; height: 16px; }
+  .top button .badge {
+    position: absolute;
+    top: -4px; inset-inline-end: -4px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    padding: 0 4px;
+    border: 1.5px solid var(--surface);
+  }
+
+  /* ── Hero greeting ── */
+  .greet {
+    padding: 24px 20px 8px;
+  }
+  .greet h1 {
+    font-size: 22px;
+    line-height: 1.25;
+    font-weight: 600;
+    color: var(--primary);
+    margin: 0 0 4px;
+    letter-spacing: -0.005em;
+  }
+  .greet p {
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    margin: 0;
+  }
+
+  /* ── Acceptance celebration card ── */
+  .celebrate {
+    margin: 14px 20px 0;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(160deg, #0d2543 0%, #1a2b47 60%, #2d3f60 100%);
+    color: #fff;
+    padding: 22px 22px 22px;
+    box-shadow: 0 12px 32px rgba(3, 22, 49, 0.18);
+  }
+  .celebrate::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 85% -10%, rgba(254, 111, 66, 0.30), transparent 50%),
+      radial-gradient(circle at -5% 110%, rgba(68, 221, 193, 0.15), transparent 55%);
+    pointer-events: none;
+  }
+  /* Confetti dots */
+  .celebrate::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 12% 18%, #44ddc1 1.5px, transparent 1.5px),
+      radial-gradient(circle at 78% 22%, #fe6f42 2px, transparent 2px),
+      radial-gradient(circle at 25% 78%, #b6c7ea 1.5px, transparent 1.5px),
+      radial-gradient(circle at 88% 65%, #44ddc1 1.5px, transparent 1.5px),
+      radial-gradient(circle at 55% 12%, #fe6f42 1.5px, transparent 1.5px),
+      radial-gradient(circle at 35% 35%, #b6c7ea 1px, transparent 1px);
+    background-size: 100% 100%;
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .celebrate > * { position: relative; z-index: 1; }
+  .celebrate .ac-row {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 14px;
+  }
+  .celebrate .ac-logo {
+    width: 44px; height: 44px;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .celebrate .ac-logo svg { width: 20px; height: 20px; }
+  .celebrate .ac-info b {
+    display: block;
+    font-size: var(--text-md);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .celebrate .ac-info small {
+    display: block;
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.65);
+    margin-top: 2px;
+  }
+  .celebrate .ac-status {
+    margin-inline-start: auto;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--ai-bright);
+    color: var(--ai-deep);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: var(--radius-full);
+  }
+  .celebrate .ac-status svg { width: 13px; height: 13px; }
+  .celebrate h2 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+  .celebrate p {
+    margin: 0 0 18px;
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.82);
+  }
+  .celebrate .cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 48px;
+    background: var(--accent);
+    color: #fff;
+    border: 0;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: var(--text-md);
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(254, 111, 66, 0.35);
+  }
+  .celebrate .cta:hover { background: var(--accent-hover); }
+  .celebrate .cta svg { width: 16px; height: 16px; }
+  .celebrate .meta {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.65);
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+  }
+  .celebrate .meta .item { display: inline-flex; align-items: center; gap: 5px; }
+  .celebrate .meta .item svg { width: 12px; height: 12px; }
+  .celebrate .meta b { color: #fff; font-weight: 600; }
+
+  /* ── AI tip ── */
+  .ai-tip-card {
+    margin: 14px 20px 0;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    background: var(--ai-soft);
+    border: 1px solid var(--ai-line);
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+  }
+  .ai-tip-card svg.spark { width: 18px; height: 18px; color: var(--ai); flex-shrink: 0; margin-top: 1px; }
+  .ai-tip-card .body { flex: 1; }
+  .ai-tip-card .body b {
+    color: var(--ai-deep);
+    font-weight: 600;
+    font-size: 12.5px;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .ai-tip-card .body p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ai-deep);
+    opacity: 0.85;
+  }
+
+  /* ── Section header ── */
+  .section-h {
+    padding: 28px 20px 12px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .section-h h2 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--primary);
+    letter-spacing: -0.005em;
+  }
+  .section-h .all {
+    font-size: 12.5px;
+    color: var(--fg-muted);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  /* ── Next steps ── */
+  .steps-list { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; }
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color var(--duration), background var(--duration);
+  }
+  .step-card:hover { border-color: var(--accent-line); background: #fffcfa; }
+  .step-card.done {
+    background: var(--bg-subtle);
+  }
+  .step-card .ico {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .step-card .ico svg { width: 18px; height: 18px; }
+  .step-card .ico.teal { background: var(--ai-soft); color: var(--ai-deep); border: 1px solid var(--ai-line); }
+  .step-card .ico.navy { background: var(--primary-soft); color: var(--primary); border: 1px solid var(--primary-line); }
+  .step-card .ico.orange { background: var(--accent-soft); color: var(--accent-hover); border: 1px solid var(--accent-line); }
+  .step-card .ico.done { background: var(--success); color: #fff; }
+  .step-card .body { flex: 1; min-width: 0; }
+  .step-card .body b {
+    display: block;
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--primary);
+    line-height: 1.25;
+  }
+  .step-card.done .body b { color: var(--fg-muted); text-decoration: line-through; text-decoration-color: var(--fg-faint); }
+  .step-card .body small {
+    display: block;
+    font-size: 11.5px;
+    color: var(--fg-subtle);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+  .step-card .chev { color: var(--fg-faint); flex-shrink: 0; }
+  .step-card .chev svg { width: 16px; height: 16px; }
+  .step-card .deadline {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    background: var(--accent-soft);
+    color: var(--accent-hover);
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid var(--accent-line);
+    margin-top: 4px;
+    display: inline-block;
+  }
+
+  /* ── Other applications ── */
+  .apps-list { padding: 0 20px; display: flex; flex-direction: column; gap: 8px; }
+  .app-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color var(--duration);
+  }
+  .app-card:hover { border-color: var(--line-strong); }
+  .app-card .logo {
+    width: 36px; height: 36px;
+    border-radius: var(--radius);
+    background: var(--primary-soft);
+    color: var(--primary);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .app-card .logo.alt { background: #f3ecff; color: #4b2a8a; }
+  .app-card .logo.alt2 { background: #fff6e0; color: #8a5400; }
+  .app-card .logo svg { width: 17px; height: 17px; }
+  .app-card .info { flex: 1; min-width: 0; }
+  .app-card .info b {
+    display: block;
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--fg);
+    line-height: 1.2;
+  }
+  .app-card .info small {
+    display: block;
+    font-size: 11.5px;
+    color: var(--fg-subtle);
+    margin-top: 3px;
+  }
+  .app-card .stage {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 11.5px;
+    font-weight: 500;
+    border: 1px solid;
+    flex-shrink: 0;
+  }
+  .app-card .stage .d { width: 6px; height: 6px; border-radius: 50%; }
+  .app-card .stage.interview { background: var(--stage-interview-bg); color: var(--stage-interview-fg); border-color: var(--stage-interview-line); }
+  .app-card .stage.interview .d { background: var(--stage-interview-dot); }
+  .app-card .stage.review { background: var(--stage-review-bg); color: var(--stage-review-fg); border-color: var(--stage-review-line); }
+  .app-card .stage.review .d { background: var(--stage-review-dot); }
+  .app-card .stage.declined { background: var(--bg-muted); color: var(--fg-muted); border-color: var(--line); }
+  .app-card .stage.declined .d { background: var(--fg-faint); }
+
+  /* ── Compare academies CTA ── */
+  .compare-cta {
+    margin: 14px 20px 0;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color var(--duration), background var(--duration);
+  }
+  .compare-cta:hover { border-color: var(--primary); background: var(--primary-soft); }
+  .compare-cta .ico {
+    width: 32px; height: 32px;
+    border-radius: var(--radius-sm);
+    background: var(--primary-soft);
+    color: var(--primary);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    border: 1px solid var(--primary-line);
+  }
+  .compare-cta .ico svg { width: 14px; height: 14px; }
+  .compare-cta b {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .compare-cta small {
+    font-size: 11px;
+    color: var(--fg-subtle);
+    margin-top: 2px;
+    display: block;
+  }
+  .compare-cta .chev { color: var(--fg-faint); }
+  .compare-cta .chev svg { width: 14px; height: 14px; }
+
+  /* ── Help block ── */
+  .help-block {
+    margin: 28px 20px 0;
+    background: var(--primary);
+    color: var(--on-primary);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .help-block::before {
+    content: "";
+    position: absolute;
+    top: -30px; inset-inline-start: -30px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(68, 221, 193, 0.18), transparent 60%);
+    pointer-events: none;
+  }
+  .help-block .ico {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .help-block .ico svg { width: 18px; height: 18px; }
+  .help-block .ttl { position: relative; }
+  .help-block .ttl b {
+    display: block;
+    font-size: var(--text-base);
+    font-weight: 600;
+  }
+  .help-block .ttl small {
+    display: block;
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.65);
+    margin-top: 3px;
+  }
+  .help-block .arrow {
+    margin-inline-start: auto;
+    color: rgba(255, 255, 255, 0.6);
+    position: relative;
+  }
+  .help-block .arrow svg { width: 16px; height: 16px; }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    inset-inline: 0;
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    height: 64px;
+  }
+  .nav-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: 0;
+    background: transparent;
+    color: var(--fg-faint);
+    font-family: inherit;
+    font-size: 10.5px;
+    cursor: pointer;
+    position: relative;
+    border-top: 2px solid transparent;
+    padding-top: 2px;
+  }
+  .nav-tab svg { width: 20px; height: 20px; }
+  .nav-tab.on { color: var(--primary); border-top-color: var(--accent); }
+  .nav-tab .dot {
+    position: absolute;
+    top: 8px;
+    inset-inline-end: calc(50% - 14px);
+    width: 7px; height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    border: 1.5px solid var(--surface);
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ── Top bar ── -->
+  <div class="top">
+    <div class="me">
+      <div class="ava">נ.ב</div>
+      <div>
+        <b>נועה ברקת</b>
+        <small>תיכון אלון, תל אביב</small>
+      </div>
+    </div>
+    <button aria-label="התראות">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      <span class="badge">3</span>
+    </button>
+    <button aria-label="צ'אט">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+    </button>
+  </div>
+
+  <!-- ── Greeting ── -->
+  <div class="greet">
+    <h1>בוקר טוב, נועה ✨</h1>
+    <p>יש לך עדכון אחד חשוב היום.</p>
+  </div>
+
+  <!-- ── Celebration card ── -->
+  <div class="celebrate">
+    <div class="ac-row">
+      <div class="ac-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg></div>
+      <div class="ac-info">
+        <b>מכינת אורות</b>
+        <small>גיוס תשפ"ז · שנתית</small>
+      </div>
+      <span class="ac-status">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        התקבלת!
+      </span>
+    </div>
+
+    <h2>מזל טוב, נועה.</h2>
+    <p>שמחים להודיע לך שהתקבלת למכינת "אורות" לתשפ"ז. ההתרשמות שלנו מהראיון ומהטופס הייתה מצוינת — וכעת נשאר רק להשלים כמה צעדים אחרונים.</p>
+
+    <button class="cta">
+      אישור הגעה ומילוי פרטים
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+
+    <div class="meta">
+      <span class="item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        להשיב עד <b>26.05.2026</b>
+      </span>
+      <span class="item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        רכזת: <b>יעל כהן</b>
+      </span>
+    </div>
+  </div>
+
+  <!-- ── AI tip ── -->
+  <div class="ai-tip-card">
+    <svg class="spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+    <div class="body">
+      <b>טיפ מהמערכת</b>
+      <p>מומלץ להצטרף לקבוצת הוואטסאפ כבר עכשיו — שם תקבלי עדכונים על ימי גיבוש הקרובים.</p>
+    </div>
+  </div>
+
+  <!-- ── Next steps ── -->
+  <div class="section-h">
+    <h2>מה עושים עכשיו?</h2>
+    <span style="font-size:11.5px;color:var(--fg-subtle);font-family:var(--font-mono);">3 צעדים · 12 ימים</span>
+  </div>
+  <div class="steps-list">
+
+    <div class="step-card done">
+      <div class="ico done">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="body">
+        <b>אישור קבלה</b>
+        <small>הסטטוס שלך מאושר במערכת</small>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="ico teal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      </div>
+      <div class="body">
+        <b>הצטרפות לקבוצת הוואטסאפ</b>
+        <small>כל העדכונים בזמן אמת · 47 בני המחזור כבר בקבוצה</small>
+      </div>
+      <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></span>
+    </div>
+
+    <div class="step-card">
+      <div class="ico navy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 17h6"/><path d="M9 13h6"/></svg>
+      </div>
+      <div class="body">
+        <b>חתימה על מסמכי רישום</b>
+        <small>טופס ויתור סודיות והצהרת בריאות · 4 חתימות</small>
+        <span class="deadline">להגיש עד 23.05</span>
+      </div>
+      <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></span>
+    </div>
+
+    <div class="step-card">
+      <div class="ico orange">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      </div>
+      <div class="body">
+        <b>תשלום דמי רישום</b>
+        <small>2,400 ₪ · ניתן לפרוס לתשלומים · מבטיח את מקומך</small>
+        <span class="deadline">להגיש עד 26.05</span>
+      </div>
+      <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></span>
+    </div>
+
+  </div>
+
+  <!-- ── Other applications ── -->
+  <div class="section-h">
+    <h2>מכינות נוספות</h2>
+    <a class="all" href="#">הכל ←</a>
+  </div>
+  <div class="apps-list">
+
+    <div class="app-card">
+      <div class="logo alt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg></div>
+      <div class="info">
+        <b>מכינת ארז</b>
+        <small>ראיון נקבע ל־18.05, 13:00</small>
+      </div>
+      <span class="stage interview"><span class="d"></span>ראיון</span>
+    </div>
+
+    <div class="app-card">
+      <div class="logo alt2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg></div>
+      <div class="info">
+        <b>מכינת גליל עליון</b>
+        <small>טופס בבדיקה · ממוצע 4 ימים</small>
+      </div>
+      <span class="stage review"><span class="d"></span>בבדיקה</span>
+    </div>
+
+    <div class="app-card">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg></div>
+      <div class="info">
+        <b>מכינת מעלה אפרים</b>
+        <small>נדחית · רשימת המתנה</small>
+      </div>
+      <span class="stage declined"><span class="d"></span>המתנה</span>
+    </div>
+
+  </div>
+
+  <!-- ── Compare CTA ── -->
+  <div class="compare-cta">
+    <div class="ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    </div>
+    <div style="flex:1;">
+      <b>השוו בין המכינות שלך</b>
+      <small>סילבוס, מיקום, גיל ממוצע — לצידם</small>
+    </div>
+    <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></span>
+  </div>
+
+  <!-- ── Help ── -->
+  <div class="help-block">
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1 0 2 1 2 2v12c0 1-1 2-2 2H4c-1 0-2-1-2-2V6c0-1 1-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+    <div class="ttl">
+      <b>זקוקה לעזרה נוספת?</b>
+      <small>רכזת המכינה זמינה בימים א'–ה'</small>
+    </div>
+    <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></span>
+  </div>
+
+  <div style="height:32px;"></div>
+
+  <!-- ── Bottom nav ── -->
+  <nav class="bottom-nav">
+    <button class="nav-tab on">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+      בית
+    </button>
+    <button class="nav-tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+      הגשות
+      <span class="dot"></span>
+    </button>
+    <button class="nav-tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      יומן
+    </button>
+    <button class="nav-tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      פרופיל
+    </button>
+  </nav>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Mechinet · Forms</title>
+<link rel="stylesheet" href="globals.css" />
+<style>
+  /* Search field */
+  .search { position: relative; width: 320px; }
+  .search input { width: 100%; height: 36px; padding: 0 36px 0 12px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--bg-subtle); font-family: inherit; font-size: var(--text-sm); color: var(--fg); outline: none; }
+  .search input::placeholder { color: var(--fg-subtle); }
+  .search input:focus { background: var(--surface); border-color: var(--accent); box-shadow: var(--shadow-focus); }
+  .search svg { position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--fg-subtle); pointer-events: none; }
+
+  /* Page head */
+  .page-head { padding: 28px var(--gutter) 24px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+  .page-head h1 { font-size: var(--text-3xl); line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; margin: 0; color: var(--primary); }
+  .page-head .sub { font-size: var(--text-md); color: var(--fg-muted); margin-top: 8px; }
+
+  .canvas { padding: 0 var(--gutter) 56px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+    padding: 0;
+    margin-bottom: -1px;
+  }
+  .tab {
+    padding: 10px 14px;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--fg-muted);
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: -1px;
+  }
+  .tab .count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg-subtle);
+    padding: 1px 6px;
+    background: var(--bg-muted);
+    border-radius: var(--radius-full);
+    border: 1px solid var(--line);
+  }
+  .tab:hover { color: var(--fg); }
+  .tab.on { color: var(--primary); border-bottom-color: var(--accent); }
+  .tab.on .count { color: var(--primary); background: var(--primary-soft); border-color: var(--primary-line); }
+
+  /* Toolbar */
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .toolbar .spacer { flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-size: var(--text-sm); color: var(--fg-muted); cursor: pointer; font-family: inherit; }
+  .pill:hover { background: var(--bg-subtle); color: var(--fg); }
+  .pill svg { width: 14px; height: 14px; }
+
+  /* Forms grid */
+  .forms-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  /* Form card */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: border-color var(--duration), box-shadow var(--duration);
+  }
+  .form-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow-sm); }
+
+  .form-card .body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+  .form-card .head-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .form-card .icon {
+    width: 40px; height: 40px;
+    border-radius: var(--radius);
+    background: var(--primary-soft);
+    color: var(--primary);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .form-card .icon svg { width: 18px; height: 18px; }
+  .form-card.is-template .icon { background: var(--ai-soft); color: var(--ai-deep); }
+  .form-card.is-draft .icon { background: var(--bg-muted); color: var(--fg-muted); }
+
+  .form-card .titles { flex: 1; min-width: 0; }
+  .form-card h3 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--primary);
+    letter-spacing: -0.005em;
+    line-height: 1.3;
+  }
+  .form-card .meta {
+    font-size: 12px;
+    color: var(--fg-subtle);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .form-card .meta .sep { color: var(--fg-faint); }
+  .form-card .meta .id { font-family: var(--font-mono); }
+
+  .form-card .kebab {
+    width: 30px; height: 30px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    color: var(--fg-faint);
+    cursor: pointer;
+    display: inline-grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .form-card .kebab:hover { background: var(--bg-subtle); color: var(--fg); }
+  .form-card .kebab svg { width: 14px; height: 14px; }
+
+  /* Status row */
+  .status-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    padding: 0 9px;
+    border-radius: var(--radius-full);
+    font-size: 11.5px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+  .status-pill .d { width: 6px; height: 6px; border-radius: 50%; }
+  .status-pill.active { background: var(--stage-accepted-bg); color: var(--stage-accepted-fg); border-color: var(--stage-accepted-line); }
+  .status-pill.active .d { background: var(--stage-accepted-dot); }
+  .status-pill.draft { background: var(--bg-muted); color: var(--fg-muted); border-color: var(--line-strong); }
+  .status-pill.draft .d { background: var(--fg-faint); }
+  .status-pill.closed { background: var(--stage-rejected-bg); color: var(--stage-rejected-fg); border-color: var(--stage-rejected-line); }
+  .status-pill.closed .d { background: var(--stage-rejected-dot); }
+
+  .ai-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 22px; padding: 0 8px;
+    border-radius: var(--radius-full);
+    font-size: 11px; font-weight: 500;
+    background: var(--ai-soft); color: var(--ai-deep);
+    border: 1px solid var(--ai-line);
+  }
+  .ai-pill svg { width: 11px; height: 11px; color: var(--ai); }
+
+  /* Stats row */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line-faint);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--line-faint);
+    margin-top: 4px;
+  }
+  .stat {
+    background: var(--bg-subtle);
+    padding: 10px 12px;
+  }
+  .stat .v {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--primary);
+    line-height: 1.1;
+    letter-spacing: -0.005em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .k {
+    font-size: 11px;
+    color: var(--fg-subtle);
+    margin-top: 2px;
+  }
+  .stat.with-bar { padding-bottom: 8px; }
+  .stat .bar {
+    height: 4px;
+    background: var(--bg-muted);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 5px;
+  }
+  .stat .bar .fill {
+    height: 100%;
+    background: var(--success);
+    border-radius: 2px;
+  }
+  .stat .bar .fill.warn { background: var(--warning); }
+
+  /* URL row */
+  .url-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .url-row .url {
+    flex: 1;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg-muted);
+    direction: ltr;
+    text-align: start;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .url-row button {
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    font-size: 11.5px;
+    color: var(--fg);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: inherit;
+  }
+  .url-row button:hover { background: var(--primary-soft); color: var(--primary); border-color: var(--primary-line); }
+  .url-row button svg { width: 12px; height: 12px; }
+
+  /* Footer (actions) */
+  .form-card .footer {
+    padding: 14px 20px;
+    background: var(--bg-subtle);
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .form-card .footer .left {
+    margin-inline-end: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--fg-subtle);
+  }
+  .form-card .footer .left .av-stack {
+    display: inline-flex;
+    align-items: center;
+  }
+  .form-card .footer .left .av-stack .ava {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    color: #fff;
+    display: grid; place-items: center;
+    font-size: 9.5px; font-weight: 600;
+    margin-inline-start: -6px;
+    box-shadow: 0 0 0 2px var(--bg-subtle), inset 0 0 0 1.5px rgba(255,255,255,0.3);
+  }
+  .form-card .footer .left .av-stack .ava:first-child { margin-inline-start: 0; }
+
+  .btn-card {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--primary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: inherit;
+  }
+  .btn-card:hover { background: var(--bg-subtle); }
+  .btn-card.primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+  .btn-card.primary:hover { background: var(--primary-2); }
+  .btn-card svg { width: 13px; height: 13px; }
+
+  /* New form card (empty state / CTA) */
+  .form-card.new {
+    border-style: dashed;
+    background: transparent;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 320px;
+    cursor: pointer;
+    transition: background var(--duration), border-color var(--duration);
+  }
+  .form-card.new:hover { background: var(--accent-soft); border-color: var(--accent); }
+  .form-card.new .body { align-items: center; justify-content: center; text-align: center; }
+  .form-card.new .ico-circle {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    display: grid; place-items: center;
+    color: var(--accent);
+  }
+  .form-card.new .ico-circle svg { width: 24px; height: 24px; }
+  .form-card.new:hover .ico-circle { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .form-card.new h3 { margin: 0; font-size: var(--text-lg); font-weight: 600; color: var(--primary); }
+  .form-card.new p { margin: 0; font-size: var(--text-sm); color: var(--fg-muted); max-width: 30ch; }
+
+  /* Template library section */
+  .templates {
+    margin-top: 32px;
+    padding-top: 28px;
+    border-top: 1px dashed var(--line);
+  }
+  .templates-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .templates-head h2 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .templates-head h2 .badge {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    background: var(--ai-soft);
+    color: var(--ai-deep);
+    border: 1px solid var(--ai-line);
+    padding: 2px 7px;
+    border-radius: var(--radius-sm);
+  }
+  .templates-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .tmpl {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color var(--duration), transform var(--duration);
+  }
+  .tmpl:hover { border-color: var(--primary); transform: translateY(-1px); }
+  .tmpl .tmpl-head { display: flex; align-items: center; gap: 10px; }
+  .tmpl .tico {
+    width: 32px; height: 32px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-subtle);
+    color: var(--fg-muted);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .tmpl .tico svg { width: 16px; height: 16px; }
+  .tmpl h4 { margin: 0; font-size: var(--text-base); font-weight: 600; color: var(--primary); }
+  .tmpl p { margin: 0; font-size: 12.5px; color: var(--fg-muted); line-height: 1.55; }
+  .tmpl .tfoot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--fg-subtle);
+    font-family: var(--font-mono);
+  }
+  .tmpl .tfoot .gov {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--ai-deep);
+    background: var(--ai-soft);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--ai-line);
+  }
+  .tmpl .tfoot .gov svg { width: 10px; height: 10px; }
+
+  /* Avatar colors */
+  .av-a { background: linear-gradient(135deg, #b6c7ea, #374765); }
+  .av-b { background: linear-gradient(135deg, #ffb59f, #fe6f42); }
+  .av-c { background: linear-gradient(135deg, #44ddc1, #00a58e); }
+  .av-d { background: linear-gradient(135deg, #d5c4f7, #7c5cd6); }
+</style>
+</head>
+<body>
+
+<div class="mf-shell">
+
+  <aside class="mf-sidebar">
+    <div class="mf-brand">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg></div>
+      <div class="org"><b>מכינת אורות</b><small>mechinet · admin</small></div>
+    </div>
+    <nav class="mf-nav">
+      <div class="mf-group">
+        <div class="label">ניווט ראשי</div>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>לוח בקרה</a>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>מועמדים<span class="count">147</span></a>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="14" x="3" y="5" rx="1"/><rect width="6" height="10" x="11" y="5" rx="1"/><rect width="6" height="7" x="19" y="5" rx="1" transform="translate(0 -2)"/></svg>פייפליין</a>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>יומן<span class="count">12</span></a>
+        <a class="mf-nav-item is-active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>טפסים</a>
+      </div>
+      <div class="mf-group">
+        <div class="label">ארגון</div>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>חברי צוות</a>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>הגדרות</a>
+      </div>
+    </nav>
+    <div class="mf-user">
+      <div class="mf-user-row">
+        <div class="mf-avatar">י.כ</div>
+        <div class="mf-user-meta"><b>יעל כהן</b><small>yael@orot.org.il</small></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="mf-main">
+
+    <div class="mf-topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input placeholder="חיפוש טפסים…" />
+      </div>
+      <div style="margin-inline-start:auto;display:flex;gap:8px;">
+        <button class="mf-btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          טופס חדש
+        </button>
+      </div>
+    </div>
+
+    <div class="page-head">
+      <div>
+        <h1>טפסים</h1>
+        <p class="sub">בנייה וניהול של טפסי רישום למחזורי גיוס · 4 טפסים פעילים</p>
+      </div>
+    </div>
+
+    <div class="canvas">
+
+      <div class="tabs">
+        <button class="tab on">הכל <span class="count">7</span></button>
+        <button class="tab">פעילים <span class="count">4</span></button>
+        <button class="tab">טיוטות <span class="count">2</span></button>
+        <button class="tab">סגורים <span class="count">1</span></button>
+      </div>
+
+      <div class="toolbar">
+        <button class="pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
+          מיון: עודכן לאחרונה
+        </button>
+        <button class="pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          תצוגה: כרטיסים
+        </button>
+        <div class="spacer"></div>
+        <span style="font-size:11.5px;color:var(--fg-subtle);font-family:var(--font-mono);">7 טפסים · 5,847 הגשות</span>
+      </div>
+
+      <!-- Forms grid -->
+      <div class="forms-grid">
+
+        <!-- Active main form -->
+        <div class="form-card">
+          <div class="body">
+            <div class="head-row">
+              <div class="icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+              </div>
+              <div class="titles">
+                <h3>גיוס תשפ"ז · טופס ראשי</h3>
+                <div class="meta">
+                  <span>14 שדות</span>
+                  <span class="sep">·</span>
+                  <span>נפתח 12.03.2026</span>
+                  <span class="sep">·</span>
+                  <span class="id">#frm_8a3b</span>
+                </div>
+              </div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+
+            <div class="status-row">
+              <span class="status-pill active"><span class="d"></span>פעיל</span>
+              <span class="ai-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>סיוע AI במילוי</span>
+            </div>
+
+            <div class="stats">
+              <div class="stat">
+                <div class="v">147</div>
+                <div class="k">הגשות</div>
+              </div>
+              <div class="stat with-bar">
+                <div class="v">68%</div>
+                <div class="k">השלמה</div>
+                <div class="bar"><div class="fill" style="width:68%;"></div></div>
+              </div>
+              <div class="stat">
+                <div class="v">3.2<span style="font-size:11px;color:var(--fg-subtle);">ד׳</span></div>
+                <div class="k">זמן ממוצע</div>
+              </div>
+            </div>
+
+            <div class="url-row">
+              <span class="url">mechinet.app/apply/orot-2026</span>
+              <button>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                העתק
+              </button>
+              <button>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                שתף
+              </button>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div class="left">
+              <div class="av-stack">
+                <span class="ava av-a">י.כ</span>
+                <span class="ava av-b">א.ש</span>
+                <span class="ava av-c">ר.ב</span>
+              </div>
+              <span>עודכן לפני 4 דקות · יעל</span>
+            </div>
+            <button class="btn-card">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 0 9 9 9 9 0 0 0 9-9 9 9 0 0 0-9-9"/><path d="M3 12V2l4 4"/></svg>
+              תצוגה מקדימה
+            </button>
+            <button class="btn-card primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              עריכה
+            </button>
+          </div>
+        </div>
+
+        <!-- Active secondary form -->
+        <div class="form-card">
+          <div class="body">
+            <div class="head-row">
+              <div class="icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="titles">
+                <h3>טופס המלצה מאיש קשר</h3>
+                <div class="meta">
+                  <span>6 שדות</span>
+                  <span class="sep">·</span>
+                  <span>נפתח 02.04.2026</span>
+                </div>
+              </div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+
+            <div class="status-row">
+              <span class="status-pill active"><span class="d"></span>פעיל</span>
+            </div>
+
+            <div class="stats">
+              <div class="stat"><div class="v">63</div><div class="k">הגשות</div></div>
+              <div class="stat with-bar"><div class="v">42%</div><div class="k">השלמה</div><div class="bar"><div class="fill warn" style="width:42%;"></div></div></div>
+              <div class="stat"><div class="v">1.4<span style="font-size:11px;color:var(--fg-subtle);">ד׳</span></div><div class="k">זמן ממוצע</div></div>
+            </div>
+
+            <div class="url-row">
+              <span class="url">mechinet.app/apply/orot-recommendation</span>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>העתק</button>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div class="left">
+              <div class="av-stack"><span class="ava av-a">י.כ</span></div>
+              <span>עודכן לפני יומיים</span>
+            </div>
+            <button class="btn-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 0 9 9 9 9 0 0 0 9-9 9 9 0 0 0-9-9"/></svg>תצוגה</button>
+            <button class="btn-card primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>עריכה</button>
+          </div>
+        </div>
+
+        <!-- Draft form -->
+        <div class="form-card is-draft">
+          <div class="body">
+            <div class="head-row">
+              <div class="icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="titles">
+                <h3>הערכת ראיון אישי · טיוטה</h3>
+                <div class="meta">
+                  <span>8 שדות</span>
+                  <span class="sep">·</span>
+                  <span>טרם פורסם</span>
+                </div>
+              </div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+
+            <div class="status-row">
+              <span class="status-pill draft"><span class="d"></span>טיוטה</span>
+              <span style="font-size:11.5px;color:var(--fg-subtle);">פנימי לצוות בלבד</span>
+            </div>
+
+            <div style="padding:18px 14px;background:var(--bg-subtle);border-radius:var(--radius);border:1px dashed var(--line);text-align:center;">
+              <p style="margin:0;font-size:var(--text-sm);color:var(--fg-muted);line-height:1.5;">
+                הטופס בעריכה. השלם הגדרת תגיות הערכה וסקאלת התאמה לפני פרסום.
+              </p>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div class="left">
+              <div class="av-stack"><span class="ava av-d">א.ש</span></div>
+              <span>עודכן 09.05.2026 · אורי</span>
+            </div>
+            <button class="btn-card">העתקה</button>
+            <button class="btn-card primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>המשך עריכה</button>
+          </div>
+        </div>
+
+        <!-- New form CTA -->
+        <div class="form-card new">
+          <div class="body" style="gap:14px;">
+            <div class="ico-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            </div>
+            <h3>טופס חדש</h3>
+            <p>בנה טופס מאפס או התחל מתבנית של מועצת המכינות.</p>
+            <button class="btn-card primary" style="margin-top:4px;">צור טופס</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Template library -->
+      <div class="templates">
+        <div class="templates-head">
+          <h2>תבניות מומלצות <span class="badge">מועצת המכינות</span></h2>
+          <a href="#" style="font-size:var(--text-sm);color:var(--primary);text-decoration:none;font-weight:500;">צפה בכל התבניות ←</a>
+        </div>
+        <div class="templates-grid">
+
+          <div class="tmpl">
+            <div class="tmpl-head">
+              <div class="tico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+              <h4>טופס סטנדרטי לגיוס</h4>
+            </div>
+            <p>תבנית רשמית הכוללת את כל השדות הנדרשים על־ידי המועצה: זהות, יצירת קשר, חינוך, אישיות.</p>
+            <div class="tfoot">
+              <span>14 שדות · מאושר</span>
+              <span class="gov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>אומת</span>
+            </div>
+          </div>
+
+          <div class="tmpl">
+            <div class="tmpl-head">
+              <div class="tico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
+              <h4>טופס וידאו הצגה</h4>
+            </div>
+            <p>השלמת מועמדות עם סרטון הצגה אישי קצר (עד 90 שניות). מומלץ לראיון מקדים.</p>
+            <div class="tfoot">
+              <span>3 שדות · אופציונלי</span>
+              <span class="gov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>אומת</span>
+            </div>
+          </div>
+
+          <div class="tmpl">
+            <div class="tmpl-head">
+              <div class="tico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+              <h4>טופס המלצה מאיש קשר</h4>
+            </div>
+            <p>טופס קצר למורים, מדריכים או מעסיקים — מילוי חיצוני בקישור ייעודי.</p>
+            <div class="tfoot">
+              <span>6 שדות</span>
+              <span class="gov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>אומת</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

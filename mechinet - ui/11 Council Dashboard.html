@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Mechinet · Council Dashboard</title>
+<link rel="stylesheet" href="globals.css" />
+<style>
+  /* Override brand mark — Council version uses a building-pillar icon */
+  .council-brand .mark {
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+  .council-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    background: var(--accent-soft);
+    color: var(--accent-hover);
+    border: 1px solid var(--accent-line);
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    margin-inline-start: 6px;
+    flex-shrink: 0;
+  }
+
+  /* search field */
+  .search { position: relative; width: 360px; }
+  .search input { width: 100%; height: 36px; padding: 0 36px 0 12px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--bg-subtle); font-family: inherit; font-size: var(--text-sm); color: var(--fg); outline: none; }
+  .search input:focus { background: var(--surface); border-color: var(--accent); box-shadow: var(--shadow-focus); }
+  .search svg { position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--fg-subtle); pointer-events: none; }
+
+  /* page head */
+  .page-head {
+    padding: 28px var(--gutter) 18px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .page-head h1 {
+    font-size: var(--text-3xl);
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .page-head h1 .scope-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    border: 1px solid var(--primary-line);
+    padding: 3px 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    letter-spacing: 0;
+  }
+  .page-head h1 .scope-pill svg { width: 12px; height: 12px; }
+  .page-head .sub {
+    font-size: var(--text-md);
+    color: var(--fg-muted);
+    margin-top: 8px;
+    max-width: 60ch;
+  }
+
+  .canvas { padding: 12px var(--gutter) 56px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* KPI row — adapted for council with progress emphasis */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 14px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .kpi-head { display: flex; align-items: center; justify-content: space-between; }
+  .kpi-label {
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    font-weight: 500;
+  }
+  .kpi-ico {
+    width: 36px; height: 36px;
+    border-radius: var(--radius);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .kpi-ico svg { width: 18px; height: 18px; }
+  .kpi-ico.navy { background: var(--primary-soft); color: var(--primary); }
+  .kpi-ico.orange { background: var(--accent-soft); color: var(--accent-hover); }
+  .kpi-ico.teal { background: var(--ai-soft); color: var(--ai-deep); }
+  .kpi-value {
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--primary);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--fg-subtle);
+    font-family: var(--font-mono);
+  }
+  .kpi-foot .delta { color: var(--success); display: inline-flex; align-items: center; gap: 4px; }
+  .kpi-foot .delta svg { width: 12px; height: 12px; }
+
+  /* Progress KPI with bar */
+  .kpi.progress {
+    background: linear-gradient(180deg, var(--surface), var(--bg-subtle));
+  }
+  .progress-bar {
+    height: 12px;
+    background: var(--bg-muted);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    position: relative;
+    margin-top: 4px;
+  }
+  .progress-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    border-radius: var(--radius-full);
+    width: 78%;
+    transition: width var(--duration-slow);
+  }
+  .progress-bar .target {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    width: 2px;
+    background: var(--primary);
+    inset-inline-start: 90%;
+  }
+  .progress-bar .target::after {
+    content: "יעד 90%";
+    position: absolute;
+    bottom: -22px;
+    inset-inline-start: -22px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--primary);
+    white-space: nowrap;
+  }
+
+  /* Map + chart row */
+  .map-row { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; }
+  .map-card, .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line-faint);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-head h2 {
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-head h2 svg { width: 16px; height: 16px; color: var(--fg-faint); }
+
+  /* Map */
+  .map-svg-wrap {
+    position: relative;
+    padding: 14px 18px 22px;
+  }
+  .map-svg {
+    width: 100%;
+    height: 280px;
+    display: block;
+  }
+  .map-legend {
+    display: flex;
+    gap: 14px;
+    margin-top: 8px;
+    padding: 0 4px;
+    font-size: 11.5px;
+    color: var(--fg-muted);
+  }
+  .map-legend .item { display: inline-flex; align-items: center; gap: 6px; }
+  .map-legend .d { width: 9px; height: 9px; border-radius: 50%; }
+
+  /* Stage chart (bar chart vertical) */
+  .chart-body {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .chart-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 70px;
+    align-items: center;
+    gap: 12px;
+  }
+  .chart-row .label {
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .chart-row .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .chart-row .bar {
+    height: 10px;
+    background: var(--bg-muted);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+  .chart-row .fill {
+    height: 100%;
+    background: var(--c);
+    border-radius: var(--radius-full);
+  }
+  .chart-row .num {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--primary);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+  }
+
+  /* Academies table */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .table-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .table-head h2 {
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--primary);
+    flex: 1;
+  }
+  .pill { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-size: var(--text-sm); color: var(--fg-muted); cursor: pointer; font-family: inherit; }
+  .pill:hover { background: var(--bg-subtle); color: var(--fg); }
+  .pill svg { width: 13px; height: 13px; }
+  .table-head .pill { font-size: 12px; height: 30px; }
+
+  table.t { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+  table.t thead th {
+    text-align: start;
+    font-weight: 500;
+    color: var(--fg-subtle);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-subtle);
+    white-space: nowrap;
+  }
+  table.t tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-faint);
+    vertical-align: middle;
+  }
+  table.t tbody tr:last-child td { border-bottom: 0; }
+  table.t tbody tr:hover { background: var(--bg-subtle); cursor: pointer; }
+
+  .ac-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ac-cell .badge {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-sm);
+    color: #fff;
+    display: grid; place-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  }
+  .ac-cell .badge.b1 { background: linear-gradient(135deg, #374765, #1a2b47); }
+  .ac-cell .badge.b2 { background: linear-gradient(135deg, #c1583d, #ac3509); }
+  .ac-cell .badge.b3 { background: linear-gradient(135deg, #00a58e, #00322a); }
+  .ac-cell .badge.b4 { background: linear-gradient(135deg, #7c5cd6, #4b2a8a); }
+  .ac-cell .badge.b5 { background: linear-gradient(135deg, #e5a228, #8a5400); }
+  .ac-cell .info b { display: block; font-size: 13.5px; font-weight: 600; color: var(--fg); line-height: 1.2; }
+  .ac-cell .info small { display: block; font-size: 11px; color: var(--fg-subtle); margin-top: 2px; }
+  .ac-cell .ai-spark {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-inline-start: 8px;
+    font-size: 11px;
+    color: var(--ai-deep);
+  }
+  .ac-cell .ai-spark svg { width: 11px; height: 11px; color: var(--ai); }
+
+  .type-cell { color: var(--fg-muted); }
+  .contact-cell { color: var(--fg-muted); font-size: 12.5px; line-height: 1.4; }
+  .contact-cell .ph { font-family: var(--font-mono); direction: ltr; }
+
+  .cand-cell {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 14px;
+  }
+  .cand-cell .delta {
+    margin-inline-start: 6px;
+    font-size: 11px;
+    color: var(--success);
+    font-weight: 500;
+  }
+  .cand-cell .delta.down { color: var(--danger); }
+
+  .status-pill-tbl {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    padding: 0 9px;
+    border-radius: var(--radius-full);
+    font-size: 11.5px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+  .status-pill-tbl .d { width: 6px; height: 6px; border-radius: 50%; }
+  .status-pill-tbl.ok { background: var(--ai-soft); color: var(--ai-deep); border-color: var(--ai-line); }
+  .status-pill-tbl.ok .d { background: var(--ai); }
+  .status-pill-tbl.warn { background: var(--stage-review-bg); color: var(--stage-review-fg); border-color: var(--stage-review-line); }
+  .status-pill-tbl.warn .d { background: var(--stage-review-dot); }
+  .status-pill-tbl.off { background: var(--bg-muted); color: var(--fg-muted); border-color: var(--line-strong); }
+  .status-pill-tbl.off .d { background: var(--fg-faint); }
+
+  .action-btn {
+    height: 28px;
+    padding: 0 11px;
+    background: var(--surface);
+    color: var(--primary);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .action-btn:hover { background: var(--primary-soft); }
+
+  /* Pagination */
+  .pagi {
+    padding: 14px 20px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-subtle);
+  }
+  .pagi .meta { font-size: 12px; color: var(--fg-muted); font-family: var(--font-mono); }
+  .pagi .nav { display: flex; gap: 4px; }
+  .pagi button {
+    height: 28px; min-width: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    color: var(--fg-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .pagi button.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+  .pagi button:hover { background: var(--primary-soft); }
+
+  /* AI insight footer */
+  .ai-footer {
+    margin-top: 8px;
+    background: linear-gradient(135deg, var(--ai-soft), #d4f5e9);
+    border: 1px solid var(--ai-line);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    position: relative;
+    overflow: hidden;
+  }
+  .ai-footer::before {
+    content: "";
+    position: absolute;
+    top: -50px; inset-inline-start: -50px;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(0, 165, 142, 0.18), transparent 60%);
+    pointer-events: none;
+  }
+  .ai-footer .ai-ico {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--ai);
+    color: #fff;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .ai-footer .ai-ico svg { width: 18px; height: 18px; }
+  .ai-footer .body { position: relative; }
+  .ai-footer h3 {
+    margin: 0 0 6px;
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--ai-deep);
+  }
+  .ai-footer p {
+    margin: 0 0 8px;
+    font-size: var(--text-sm);
+    line-height: 1.65;
+    color: var(--ai-deep);
+    opacity: 0.85;
+    max-width: 80ch;
+  }
+  .ai-footer .cite-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    background: var(--surface);
+    color: var(--ai-deep);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 4px;
+    vertical-align: 4px;
+    margin: 0 3px;
+    border: 1px solid var(--ai-line);
+    cursor: pointer;
+  }
+  .ai-footer .cite-num:hover { background: var(--ai); color: #fff; }
+  .ai-footer .actions { display: flex; gap: 8px; margin-top: 10px; }
+  .ai-footer .act {
+    background: var(--surface);
+    border: 1px solid var(--ai);
+    color: var(--ai-deep);
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .ai-footer .act:hover { background: var(--ai); color: #fff; }
+  .ai-footer .act.primary { background: var(--ai); color: #fff; }
+  .ai-footer .act.primary:hover { background: var(--ai-deep); }
+  .ai-footer .act svg { width: 12px; height: 12px; }
+</style>
+</head>
+<body>
+
+<div class="mf-shell">
+
+  <!-- Sidebar — council version -->
+  <aside class="mf-sidebar council-brand">
+    <div class="mf-brand">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v3"/><path d="M12 14v3"/><path d="M16 14v3"/></svg>
+      </div>
+      <div class="org">
+        <b>מועצת המכינות</b>
+        <small>council · super admin</small>
+      </div>
+    </div>
+    <nav class="mf-nav">
+      <div class="mf-group">
+        <div class="label">ניהול ארצי</div>
+        <a class="mf-nav-item is-active" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          לוח בקרה
+        </a>
+        <a class="mf-nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg>
+          מכינות
+          <span class="count">64</span>
+        </a>
+        <a class="mf-nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+          מועמדים
+          <span class="count">12.4k</span>
+        </a>
+        <a class="mf-nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+          תבניות טפסים
+        </a>
+        <a class="mf-nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          דוחות
+        </a>
+      </div>
+
+      <div class="mf-group">
+        <div class="label">תקנים ופיקוח</div>
+        <a class="mf-nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          אבטחת מידע
+        </a>
+        <a class="mf-nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+          אתיקה והטיות AI
+        </a>
+        <a class="mf-nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>
+          הגדרות
+        </a>
+      </div>
+    </nav>
+    <div class="mf-user">
+      <div class="mf-user-row">
+        <div class="mf-avatar" style="background: linear-gradient(135deg, #b6c7ea, #374765);">י.י</div>
+        <div class="mf-user-meta">
+          <b>ישראל ישראלי</b>
+          <small>national.admin@mechinot.org.il</small>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="mf-main">
+
+    <div class="mf-topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input placeholder="חיפוש מכינה, מנהל, או מועמד…" />
+      </div>
+      <div style="margin-inline-start:auto;display:flex;gap:8px;align-items:center;">
+        <button class="mf-icon-btn" aria-label="התראות" style="position:relative;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span style="position:absolute;top:4px;inset-inline-end:5px;width:7px;height:7px;background:var(--accent);border-radius:50%;border:1.5px solid var(--surface);"></span>
+        </button>
+        <button class="mf-btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          הוסף מכינה חדשה
+        </button>
+      </div>
+    </div>
+
+    <div class="page-head">
+      <div>
+        <h1>
+          סקירה ארצית
+          <span class="scope-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>תשפ"ז</span>
+        </h1>
+        <p class="sub">סקירה של פעילות 64 המכינות הקדם־צבאיות בארץ · מחזור גיוס פעיל</p>
+      </div>
+    </div>
+
+    <div class="canvas">
+
+      <!-- KPI row -->
+      <section class="kpi-row">
+
+        <div class="kpi progress">
+          <div class="kpi-head">
+            <span class="kpi-label">ממוצע התקדמות גיוס</span>
+            <div class="kpi-ico orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+            </div>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:8px;">
+            <div class="kpi-value">78%</div>
+            <div style="color:var(--success);font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+              +12% מאשתקד
+            </div>
+          </div>
+          <div class="progress-bar">
+            <div class="fill"></div>
+            <div class="target"></div>
+          </div>
+          <div class="kpi-foot" style="margin-top:24px;">
+            <span>5 מכינות מעל היעד</span>
+            <span style="color:var(--warning);">11 מתחת לממוצע</span>
+          </div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-head">
+            <span class="kpi-label">סה"כ מכינות</span>
+            <div class="kpi-ico navy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value">64</div>
+          <div class="kpi-foot">
+            <span class="delta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>+2 השנה</span>
+            <span>3 בהקמה</span>
+          </div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-head">
+            <span class="kpi-label">מועמדים רשומים</span>
+            <div class="kpi-ico teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value">12,450</div>
+          <div class="kpi-foot">
+            <span class="delta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>+1,830 מאשתקד</span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Map + chart -->
+      <section class="map-row">
+
+        <div class="map-card">
+          <div class="card-head">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              פריסה גיאוגרפית · 64 מכינות
+            </h2>
+            <button class="pill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/></svg>
+              לפי אזור
+            </button>
+          </div>
+          <div class="map-svg-wrap">
+            <!-- Simplified Israel-shape map with academy dots -->
+            <svg class="map-svg" viewBox="0 0 400 280" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="land" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#eef2f7"/>
+                  <stop offset="1" stop-color="#e1e3e4"/>
+                </linearGradient>
+              </defs>
+              <!-- Stylized Israel outline -->
+              <path d="M 180 12 L 195 8 L 218 18 L 232 38 L 232 62 L 245 78 L 248 100 L 240 122 L 245 145 L 252 168 L 240 190 L 225 215 L 210 240 L 195 268 L 178 268 L 168 248 L 162 218 L 155 188 L 152 162 L 158 138 L 160 112 L 156 88 L 158 64 L 162 42 L 170 22 Z"
+                fill="url(#land)" stroke="#c5c6ce" stroke-width="1.2" />
+              <!-- City labels -->
+              <text x="178" y="76" font-family="Rubik" font-size="9" fill="#75777e" text-anchor="middle">חיפה</text>
+              <text x="185" y="155" font-family="Rubik" font-size="9" fill="#75777e" text-anchor="middle">ת״א</text>
+              <text x="210" y="158" font-family="Rubik" font-size="9" fill="#75777e" text-anchor="middle">ירושלים</text>
+              <text x="200" y="230" font-family="Rubik" font-size="9" fill="#75777e" text-anchor="middle">ב״ש</text>
+              <!-- Academy dots (size = candidates, color = status) -->
+              <!-- North -->
+              <circle cx="175" cy="48" r="10" fill="#00a58e" fill-opacity="0.18" stroke="#00a58e" stroke-width="2"/>
+              <circle cx="190" cy="65" r="7" fill="#fe6f42" fill-opacity="0.18" stroke="#fe6f42" stroke-width="2"/>
+              <circle cx="200" cy="48" r="6" fill="#00a58e" fill-opacity="0.18" stroke="#00a58e" stroke-width="2"/>
+              <circle cx="218" cy="78" r="9" fill="#00a58e" fill-opacity="0.18" stroke="#00a58e" stroke-width="2"/>
+              <!-- Center -->
+              <circle cx="182" cy="135" r="14" fill="#fe6f42" fill-opacity="0.22" stroke="#fe6f42" stroke-width="2"/>
+              <circle cx="195" cy="115" r="9" fill="#00a58e" fill-opacity="0.18" stroke="#00a58e" stroke-width="2"/>
+              <circle cx="172" cy="155" r="8" fill="#00a58e" fill-opacity="0.18" stroke="#00a58e" stroke-width="2"/>
+              <circle cx="198" cy="142" r="7" fill="#00a58e" fill-opacity="0.18" stroke="#00a58e" stroke-width="2"/>
+              <circle cx="215" cy="148" r="11" fill="#fe6f42" fill-opacity="0.22" stroke="#fe6f42" stroke-width="2"/>
+              <circle cx="208" cy="170" r="6" fill="#e5a228" fill-opacity="0.22" stroke="#e5a228" stroke-width="2"/>
+              <!-- South -->
+              <circle cx="190" cy="200" r="8" fill="#00a58e" fill-opacity="0.18" stroke="#00a58e" stroke-width="2"/>
+              <circle cx="200" cy="245" r="5" fill="#75777e" fill-opacity="0.18" stroke="#75777e" stroke-width="2"/>
+              <circle cx="183" cy="225" r="6" fill="#e5a228" fill-opacity="0.22" stroke="#e5a228" stroke-width="2"/>
+            </svg>
+            <div class="map-legend">
+              <span class="item"><span class="d" style="background:#00a58e"></span>בקצב יעד · 42</span>
+              <span class="item"><span class="d" style="background:#fe6f42"></span>מעל היעד · 11</span>
+              <span class="item"><span class="d" style="background:#e5a228"></span>מתחת ליעד · 8</span>
+              <span class="item"><span class="d" style="background:#75777e"></span>בהקמה · 3</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="card-head">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              מועמדים לפי סוג מכינה
+            </h2>
+          </div>
+          <div class="chart-body">
+            <div class="chart-row" style="--c: var(--primary)">
+              <span class="label"><span class="dot" style="background:var(--primary);"></span>מעורבת · בנים ובנות</span>
+              <div class="bar"><div class="fill" style="width: 62%;"></div></div>
+              <span class="num">7,720</span>
+            </div>
+            <div class="chart-row" style="--c: var(--accent)">
+              <span class="label"><span class="dot" style="background:var(--accent);"></span>רק בנים</span>
+              <div class="bar"><div class="fill" style="width: 24%;"></div></div>
+              <span class="num">3,010</span>
+            </div>
+            <div class="chart-row" style="--c: var(--ai)">
+              <span class="label"><span class="dot" style="background:var(--ai);"></span>רק בנות</span>
+              <div class="bar"><div class="fill" style="width: 14%;"></div></div>
+              <span class="num">1,720</span>
+            </div>
+            <div style="border-top:1px solid var(--line-faint);padding-top:10px;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:var(--tracking-caps);color:var(--fg-subtle);">לפי אופי</div>
+            <div class="chart-row" style="--c: #7c5cd6">
+              <span class="label"><span class="dot" style="background:#7c5cd6;"></span>דתי</span>
+              <div class="bar"><div class="fill" style="width: 36%;"></div></div>
+              <span class="num">4,480</span>
+            </div>
+            <div class="chart-row" style="--c: var(--warning)">
+              <span class="label"><span class="dot" style="background:var(--warning);"></span>חילוני</span>
+              <div class="bar"><div class="fill" style="width: 44%;"></div></div>
+              <span class="num">5,470</span>
+            </div>
+            <div class="chart-row" style="--c: var(--ai-deep)">
+              <span class="label"><span class="dot" style="background:var(--ai-deep);"></span>מעורב · דתי + חילוני</span>
+              <div class="bar"><div class="fill" style="width: 20%;"></div></div>
+              <span class="num">2,500</span>
+            </div>
+            <div style="border-top:1px solid var(--line-faint);padding-top:12px;margin-top:4px;display:flex;align-items:center;justify-content:space-between;font-size:12.5px;">
+              <span style="color:var(--fg-muted);">סה"כ פעיל</span>
+              <span style="font-family:var(--font-mono);font-weight:600;color:var(--primary);font-size:14px;">12,450</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Infrastructure costs panel — council only -->
+      <div class="map-card" style="background: linear-gradient(180deg, var(--surface) 0%, var(--bg-subtle) 100%);">
+        <div class="card-head">
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg>
+            עלויות תשתית · התחזוקה השוטפת של המערכת
+          </h2>
+          <button class="pill" style="font-size:11.5px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            מאי 2026
+          </button>
+        </div>
+        <div style="padding: 18px 22px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+
+          <div style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <div style="width:24px;height:24px;border-radius:var(--radius-sm);background:#3ECF8E22;color:#1B5E3F;display:grid;place-items:center;border:1px solid #3ECF8E66;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4z"/><path d="M4 16c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4z"/><path d="M4 8v8"/><path d="M20 8v8"/></svg>
+              </div>
+              <span style="font-size:12.5px;color:var(--fg-muted);font-weight:500;">Supabase</span>
+            </div>
+            <div style="font-size:22px;font-weight:700;color:var(--primary);letter-spacing:-0.01em;font-variant-numeric:tabular-nums;">$184<span style="font-size:11px;color:var(--fg-subtle);font-weight:400;">/חודש</span></div>
+            <div style="font-family:var(--font-mono);font-size:10.5px;color:var(--fg-subtle);margin-top:4px;">DB · Storage · Auth</div>
+          </div>
+
+          <div style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <div style="width:24px;height:24px;border-radius:var(--radius-sm);background:#00000011;color:#000;display:grid;place-items:center;border:1px solid #00000022;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 22 22 2 22"/></svg>
+              </div>
+              <span style="font-size:12.5px;color:var(--fg-muted);font-weight:500;">Vercel</span>
+            </div>
+            <div style="font-size:22px;font-weight:700;color:var(--primary);letter-spacing:-0.01em;font-variant-numeric:tabular-nums;">$78<span style="font-size:11px;color:var(--fg-subtle);font-weight:400;">/חודש</span></div>
+            <div style="font-family:var(--font-mono);font-size:10.5px;color:var(--fg-subtle);margin-top:4px;">Pro · Edge functions</div>
+          </div>
+
+          <div style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <div style="width:24px;height:24px;border-radius:var(--radius-sm);background:var(--accent-soft);color:var(--accent-hover);display:grid;place-items:center;border:1px solid var(--accent-line);">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1 0 2 1 2 2v12c0 1-1 2-2 2H4c-1 0-2-1-2-2V6c0-1 1-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <span style="font-size:12.5px;color:var(--fg-muted);font-weight:500;">Resend · אימיילים</span>
+            </div>
+            <div style="font-size:22px;font-weight:700;color:var(--primary);letter-spacing:-0.01em;font-variant-numeric:tabular-nums;">$22<span style="font-size:11px;color:var(--fg-subtle);font-weight:400;">/חודש</span></div>
+            <div style="font-family:var(--font-mono);font-size:10.5px;color:var(--fg-subtle);margin-top:4px;">12.4k שליחות / חודש</div>
+          </div>
+
+          <div style="background: var(--primary); color: var(--on-primary); border-radius: var(--radius); padding: 14px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <div style="width:24px;height:24px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.12);display:grid;place-items:center;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <span style="font-size:12.5px;color:rgba(255,255,255,0.75);font-weight:500;">סה"כ חודשי</span>
+            </div>
+            <div style="font-size:22px;font-weight:700;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;">$284</div>
+            <div style="font-family:var(--font-mono);font-size:10.5px;color:rgba(255,255,255,0.55);margin-top:4px;">≈ ‎₪1,036 · 64 מכינות</div>
+          </div>
+
+        </div>
+        <div style="padding: 12px 22px; background: var(--bg-subtle); border-top: 1px solid var(--line); display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--fg-subtle); font-family: var(--font-mono);">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          התשתית מנוהלת מרכזית על־ידי המועצה · המכינות אינן משלמות בנפרד.
+          <span style="margin-inline-start:auto;color:var(--success);">↓ ‎-12% מהחודש שעבר</span>
+        </div>
+      </div>
+
+      <!-- Academies table -->
+      <div class="table-card">
+        <div class="table-head">
+          <h2>ניהול מכינות</h2>
+          <button class="pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            כל סוגי המכינות
+          </button>
+          <button class="pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            כל המיקומים
+          </button>
+          <button class="pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/></svg>
+            סינון
+          </button>
+          <button class="pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg>
+            ייצוא
+          </button>
+        </div>
+        <table class="t">
+          <thead>
+            <tr>
+              <th>שם המכינה</th>
+              <th>סוג</th>
+              <th>איש קשר</th>
+              <th>מועמדים</th>
+              <th>סטטוס חיבור</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="ac-cell">
+                  <div class="badge b1">א'</div>
+                  <div class="info"><b>מכינת ארז</b><small>לוד · מאז 2008</small></div>
+                </div>
+              </td>
+              <td class="type-cell">מעורבת · חילוני</td>
+              <td class="contact-cell">יוסי כהן<br/><span class="ph">052-1234567</span></td>
+              <td class="cand-cell">450<span class="delta">+15%</span></td>
+              <td><span class="status-pill-tbl ok"><span class="d"></span>מחובר</span></td>
+              <td><button class="action-btn">ניהול</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="ac-cell">
+                  <div class="badge b2">ג'</div>
+                  <div class="info"><b>מכינת גליל עליון</b><small>כפר סאלד · מאז 2003</small></div>
+                </div>
+              </td>
+              <td class="type-cell">רק בנים · דתי</td>
+              <td class="contact-cell">רונית לוי<br/><span class="ph">054-9876543</span></td>
+              <td class="cand-cell">310<span style="color:var(--fg-faint);font-weight:500;margin-inline-start:6px;font-size:11px;">0%</span></td>
+              <td><span class="status-pill-tbl ok"><span class="d"></span>מחובר</span></td>
+              <td><button class="action-btn">ניהול</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="ac-cell">
+                  <div class="badge b3">מ'</div>
+                  <div class="info">
+                    <b>מכינת מעלה אפרים</b>
+                    <small>
+                      בקעת הירדן · מאז 2015
+                      <span class="ai-spark">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+                        AI flagged
+                      </span>
+                    </small>
+                  </div>
+                </div>
+              </td>
+              <td class="type-cell">מעורבת · חילוני</td>
+              <td class="contact-cell">אביב משה<br/><span class="ph">050-1122334</span></td>
+              <td class="cand-cell">128<span class="delta down">-8%</span></td>
+              <td><span class="status-pill-tbl warn"><span class="d"></span>ממתין לסנכרון</span></td>
+              <td><button class="action-btn">ניהול</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="ac-cell">
+                  <div class="badge b4">א'</div>
+                  <div class="info"><b>מכינת אורות</b><small>צפת · מאז 2010</small></div>
+                </div>
+              </td>
+              <td class="type-cell">מעורבת · מעורב</td>
+              <td class="contact-cell">יעל כהן<br/><span class="ph">053-4567890</span></td>
+              <td class="cand-cell">147<span class="delta">+23%</span></td>
+              <td><span class="status-pill-tbl ok"><span class="d"></span>מחובר</span></td>
+              <td><button class="action-btn">ניהול</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="ac-cell">
+                  <div class="badge b5">נ'</div>
+                  <div class="info"><b>מכינת נחשון</b><small>שדה בוקר · מאז 2001</small></div>
+                </div>
+              </td>
+              <td class="type-cell">רק בנות · דתי</td>
+              <td class="contact-cell">שירה אסף<br/><span class="ph">052-7788992</span></td>
+              <td class="cand-cell">220<span class="delta">+5%</span></td>
+              <td><span class="status-pill-tbl off"><span class="d"></span>טרם הצטרפה</span></td>
+              <td><button class="action-btn">הזמן</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagi">
+          <span class="meta">מציג 1–5 מתוך 64 מכינות · עמוד 1 מתוך 13</span>
+          <div class="nav">
+            <button>‹</button>
+            <button class="on">1</button>
+            <button>2</button>
+            <button>3</button>
+            <span style="padding:0 6px;color:var(--fg-faint);align-self:center;">…</span>
+            <button>13</button>
+            <button>›</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI insight -->
+      <div class="ai-footer">
+        <div class="ai-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+        </div>
+        <div class="body">
+          <h3>תובנה ארצית · רישום תשפ"ז</h3>
+          <p>
+            מגמת הרישום השנה מציגה עלייה של <b>14%</b> בביקוש למכינות מעורבות (בנים ובנות) באזור הפריפריה החברתית. מומלץ לבחון הקצאת משאבים נוספת למכינת "מעלה אפרים" ו־"קשת"<a class="cite-num">1</a> — שתיהן מציגות רשימות המתנה ארוכות. בנוסף, זמן הטיפול הממוצע בטופס ירד ב־18% במכינות שאימצו את תבנית המועצה המעודכנת<a class="cite-num">2</a>.
+          </p>
+          <div class="actions">
+            <button class="act primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+              דוח מלא לדירקטוריון
+            </button>
+            <button class="act">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              רענן ניתוח
+            </button>
+            <button class="act">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              אשר את התובנה
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

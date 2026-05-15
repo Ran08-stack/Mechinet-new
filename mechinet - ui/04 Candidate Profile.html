@@ -1,0 +1,1207 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Mechinet · Candidate</title>
+<link rel="stylesheet" href="globals.css" />
+<style>
+  /* ─ Shell (compact) ─ */
+  .shell { display: grid; grid-template-columns: var(--sidebar-w) minmax(0,1fr); min-height: 100vh; }
+  main.main { min-width: 0; display: flex; flex-direction: column; }
+  aside.sidebar { background: var(--surface-2); border-inline-start: 1px solid var(--line); display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 16px; height: var(--topbar-h); border-bottom: 1px solid var(--line); }
+  .brand .mark { width: 28px; height: 28px; border-radius: var(--radius); background: var(--accent); color: var(--fg-on-accent); display: grid; place-items: center; font-family: var(--font-mono); font-weight: 700; font-size: 13px; }
+  .brand .org { display: flex; flex-direction: column; line-height: 1.15; }
+  .brand .org b { font-size: var(--text-md); font-weight: 600; }
+  .brand .org small { font-size: 11px; color: var(--fg-subtle); font-family: var(--font-mono); letter-spacing: var(--tracking-caps); text-transform: uppercase; }
+  .brand .switch { margin-inline-start: auto; width: 24px; height: 24px; display: grid; place-items: center; color: var(--fg-faint); }
+  nav.nav { flex: 1; padding: 14px 10px; overflow-y: auto; }
+  .group + .group { margin-top: 18px; }
+  .group .label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--fg-subtle); padding: 0 10px 8px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: var(--radius); color: var(--fg-muted); font-size: var(--text-sm); font-weight: 500; text-decoration: none; border: 1px solid transparent; }
+  .nav-item svg { width: 16px; height: 16px; }
+  .nav-item:hover { background: var(--bg-subtle); color: var(--fg); }
+  .nav-item.is-active { background: var(--surface); color: var(--fg); border-color: var(--line); box-shadow: var(--shadow-xs); }
+  .nav-item.is-active svg { color: var(--accent); }
+  .nav-item .count { margin-inline-start: auto; font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-subtle); padding: 1px 6px; background: var(--bg-muted); border-radius: var(--radius-full); border: 1px solid var(--line); }
+  .nav-item.is-active .count { background: var(--bg); }
+  .user { border-top: 1px solid var(--line); padding: 10px; }
+  .user-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--radius); }
+  .avatar-sb { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, oklch(0.78 0.07 60), oklch(0.62 0.09 30)); color: oklch(1 0 0); display: grid; place-items: center; font-size: 12px; font-weight: 600; box-shadow: inset 0 0 0 1.5px oklch(1 0 0 / 0.4); }
+  .user-meta b { font-size: var(--text-sm); font-weight: 600; display: block; }
+  .user-meta small { font-size: 11px; color: var(--fg-subtle); font-family: var(--font-mono); direction: ltr; }
+
+  /* ─ Topbar ─ */
+  .topbar { height: var(--topbar-h); border-bottom: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; gap: 14px; padding: 0 28px; flex-shrink: 0; }
+  .crumbs { font-size: var(--text-sm); color: var(--fg-subtle); display: flex; align-items: center; gap: 8px; }
+  .crumbs a { color: var(--fg-subtle); text-decoration: none; transition: color var(--duration); }
+  .crumbs a:hover { color: var(--fg); }
+  .crumbs .cur { color: var(--fg); font-weight: 500; }
+  .crumbs .sep { color: var(--fg-faint); }
+  .actions { margin-inline-start: auto; display: flex; gap: 8px; align-items: center; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-size: var(--text-sm); color: var(--fg-muted); cursor: pointer; font-family: inherit; }
+  .pill svg { width: 14px; height: 14px; }
+  .pill:hover { background: var(--bg-subtle); color: var(--fg); }
+  .icon-btn { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--fg-muted); display: inline-grid; place-items: center; cursor: pointer; }
+  .icon-btn:hover { background: var(--bg-subtle); color: var(--fg); }
+  .icon-btn svg { width: 14px; height: 14px; }
+
+  /* ─ Profile hero ─ */
+  .hero {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 28px 32px 24px;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    text-decoration: none;
+    margin-bottom: 18px;
+    transition: color var(--duration);
+  }
+  .back-link:hover { color: var(--fg); }
+  .back-link svg { width: 14px; height: 14px; }
+  .hero-row { display: flex; align-items: center; gap: 18px; }
+  .hero-avatar {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, oklch(0.74 0.10 260), oklch(0.50 0.13 260));
+    color: oklch(1 0 0);
+    display: grid; place-items: center;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    box-shadow: inset 0 0 0 2px oklch(1 0 0 / 0.4),
+                0 0 0 4px var(--surface),
+                0 0 0 5px var(--line);
+    flex-shrink: 0;
+  }
+  .hero-info { flex: 1; min-width: 0; }
+  .hero-info h1 {
+    font-size: var(--text-3xl);
+    line-height: 1.1;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .hero-info .meta-row {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 22px;
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    align-items: center;
+  }
+  .hero-info .meta-row .item { display: inline-flex; align-items: center; gap: 6px; }
+  .hero-info .meta-row .item svg { width: 14px; height: 14px; color: var(--fg-faint); }
+  .hero-info .meta-row .email-mono { font-family: var(--font-mono); font-size: 12.5px; direction: ltr; }
+  .hero-info .meta-row .id-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--bg-muted);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--fg-muted);
+    direction: ltr;
+  }
+  .hero-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-primary-md { height: 32px; padding: 0 14px; background: var(--accent); color: var(--fg-on-accent); border: 0; border-radius: var(--radius); font-size: var(--text-sm); font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+  .btn-primary-md:hover { background: var(--accent-hover); }
+  .btn-primary-md svg { width: 14px; height: 14px; }
+  .btn-md { height: 32px; padding: 0 12px; background: var(--surface); color: var(--fg); border: 1px solid var(--line-strong); border-radius: var(--radius); font-size: var(--text-sm); font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; box-shadow: var(--shadow-xs); }
+  .btn-md:hover { background: var(--bg-subtle); }
+  .btn-md svg { width: 14px; height: 14px; }
+  .btn-icon-md { width: 32px; height: 32px; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--fg-muted); display: inline-grid; place-items: center; cursor: pointer; box-shadow: var(--shadow-xs); }
+  .btn-icon-md:hover { background: var(--bg-subtle); color: var(--fg); }
+  .btn-icon-md svg { width: 14px; height: 14px; }
+
+  /* ─ Stage selector strip (under hero) ─ */
+  .stage-strip {
+    margin-top: 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .stage-strip > .lbl {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    color: var(--fg-subtle);
+  }
+  .stage-track {
+    display: flex;
+    align-items: center;
+    background: var(--bg-subtle);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-full);
+    padding: 3px;
+    gap: 2px;
+    flex: 1;
+    max-width: 720px;
+  }
+  .stage-pill {
+    flex: 1;
+    height: 28px;
+    border: 0;
+    background: transparent;
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--fg-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: background var(--duration), color var(--duration), box-shadow var(--duration);
+    font-family: inherit;
+  }
+  .stage-pill:hover { color: var(--fg); }
+  .stage-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c, var(--fg-faint)); }
+  .stage-pill.is-active {
+    background: var(--surface);
+    color: var(--fg);
+    box-shadow: var(--shadow-xs);
+  }
+  .stage-pill.is-active.s-new       { color: var(--stage-new-fg); }
+  .stage-pill.is-active.s-review    { color: var(--stage-review-fg); }
+  .stage-pill.is-active.s-interview { color: var(--stage-interview-fg); }
+  .stage-pill.is-active.s-accepted  { color: var(--stage-accepted-fg); }
+  .stage-pill.is-active.s-rejected  { color: var(--stage-rejected-fg); }
+  .stage-strip .since {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--fg-subtle);
+    white-space: nowrap;
+  }
+
+  /* ─ Body grid ─ */
+  .body {
+    padding: 28px 32px 56px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 28px;
+    align-items: start;
+  }
+
+  /* ─ Card ─ */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .card + .card { margin-top: 14px; }
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line-faint);
+  }
+  .card-head h2 {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    margin: 0;
+    color: var(--fg);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-head h2 svg { width: 14px; height: 14px; color: var(--fg-faint); }
+  .card-head .ct {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg-subtle);
+    background: var(--bg-muted);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-full);
+    padding: 1px 7px;
+  }
+  .card-head .actions-mini { display: flex; gap: 4px; }
+  .card-head .ghost-btn {
+    height: 24px; padding: 0 8px;
+    background: transparent; border: 0;
+    color: var(--fg-muted);
+    font-size: 11.5px; font-family: inherit;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .card-head .ghost-btn:hover { background: var(--bg-subtle); color: var(--fg); }
+  .card-head .ghost-btn svg { width: 12px; height: 12px; }
+  .card-body { padding: 18px; }
+  .card-body.tight { padding: 14px 18px; }
+
+  /* ─ Personal info grid ─ */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--line-faint);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--line-faint);
+  }
+  .info-cell {
+    background: var(--surface);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .info-cell .k {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    color: var(--fg-subtle);
+  }
+  .info-cell .v {
+    font-size: var(--text-sm);
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .info-cell .v.empty { color: var(--fg-faint); }
+  .info-cell .v svg { width: 13px; height: 13px; color: var(--fg-faint); flex-shrink: 0; }
+  .info-cell .v.copyable { cursor: pointer; }
+  .info-cell .v.copyable:hover { color: var(--accent); }
+
+  /* ─ Form answers ─ */
+  .answers {
+    display: flex;
+    flex-direction: column;
+  }
+  .answer {
+    padding: 14px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .answer:first-child { padding-top: 0; }
+  .answer:last-child { border-bottom: 0; padding-bottom: 0; }
+  .answer .qrow {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px;
+  }
+  .answer .qtype {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    color: var(--fg-subtle);
+    background: var(--bg-muted);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .answer .q {
+    font-size: 11.5px;
+    color: var(--fg-muted);
+    font-weight: 500;
+  }
+  .answer .a {
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--fg);
+  }
+  .answer .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .answer .chip {
+    font-size: 12px;
+    padding: 3px 9px;
+    background: var(--accent-soft);
+    color: var(--accent-hover);
+    border: 1px solid var(--accent-line);
+    border-radius: var(--radius-full);
+  }
+  .answer .quote {
+    font-size: var(--text-md);
+    line-height: 1.7;
+    color: var(--fg);
+    border-inline-start: 2px solid var(--accent-line);
+    padding-inline-start: 14px;
+    background: var(--bg-subtle);
+    padding: 12px 14px;
+    border-radius: var(--radius);
+  }
+
+  /* ─ Attachments ─ */
+  .attachments { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .att {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background var(--duration), border-color var(--duration);
+    text-decoration: none;
+    color: var(--fg);
+  }
+  .att:hover { background: var(--surface); border-color: var(--line-strong); }
+  .att .ficon {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    color: var(--fg-muted);
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .att .ficon.pdf { color: oklch(0.50 0.15 25); border-color: oklch(0.85 0.08 25); background: oklch(0.97 0.025 25); }
+  .att .ficon.img { color: oklch(0.45 0.13 260); border-color: oklch(0.84 0.07 260); background: oklch(0.96 0.03 260); }
+  .att .ficon.vid { color: oklch(0.45 0.13 295); border-color: oklch(0.85 0.07 295); background: oklch(0.97 0.025 295); }
+  .att .ficon.doc { color: oklch(0.45 0.10 155); border-color: oklch(0.85 0.06 155); background: oklch(0.96 0.025 155); }
+  .att-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .att-meta b { font-size: var(--text-sm); font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .att-meta small { font-size: 11px; color: var(--fg-subtle); font-family: var(--font-mono); }
+  .att .dl { color: var(--fg-faint); }
+
+  /* ─ Notes ─ */
+  .notes-area {
+    width: 100%;
+    min-height: 130px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--fg);
+    resize: vertical;
+    outline: none;
+    transition: box-shadow var(--duration), border-color var(--duration);
+  }
+  .notes-area::placeholder { color: var(--fg-subtle); }
+  .notes-area:focus { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+  .notes-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: var(--text-sm);
+    color: var(--fg-subtle);
+  }
+  .notes-foot .saved {
+    display: inline-flex; align-items: center; gap: 5px;
+    color: var(--success);
+  }
+  .notes-foot .saved svg { width: 12px; height: 12px; }
+  .notes-toolbar {
+    display: flex; gap: 4px;
+    margin-bottom: 8px;
+  }
+  .notes-toolbar button {
+    width: 26px; height: 26px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    color: var(--fg-muted);
+    cursor: pointer;
+    display: inline-grid; place-items: center;
+  }
+  .notes-toolbar button:hover { background: var(--bg-subtle); color: var(--fg); }
+  .notes-toolbar button svg { width: 12px; height: 12px; }
+  .notes-toolbar .sep { width: 1px; align-self: stretch; background: var(--line); margin: 4px 2px; }
+
+  /* ─ Side rail ─ */
+  .rail { display: flex; flex-direction: column; gap: 14px; position: sticky; top: calc(var(--topbar-h) + 14px); }
+
+  /* AI summary */
+  .ai-card {
+    background: linear-gradient(180deg, var(--surface) 0%, oklch(0.985 0.008 260) 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    position: relative;
+  }
+  .ai-card::before {
+    content: "";
+    position: absolute;
+    inset: -1px -1px auto -1px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.45;
+  }
+  .ai-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 10px;
+  }
+  .ai-head .ti { display: flex; align-items: center; gap: 8px; }
+  .ai-head .ti svg { width: 14px; height: 14px; color: var(--accent); }
+  .ai-head h2 { font-size: var(--text-sm); font-weight: 600; margin: 0; }
+  .ai-head .ts { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-subtle); }
+  .ai-body { padding: 4px 16px 14px; }
+  .ai-body p { font-size: var(--text-sm); line-height: 1.7; color: var(--fg); margin: 0 0 10px; }
+  .ai-body p:last-child { margin: 0; }
+  .ai-body .highlight { background: oklch(0.97 0.04 75); padding: 0 3px; border-radius: 3px; }
+  .ai-foot {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--line-faint);
+    background: var(--bg-subtle);
+  }
+  .ai-foot .btn-soft {
+    height: 28px; padding: 0 10px;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    font-size: var(--text-sm); font-weight: 500;
+    color: var(--fg);
+    cursor: pointer; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: var(--shadow-xs);
+  }
+  .ai-foot .btn-soft:hover { background: var(--bg-subtle); }
+  .ai-foot .btn-soft svg { width: 13px; height: 13px; }
+  .ai-foot .meta {
+    margin-inline-start: auto;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--fg-subtle);
+  }
+  .ai-skel {
+    display: flex; flex-direction: column; gap: 8px; padding: 8px 16px 16px;
+  }
+  .ai-skel > div {
+    height: 12px; border-radius: 4px;
+    background: linear-gradient(90deg, var(--bg-subtle), var(--bg-muted), var(--bg-subtle));
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+  }
+  .ai-skel > div:nth-child(1) { width: 90%; }
+  .ai-skel > div:nth-child(2) { width: 70%; }
+  .ai-skel > div:nth-child(3) { width: 80%; }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  /* ─ Activity timeline ─ */
+  .timeline {
+    display: flex; flex-direction: column;
+    padding: 4px 0 0;
+  }
+  .tl {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 10px;
+    padding: 8px 18px 8px 16px;
+    position: relative;
+  }
+  .tl::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 26px;
+    top: 24px;
+    bottom: -8px;
+    width: 1px;
+    background: var(--line);
+  }
+  .tl:last-child::before { display: none; }
+  .tl .icon {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    color: var(--fg-muted);
+    z-index: 1;
+    flex-shrink: 0;
+  }
+  .tl .icon svg { width: 11px; height: 11px; }
+  .tl .icon.accent { background: var(--accent-soft); color: var(--accent-hover); border-color: var(--accent-line); }
+  .tl .icon.success { background: var(--stage-accepted-bg); color: var(--stage-accepted-fg); border-color: var(--stage-accepted-line); }
+  .tl .body-tl { display: flex; flex-direction: column; gap: 2px; padding: 1px 0 0; }
+  .tl .body-tl .desc { font-size: var(--text-sm); color: var(--fg); line-height: 1.4; }
+  .tl .body-tl .desc b { font-weight: 600; }
+  .tl .body-tl .when {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--fg-subtle);
+  }
+  .tl .body-tl .stage-mini {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    border: 1px solid;
+    font-size: 11px;
+    margin: 0 4px;
+    vertical-align: 1px;
+  }
+  .tl .body-tl .stage-mini .d { width: 5px; height: 5px; border-radius: 50%; }
+  .stage-inline-interview { background: var(--stage-interview-bg); color: var(--stage-interview-fg); border-color: var(--stage-interview-line); }
+  .stage-inline-interview .d { background: var(--stage-interview-dot); }
+  .stage-inline-review { background: var(--stage-review-bg); color: var(--stage-review-fg); border-color: var(--stage-review-line); }
+  .stage-inline-review .d { background: var(--stage-review-dot); }
+  .stage-inline-new { background: var(--stage-new-bg); color: var(--stage-new-fg); border-color: var(--stage-new-line); }
+  .stage-inline-new .d { background: var(--stage-new-dot); }
+
+  /* ─ Source pane ─ */
+  details.source { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; margin-top: 28px; }
+  details.source summary { list-style: none; cursor: pointer; user-select: none; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; font-size: var(--text-sm); font-weight: 500; }
+  details.source summary::-webkit-details-marker { display: none; }
+  details.source summary .chev { width: 14px; height: 14px; transition: transform var(--duration); color: var(--fg-subtle); }
+  details[open].source summary .chev { transform: rotate(-180deg); }
+  details[open].source summary { border-bottom: 1px solid var(--line); }
+  details.source .tabs { display: flex; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--bg-subtle); }
+  details.source .tab { padding: 9px 12px; font-size: var(--text-sm); color: var(--fg-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font-mono); }
+  details.source .tab.is-active { color: var(--fg); border-bottom-color: var(--accent); }
+  details.source pre { margin: 0; padding: 20px 22px; font-family: var(--font-mono); font-size: 12px; line-height: 1.7; color: var(--fg); background: var(--bg); direction: ltr; text-align: left; overflow: auto; max-height: 540px; }
+  details.source pre .c-key{color:oklch(0.45 0.13 260);} details.source pre .c-str{color:oklch(0.42 0.10 155);} details.source pre .c-com{color:var(--fg-faint);font-style:italic;} details.source pre .c-tag{color:oklch(0.45 0.14 280);} details.source pre .c-attr{color:oklch(0.50 0.12 60);}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">מ</div>
+      <div class="org"><b>מכינת אורות</b><small>mechinet · admin</small></div>
+      <div class="switch"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg></div>
+    </div>
+    <nav class="nav">
+      <div class="group">
+        <div class="label">ניווט</div>
+        <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>לוח בקרה</a>
+        <a class="nav-item is-active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>מועמדים<span class="count">147</span></a>
+        <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="14" x="3" y="5" rx="1"/><rect width="6" height="10" x="11" y="5" rx="1"/><rect width="6" height="7" x="19" y="5" rx="1" transform="translate(0 -2)"/></svg>פייפליין</a>
+        <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>טפסים</a>
+      </div>
+      <div class="group">
+        <div class="label">ארגון</div>
+        <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>הגדרות</a>
+      </div>
+    </nav>
+    <div class="user">
+      <div class="user-row">
+        <div class="avatar-sb">י.כ</div>
+        <div class="user-meta"><b>יעל כהן</b><small>yael@orot.org.il</small></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- topbar -->
+    <div class="topbar">
+      <div class="crumbs">
+        <a href="#">מועמדים</a>
+        <span class="sep">/</span>
+        <span class="cur">נועה ברקת</span>
+      </div>
+      <div class="actions">
+        <button class="icon-btn" aria-label="עמוד הקודם"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--fg-subtle);">14 / 147</span>
+        <button class="icon-btn" aria-label="עמוד הבא"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero">
+      <a class="back-link" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        חזרה לרשימת המועמדים
+      </a>
+      <div class="hero-row">
+        <div class="hero-avatar">נב</div>
+        <div class="hero-info">
+          <h1>נועה ברקת</h1>
+          <div class="meta-row">
+            <span class="item email-mono">noa.barakat@gmail.com</span>
+            <span class="item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              052-431-9082
+            </span>
+            <span class="item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              תל אביב
+            </span>
+            <span class="item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              נרשמה 12 במאי 2026
+            </span>
+            <span class="id-tag">#cnd_8f3a91</span>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button class="btn-md"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1 0 2 1 2 2v12c0 1-1 2-2 2H4c-1 0-2-1-2-2V6c0-1 1-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>שלח מייל</button>
+          <button class="btn-md"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/></svg>קבע ראיון</button>
+          <button class="btn-icon-md" aria-label="עוד"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+        </div>
+      </div>
+
+      <!-- stage strip -->
+      <div class="stage-strip">
+        <span class="lbl">שלב</span>
+        <div class="stage-track" role="tablist">
+          <button class="stage-pill" style="--c: var(--stage-new-dot);"><span class="dot"></span>חדש</button>
+          <button class="stage-pill" style="--c: var(--stage-review-dot);"><span class="dot"></span>בבדיקה</button>
+          <button class="stage-pill is-active s-interview" style="--c: var(--stage-interview-dot);"><span class="dot"></span>ראיון</button>
+          <button class="stage-pill" style="--c: var(--stage-accepted-dot);"><span class="dot"></span>התקבל</button>
+          <button class="stage-pill" style="--c: var(--stage-rejected-dot);"><span class="dot"></span>נדחה</button>
+        </div>
+        <span class="since">בשלב זה 3 ימים</span>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="body">
+
+      <!-- Main column -->
+      <div>
+
+        <!-- Personal info -->
+        <div class="card">
+          <div class="card-head">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              פרטים אישיים
+            </h2>
+            <button class="ghost-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>עריכה</button>
+          </div>
+          <div class="card-body">
+            <div class="info-grid">
+              <div class="info-cell">
+                <div class="k">טלפון</div>
+                <div class="v copyable"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>052-431-9082</div>
+              </div>
+              <div class="info-cell">
+                <div class="k">תאריך לידה</div>
+                <div class="v">14 בנובמבר 2007 · גיל 18</div>
+              </div>
+              <div class="info-cell">
+                <div class="k">עיר מגורים</div>
+                <div class="v">תל אביב — יפו</div>
+              </div>
+              <div class="info-cell">
+                <div class="k">בית ספר</div>
+                <div class="v">תיכון אלון, תל אביב</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form answers -->
+        <div class="card">
+          <div class="card-head">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+              תשובות לטופס
+              <span class="ct">10 שדות · השלמה 100%</span>
+            </h2>
+            <button class="ghost-btn">צפייה בטופס המקורי <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
+          </div>
+          <div class="card-body answers">
+
+            <div class="answer">
+              <div class="qrow">
+                <span class="qtype">textarea</span>
+                <span class="q">למה את רוצה להצטרף למכינת אורות?</span>
+              </div>
+              <div class="a quote">
+                אני מחפשת שנה משמעותית לפני הצבא — שנה שתאפשר לי להעמיק בשאלות של זהות,
+                מנהיגות וערכים, ולהכיר אנשים שמחפשים את אותו הדבר. ראיתי הרצאה של בוגרי
+                המכינה ב־TEDx ירושלים והתחברתי במיוחד לדגש שלכם על "שירות מתוך בחירה".
+              </div>
+            </div>
+
+            <div class="answer">
+              <div class="qrow">
+                <span class="qtype">multiselect</span>
+                <span class="q">תחומי עניין מרכזיים</span>
+              </div>
+              <div class="a chips">
+                <span class="chip">מנהיגות</span>
+                <span class="chip">פילוסופיה יהודית</span>
+                <span class="chip">חינוך</span>
+                <span class="chip">ספורט</span>
+                <span class="chip">אקטיביזם חברתי</span>
+              </div>
+            </div>
+
+            <div class="answer">
+              <div class="qrow">
+                <span class="qtype">textarea</span>
+                <span class="q">פעילויות התנדבות / חברתיות בשנים האחרונות</span>
+              </div>
+              <div class="a">
+                מדריכת שבט בצופים (גילים י"א—י"ב), פרויקט סיוע לימודי בשכונת התקווה (שעתיים בשבוע),
+                ומובילת תכנית "אחד על אחד" עם נוער בסיכון.
+              </div>
+            </div>
+
+            <div class="answer">
+              <div class="qrow">
+                <span class="qtype">select</span>
+                <span class="q">פרופיל צה״ל מועדף</span>
+              </div>
+              <div class="a">קצונה / יחידות אופי</div>
+            </div>
+
+            <div class="answer">
+              <div class="qrow">
+                <span class="qtype">text</span>
+                <span class="q">המלצה / איש קשר</span>
+              </div>
+              <div class="a">דניאל אבני · רכז שכבת י"ב, תיכון אלון · 050-822-4413</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Attachments -->
+        <div class="card">
+          <div class="card-head">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              קבצים מצורפים
+              <span class="ct">4</span>
+            </h2>
+            <button class="ghost-btn">הורדה כ־ZIP <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+          </div>
+          <div class="card-body">
+            <div class="attachments">
+              <a class="att" href="#">
+                <div class="ficon pdf">PDF</div>
+                <div class="att-meta"><b>תעודת בגרות חצי שנתית</b><small>1.4 MB · 12.05.2026</small></div>
+                <span class="dl"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+              </a>
+              <a class="att" href="#">
+                <div class="ficon doc">DOCX</div>
+                <div class="att-meta"><b>מכתב הצגה — נועה ברקת</b><small>34 KB · 12.05.2026</small></div>
+                <span class="dl"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+              </a>
+              <a class="att" href="#">
+                <div class="ficon vid">MP4</div>
+                <div class="att-meta"><b>סרטון הצגה עצמית</b><small>22 MB · 1:42 · 12.05.2026</small></div>
+                <span class="dl"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
+              </a>
+              <a class="att" href="#">
+                <div class="ficon img">JPG</div>
+                <div class="att-meta"><b>תעודת זהות (סריקה)</b><small>820 KB · 12.05.2026</small></div>
+                <span class="dl"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="card">
+          <div class="card-head">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              הערות פנימיות
+            </h2>
+            <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--fg-subtle);">גלוי לצוות בלבד</span>
+          </div>
+          <div class="card-body">
+            <div class="notes-toolbar">
+              <button title="מודגש"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
+              <button title="נטוי"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
+              <div class="sep"></div>
+              <button title="רשימה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+              <button title="ציטוט"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg></button>
+              <div class="sep"></div>
+              <button title="@אזכור" style="font-family: var(--font-mono); font-size: 12px; width: auto; padding: 0 8px;">@</button>
+            </div>
+            <textarea class="notes-area" placeholder="הוסף הערה על המועמד… השתמשו ב־@ לאזכור חבר צוות.">ראיון ראשוני נקבע ל־16/05 בשעה 11:00. צריך לוודא שהמלצה מדניאל אבני הגיעה לפני הראיון.
+
+הצוות שאל אם להוסיף שאלה על תפקידי הדרכה — ניתן להעלות בראיון.</textarea>
+            <div class="notes-foot">
+              <span class="saved">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                נשמר אוטומטית · לפני 12 שניות
+              </span>
+              <span style="font-family:var(--font-mono);font-size:11px;">2 הערות · 184 תווים</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Side rail -->
+      <div class="rail">
+
+        <!-- AI summary -->
+        <div class="ai-card">
+          <div class="ai-head">
+            <div class="ti">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+              <h2>סיכום AI</h2>
+            </div>
+            <span class="ts">עודכן 13.05, 09:18</span>
+          </div>
+          <div class="ai-body">
+            <p>
+              נועה היא מועמדת חזקה עם <span class="highlight">מוטיבציה ברורה ובוגרת</span>:
+              שילוב של ניסיון משמעותי בהדרכה (צופים, "אחד על אחד") עם נטייה לימודית
+              לפילוסופיה יהודית — מתאים מאוד לפרופיל המכינה.
+            </p>
+            <p>
+              נקודות לבדיקה: התאמה לקבוצה — האם שילוב של ספורט תחרותי לצד עומס
+              לימודי גבוה. כדאי לוודא בראיון.
+            </p>
+          </div>
+          <div class="ai-foot">
+            <button class="btn-soft">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              רענן
+            </button>
+            <button class="btn-soft" aria-label="העתק"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+            <span class="meta">gpt-4o · 1.2s</span>
+          </div>
+        </div>
+
+        <!-- Activity timeline -->
+        <div class="card">
+          <div class="card-head">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              היסטוריה
+            </h2>
+          </div>
+          <div class="card-body" style="padding: 8px 0;">
+            <div class="timeline">
+
+              <div class="tl">
+                <div class="icon accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg></div>
+                <div class="body-tl">
+                  <div class="desc">סיכום AI הופק מחדש על־ידי <b>יעל כהן</b></div>
+                  <div class="when">היום, 09:18</div>
+                </div>
+              </div>
+
+              <div class="tl">
+                <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                <div class="body-tl">
+                  <div class="desc">
+                    שלב שונה
+                    <span class="stage-mini stage-inline-review"><span class="d"></span>בבדיקה</span>
+                    →
+                    <span class="stage-mini stage-inline-interview"><span class="d"></span>ראיון</span>
+                  </div>
+                  <div class="when">לפני 3 ימים · 10.05, 14:42 · יעל כהן</div>
+                </div>
+              </div>
+
+              <div class="tl">
+                <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
+                <div class="body-tl">
+                  <div class="desc">הערה נוספה על־ידי <b>אורי שמעוני</b></div>
+                  <div class="when">11.05, 11:08</div>
+                </div>
+              </div>
+
+              <div class="tl">
+                <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                <div class="body-tl">
+                  <div class="desc">
+                    טופס הוגש דרך <b>טופס ציבורי · 2026</b>
+                    <span class="stage-mini stage-inline-new"><span class="d"></span>חדש</span>
+                  </div>
+                  <div class="when">12.05, 14:42</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Connection -->
+        <div class="card">
+          <div class="card-head">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+              סטטוס מסלול
+            </h2>
+          </div>
+          <div class="card-body" style="padding: 12px 18px;">
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; font-size: var(--text-sm);">
+              <span style="color:var(--fg-muted)">פתחה אימייל אחרון</span>
+              <span style="font-family:var(--font-mono);font-size:11.5px;">לפני 4 שעות</span>
+              <span style="color:var(--fg-muted)">צפתה בטופס פעם 1</span>
+              <span style="font-family:var(--font-mono);font-size:11.5px;">12.05</span>
+              <span style="color:var(--fg-muted)">השלימה את כל השדות</span>
+              <span style="color:var(--success);display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>כן</span>
+              <span style="color:var(--fg-muted)">הסכמה לשמירת מידע</span>
+              <span style="color:var(--success);display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>כן</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div style="padding: 0 32px 56px;">
+      <details class="source">
+        <summary>
+          <span>Production JSX · רכיבי המסך</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="tabs">
+          <div class="tab is-active" data-tab="page">page.tsx</div>
+          <div class="tab" data-tab="stage">StageSelector.tsx</div>
+          <div class="tab" data-tab="ai">AISummary.tsx</div>
+          <div class="tab" data-tab="notes">NotesEditor.tsx</div>
+        </div>
+<pre data-pane="page"><span class="c-com">// app/(dashboard)/candidates/[id]/page.tsx — redesigned</span>
+<span class="c-key">import</span> { createClient } <span class="c-key">from</span> <span class="c-str">"@/lib/supabase/server"</span>;
+<span class="c-key">import</span> { notFound } <span class="c-key">from</span> <span class="c-str">"next/navigation"</span>;
+<span class="c-key">import</span> { formatDate } <span class="c-key">from</span> <span class="c-str">"@/lib/utils"</span>;
+<span class="c-key">import</span> { FormField, Attachment } <span class="c-key">from</span> <span class="c-str">"@/types/database"</span>;
+<span class="c-key">import</span> { CandidateHero }   <span class="c-key">from</span> <span class="c-str">"@/components/candidates/CandidateHero"</span>;
+<span class="c-key">import</span> { StageSelector }   <span class="c-key">from</span> <span class="c-str">"@/components/candidates/StageSelector"</span>;
+<span class="c-key">import</span> { PersonalInfoCard } <span class="c-key">from</span> <span class="c-str">"@/components/candidates/PersonalInfoCard"</span>;
+<span class="c-key">import</span> { AnswersCard }      <span class="c-key">from</span> <span class="c-str">"@/components/candidates/AnswersCard"</span>;
+<span class="c-key">import</span> { AttachmentsCard }  <span class="c-key">from</span> <span class="c-str">"@/components/candidates/AttachmentsCard"</span>;
+<span class="c-key">import</span> { AISummaryCard }    <span class="c-key">from</span> <span class="c-str">"@/components/candidates/AISummaryCard"</span>;
+<span class="c-key">import</span> { NotesEditor }      <span class="c-key">from</span> <span class="c-str">"@/components/candidates/NotesEditor"</span>;
+<span class="c-key">import</span> { ActivityTimeline } <span class="c-key">from</span> <span class="c-str">"@/components/candidates/ActivityTimeline"</span>;
+
+<span class="c-key">export default async function</span> <span class="c-tag">CandidatePage</span>({ params }: { params: { id: string } }) {
+  <span class="c-key">const</span> supabase = <span class="c-key">await</span> createClient();
+  <span class="c-key">const</span> { data: candidate } = <span class="c-key">await</span> supabase
+    .from(<span class="c-str">"candidates"</span>).select(<span class="c-str">"*"</span>).eq(<span class="c-str">"id"</span>, params.id).single();
+  <span class="c-key">if</span> (!candidate) notFound();
+
+  <span class="c-key">const</span> answers = (candidate.answers ?? {}) <span class="c-key">as</span> Record&lt;string, string | string[]&gt;;
+  <span class="c-key">const</span> attachments = (candidate.attachments ?? []) <span class="c-key">as</span> Attachment[];
+  <span class="c-key">let</span> formFields: FormField[] = [];
+  <span class="c-key">if</span> (candidate.form_id) {
+    <span class="c-key">const</span> { data: f } = <span class="c-key">await</span> supabase.from(<span class="c-str">"forms"</span>).select(<span class="c-str">"fields,name"</span>).eq(<span class="c-str">"id"</span>, candidate.form_id).single();
+    <span class="c-key">if</span> (f &amp;&amp; Array.isArray(f.fields)) formFields = f.fields <span class="c-key">as</span> FormField[];
+  }
+
+  <span class="c-key">return</span> (
+    <span class="c-tag">&lt;&gt;</span>
+      <span class="c-tag">&lt;CandidateHero</span> <span class="c-attr">candidate=</span>{candidate} <span class="c-tag">/&gt;</span>
+      <span class="c-tag">&lt;StageSelector</span> <span class="c-attr">id=</span>{candidate.id} <span class="c-attr">stage=</span>{candidate.stage} <span class="c-tag">/&gt;</span>
+
+      <span class="c-tag">&lt;div</span> <span class="c-attr">className=</span><span class="c-str">"grid grid-cols-[minmax(0,1fr)_360px] gap-7 px-8 pb-14 pt-7"</span><span class="c-tag">&gt;</span>
+        <span class="c-tag">&lt;div</span> <span class="c-attr">className=</span><span class="c-str">"space-y-3.5"</span><span class="c-tag">&gt;</span>
+          <span class="c-tag">&lt;PersonalInfoCard</span> <span class="c-attr">candidate=</span>{candidate} <span class="c-tag">/&gt;</span>
+          <span class="c-tag">&lt;AnswersCard</span> <span class="c-attr">fields=</span>{formFields} <span class="c-attr">answers=</span>{answers} <span class="c-tag">/&gt;</span>
+          <span class="c-tag">&lt;AttachmentsCard</span> <span class="c-attr">attachments=</span>{attachments} <span class="c-tag">/&gt;</span>
+          <span class="c-tag">&lt;NotesEditor</span> <span class="c-attr">candidateId=</span>{candidate.id} <span class="c-attr">initialNotes=</span>{candidate.notes ?? <span class="c-str">""</span>} <span class="c-tag">/&gt;</span>
+        <span class="c-tag">&lt;/div&gt;</span>
+        <span class="c-tag">&lt;aside</span> <span class="c-attr">className=</span><span class="c-str">"sticky top-[70px] flex flex-col gap-3.5"</span><span class="c-tag">&gt;</span>
+          <span class="c-tag">&lt;AISummaryCard</span> <span class="c-attr">candidate=</span>{candidate} <span class="c-tag">/&gt;</span>
+          <span class="c-tag">&lt;ActivityTimeline</span> <span class="c-attr">candidateId=</span>{candidate.id} <span class="c-tag">/&gt;</span>
+        <span class="c-tag">&lt;/aside&gt;</span>
+      <span class="c-tag">&lt;/div&gt;</span>
+    <span class="c-tag">&lt;/&gt;</span>
+  );
+}</pre>
+
+<pre data-pane="stage" style="display:none"><span class="c-com">// components/candidates/StageSelector.tsx — redesigned</span>
+<span class="c-key">"use client"</span>;
+<span class="c-key">import</span> { useState, useTransition } <span class="c-key">from</span> <span class="c-str">"react"</span>;
+<span class="c-key">import</span> { useRouter } <span class="c-key">from</span> <span class="c-str">"next/navigation"</span>;
+<span class="c-key">import</span> { createClient } <span class="c-key">from</span> <span class="c-str">"@/lib/supabase/client"</span>;
+<span class="c-key">import</span> { type CandidateStage } <span class="c-key">from</span> <span class="c-str">"@/types/database"</span>;
+<span class="c-key">import</span> { cn } <span class="c-key">from</span> <span class="c-str">"@/lib/utils"</span>;
+
+<span class="c-key">const</span> STAGES: { id: CandidateStage; label: string }[] = [
+  { id: <span class="c-str">"new"</span>,       label: <span class="c-str">"חדש"</span> },
+  { id: <span class="c-str">"review"</span>,    label: <span class="c-str">"בבדיקה"</span> },
+  { id: <span class="c-str">"interview"</span>, label: <span class="c-str">"ראיון"</span> },
+  { id: <span class="c-str">"accepted"</span>,  label: <span class="c-str">"התקבל"</span> },
+  { id: <span class="c-str">"rejected"</span>,  label: <span class="c-str">"נדחה"</span> },
+];
+
+<span class="c-key">export function</span> <span class="c-tag">StageSelector</span>({ id, stage }: { id: string; stage: CandidateStage }) {
+  <span class="c-key">const</span> [active, setActive] = useState(stage);
+  <span class="c-key">const</span> [pending, start] = useTransition();
+  <span class="c-key">const</span> router = useRouter();
+
+  <span class="c-key">async function</span> change(next: CandidateStage) {
+    <span class="c-key">if</span> (next === active || pending) <span class="c-key">return</span>;
+    setActive(next); <span class="c-com">// optimistic</span>
+    start(<span class="c-key">async</span> () =&gt; {
+      <span class="c-key">const</span> supabase = createClient();
+      <span class="c-key">await</span> supabase.from(<span class="c-str">"candidates"</span>).update({ stage: next }).eq(<span class="c-str">"id"</span>, id);
+      router.refresh();
+    });
+  }
+
+  <span class="c-key">return</span> (
+    <span class="c-tag">&lt;div</span> <span class="c-attr">className=</span><span class="c-str">"flex items-center gap-3.5 px-8 pb-6"</span><span class="c-tag">&gt;</span>
+      <span class="c-tag">&lt;span</span> <span class="c-attr">className=</span><span class="c-str">"font-mono text-[11px] uppercase tracking-[0.06em] text-fg-subtle"</span><span class="c-tag">&gt;</span>שלב<span class="c-tag">&lt;/span&gt;</span>
+      <span class="c-tag">&lt;div</span> <span class="c-attr">role=</span><span class="c-str">"tablist"</span> <span class="c-attr">className=</span><span class="c-str">"flex flex-1 max-w-[720px] gap-0.5 rounded-full border border-line bg-bg-subtle p-0.5"</span><span class="c-tag">&gt;</span>
+        {STAGES.map(s =&gt; {
+          <span class="c-key">const</span> on = active === s.id;
+          <span class="c-key">return</span> (
+            <span class="c-tag">&lt;button</span>
+              <span class="c-attr">key=</span>{s.id}
+              <span class="c-attr">role=</span><span class="c-str">"tab"</span>
+              <span class="c-attr">aria-selected=</span>{on}
+              <span class="c-attr">disabled=</span>{pending}
+              <span class="c-attr">onClick=</span>{() =&gt; change(s.id)}
+              <span class="c-attr">className=</span>{cn(
+                <span class="c-str">"flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full text-[13px] font-medium transition-colors disabled:opacity-60"</span>,
+                on
+                  ? <span class="c-str">`bg-surface shadow-xs text-stage-${s.id}-fg`</span>
+                  : <span class="c-str">"text-fg-muted hover:text-fg"</span>
+              )}
+            <span class="c-tag">&gt;</span>
+              <span class="c-tag">&lt;span</span>
+                <span class="c-attr">className=</span><span class="c-str">"h-1.5 w-1.5 rounded-full"</span>
+                <span class="c-attr">style=</span>{{ background: <span class="c-str">`var(--stage-${s.id}-dot)`</span> }}
+              <span class="c-tag">/&gt;</span>
+              {s.label}
+            <span class="c-tag">&lt;/button&gt;</span>
+          );
+        })}
+      <span class="c-tag">&lt;/div&gt;</span>
+      <span class="c-tag">&lt;span</span> <span class="c-attr">className=</span><span class="c-str">"font-mono text-[11.5px] text-fg-subtle whitespace-nowrap"</span><span class="c-tag">&gt;</span>בשלב זה 3 ימים<span class="c-tag">&lt;/span&gt;</span>
+    <span class="c-tag">&lt;/div&gt;</span>
+  );
+}</pre>
+
+<pre data-pane="ai" style="display:none"><span class="c-com">// components/candidates/AISummaryCard.tsx</span>
+<span class="c-key">"use client"</span>;
+<span class="c-key">import</span> { useState } <span class="c-key">from</span> <span class="c-str">"react"</span>;
+<span class="c-key">import</span> { useRouter } <span class="c-key">from</span> <span class="c-str">"next/navigation"</span>;
+<span class="c-key">import</span> { Sparkles, RotateCw, Copy } <span class="c-key">from</span> <span class="c-str">"lucide-react"</span>;
+<span class="c-key">import</span> { Candidate } <span class="c-key">from</span> <span class="c-str">"@/types/database"</span>;
+
+<span class="c-key">export function</span> <span class="c-tag">AISummaryCard</span>({ candidate }: { candidate: Candidate }) {
+  <span class="c-key">const</span> [loading, setLoading] = useState(<span class="c-key">false</span>);
+  <span class="c-key">const</span> router = useRouter();
+
+  <span class="c-key">async function</span> regenerate() {
+    setLoading(<span class="c-key">true</span>);
+    <span class="c-key">await</span> fetch(<span class="c-str">"/api/ai/summary"</span>, { method: <span class="c-str">"POST"</span>, headers: { <span class="c-str">"Content-Type"</span>: <span class="c-str">"application/json"</span> }, body: JSON.stringify({ candidateId: candidate.id }) });
+    setLoading(<span class="c-key">false</span>);
+    router.refresh();
+  }
+
+  <span class="c-key">return</span> (
+    <span class="c-tag">&lt;section</span> <span class="c-attr">className=</span><span class="c-str">"relative overflow-hidden rounded-lg border border-line bg-gradient-to-b from-surface to-[oklch(0.985_0.008_260)]"</span><span class="c-tag">&gt;</span>
+      <span class="c-com">{/* hairline accent on top edge */}</span>
+      <span class="c-tag">&lt;div</span> <span class="c-attr">className=</span><span class="c-str">"absolute inset-x-0 -top-px h-0.5 bg-gradient-to-r from-transparent via-accent/45 to-transparent"</span> <span class="c-tag">/&gt;</span>
+
+      <span class="c-tag">&lt;header</span> <span class="c-attr">className=</span><span class="c-str">"flex items-center justify-between px-4 pb-2.5 pt-3.5"</span><span class="c-tag">&gt;</span>
+        <span class="c-tag">&lt;div</span> <span class="c-attr">className=</span><span class="c-str">"flex items-center gap-2"</span><span class="c-tag">&gt;</span>
+          <span class="c-tag">&lt;Sparkles</span> <span class="c-attr">className=</span><span class="c-str">"h-3.5 w-3.5 text-accent"</span> <span class="c-tag">/&gt;</span>
+          <span class="c-tag">&lt;h2</span> <span class="c-attr">className=</span><span class="c-str">"text-[13px] font-semibold"</span><span class="c-tag">&gt;</span>סיכום AI<span class="c-tag">&lt;/h2&gt;</span>
+        <span class="c-tag">&lt;/div&gt;</span>
+        <span class="c-tag">&lt;span</span> <span class="c-attr">className=</span><span class="c-str">"font-mono text-[10.5px] text-fg-subtle"</span><span class="c-tag">&gt;</span>עודכן 13.05, 09:18<span class="c-tag">&lt;/span&gt;</span>
+      <span class="c-tag">&lt;/header&gt;</span>
+
+      {loading ? (
+        <span class="c-tag">&lt;Skeleton</span> <span class="c-tag">/&gt;</span>
+      ) : candidate.ai_summary ? (
+        <span class="c-tag">&lt;div</span> <span class="c-attr">className=</span><span class="c-str">"px-4 pb-3.5 text-[13px] leading-7 text-fg [&amp;_p]:mb-2.5 last:[&amp;_p]:mb-0 whitespace-pre-line"</span><span class="c-tag">&gt;</span>
+          {candidate.ai_summary}
+        <span class="c-tag">&lt;/div&gt;</span>
+      ) : (
+        <span class="c-tag">&lt;p</span> <span class="c-attr">className=</span><span class="c-str">"px-4 pb-3.5 text-[13px] text-fg-subtle"</span><span class="c-tag">&gt;</span>טרם הופק סיכום למועמד זה.<span class="c-tag">&lt;/p&gt;</span>
+      )}
+
+      <span class="c-tag">&lt;footer</span> <span class="c-attr">className=</span><span class="c-str">"flex items-center gap-2 border-t border-line-faint bg-bg-subtle px-4 py-2.5"</span><span class="c-tag">&gt;</span>
+        <span class="c-tag">&lt;button</span> <span class="c-attr">onClick=</span>{regenerate} <span class="c-attr">disabled=</span>{loading} <span class="c-attr">className=</span><span class="c-str">"flex h-7 items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 text-[13px] font-medium shadow-xs hover:bg-bg-subtle"</span><span class="c-tag">&gt;</span>
+          <span class="c-tag">&lt;RotateCw</span> <span class="c-attr">className=</span>{cn(<span class="c-str">"h-3.5 w-3.5"</span>, loading &amp;&amp; <span class="c-str">"animate-spin"</span>)} <span class="c-tag">/&gt;</span>
+          {candidate.ai_summary ? <span class="c-str">"רענן"</span> : <span class="c-str">"הפק"</span>}
+        <span class="c-tag">&lt;/button&gt;</span>
+        <span class="c-tag">&lt;button</span> <span class="c-attr">aria-label=</span><span class="c-str">"העתק"</span> <span class="c-attr">className=</span><span class="c-str">"grid h-7 w-7 place-items-center rounded-md border border-line-strong bg-surface shadow-xs hover:bg-bg-subtle"</span><span class="c-tag">&gt;</span>
+          <span class="c-tag">&lt;Copy</span> <span class="c-attr">className=</span><span class="c-str">"h-3.5 w-3.5"</span> <span class="c-tag">/&gt;</span>
+        <span class="c-tag">&lt;/button&gt;</span>
+        <span class="c-tag">&lt;span</span> <span class="c-attr">className=</span><span class="c-str">"ms-auto font-mono text-[10.5px] text-fg-subtle"</span><span class="c-tag">&gt;</span>gpt-4o · 1.2s<span class="c-tag">&lt;/span&gt;</span>
+      <span class="c-tag">&lt;/footer&gt;</span>
+    <span class="c-tag">&lt;/section&gt;</span>
+  );
+}</pre>
+
+<pre data-pane="notes" style="display:none"><span class="c-com">// components/candidates/NotesEditor.tsx — redesigned with autosave</span>
+<span class="c-key">"use client"</span>;
+<span class="c-key">import</span> { useEffect, useRef, useState } <span class="c-key">from</span> <span class="c-str">"react"</span>;
+<span class="c-key">import</span> { Check, Bold, Italic, List, Quote } <span class="c-key">from</span> <span class="c-str">"lucide-react"</span>;
+<span class="c-key">import</span> { createClient } <span class="c-key">from</span> <span class="c-str">"@/lib/supabase/client"</span>;
+
+<span class="c-key">export function</span> <span class="c-tag">NotesEditor</span>({ candidateId, initialNotes }: { candidateId: string; initialNotes: string }) {
+  <span class="c-key">const</span> [notes, setNotes] = useState(initialNotes);
+  <span class="c-key">const</span> [savedAt, setSavedAt] = useState&lt;Date | <span class="c-key">null</span>&gt;(<span class="c-key">null</span>);
+  <span class="c-key">const</span> timer = useRef&lt;ReturnType&lt;typeof setTimeout&gt;&gt;();
+
+  <span class="c-com">// Autosave 800ms after last keystroke</span>
+  useEffect(() =&gt; {
+    <span class="c-key">if</span> (notes === initialNotes) <span class="c-key">return</span>;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(<span class="c-key">async</span> () =&gt; {
+      <span class="c-key">const</span> supabase = createClient();
+      <span class="c-key">await</span> supabase.from(<span class="c-str">"candidates"</span>).update({ notes }).eq(<span class="c-str">"id"</span>, candidateId);
+      setSavedAt(<span class="c-key">new</span> Date());
+    }, 800);
+    <span class="c-key">return</span> () =&gt; clearTimeout(timer.current);
+  }, [notes, candidateId, initialNotes]);
+
+  <span class="c-key">return</span> (
+    <span class="c-tag">&lt;Card</span> <span class="c-attr">title=</span><span class="c-str">"הערות פנימיות"</span> <span class="c-attr">aside=</span><span class="c-str">"גלוי לצוות בלבד"</span><span class="c-tag">&gt;</span>
+      <span class="c-tag">&lt;Toolbar</span> <span class="c-tag">/&gt;</span>
+      <span class="c-tag">&lt;textarea</span>
+        <span class="c-attr">value=</span>{notes}
+        <span class="c-attr">onChange=</span>{e =&gt; setNotes(e.target.value)}
+        <span class="c-attr">placeholder=</span><span class="c-str">"הוסף הערה על המועמד… השתמשו ב־@ לאזכור חבר צוות."</span>
+        <span class="c-attr">className=</span><span class="c-str">"min-h-[130px] w-full resize-y rounded-md border border-line bg-surface px-4 py-3.5 text-[13px] leading-7 outline-none focus:border-accent focus:shadow-focus"</span>
+        <span class="c-attr">dir=</span><span class="c-str">"rtl"</span>
+      <span class="c-tag">/&gt;</span>
+      <span class="c-tag">&lt;footer</span> <span class="c-attr">className=</span><span class="c-str">"mt-2.5 flex items-center justify-between text-[13px] text-fg-subtle"</span><span class="c-tag">&gt;</span>
+        {savedAt &amp;&amp; (
+          <span class="c-tag">&lt;span</span> <span class="c-attr">className=</span><span class="c-str">"flex items-center gap-1 text-[var(--success)]"</span><span class="c-tag">&gt;</span>
+            <span class="c-tag">&lt;Check</span> <span class="c-attr">className=</span><span class="c-str">"h-3 w-3"</span> <span class="c-tag">/&gt;</span> נשמר אוטומטית · {timeAgo(savedAt)}
+          <span class="c-tag">&lt;/span&gt;</span>
+        )}
+        <span class="c-tag">&lt;span</span> <span class="c-attr">className=</span><span class="c-str">"font-mono text-[11px]"</span><span class="c-tag">&gt;</span>{notes.length} תווים<span class="c-tag">&lt;/span&gt;</span>
+      <span class="c-tag">&lt;/footer&gt;</span>
+    <span class="c-tag">&lt;/Card&gt;</span>
+  );
+}</pre>
+
+      </details>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // tab switcher
+  document.querySelectorAll("details.source .tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      const root = tab.closest("details");
+      const name = tab.dataset.tab;
+      root.querySelectorAll(".tab").forEach(t => t.classList.toggle("is-active", t === tab));
+      root.querySelectorAll("pre").forEach(p => p.style.display = p.dataset.pane === name ? "" : "none");
+    });
+  });
+
+  // stage strip interactivity (cosmetic)
+  document.querySelectorAll(".stage-track .stage-pill").forEach(p => {
+    p.addEventListener("click", () => {
+      const track = p.parentElement;
+      track.querySelectorAll(".stage-pill").forEach(x => {
+        x.classList.remove("is-active", "s-new", "s-review", "s-interview", "s-accepted", "s-rejected");
+      });
+      const labels = ["new","review","interview","accepted","rejected"];
+      const idx = [...track.querySelectorAll(".stage-pill")].indexOf(p);
+      p.classList.add("is-active", "s-" + labels[idx]);
+    });
+  });
+</script>
+</body>
+</html>

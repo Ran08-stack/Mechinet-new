@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Mechinet · Design Tokens</title>
+<link rel="stylesheet" href="globals.css" />
+<style>
+  /* Page chrome only — everything that "matters" is a token from globals.css */
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 56px var(--gutter) 120px;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+  }
+  h1.display {
+    font-size: var(--text-4xl);
+    line-height: var(--leading-4xl);
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    margin: 8px 0 0;
+  }
+  .lede {
+    font-size: var(--text-lg);
+    line-height: var(--leading-lg);
+    color: var(--fg-muted);
+    max-width: 62ch;
+    margin: 14px 0 0;
+  }
+
+  .meta-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-top: 36px;
+  }
+  .meta-strip > div {
+    background: var(--surface);
+    padding: 16px 20px;
+  }
+  .meta-strip .k { font-size: var(--text-xs); color: var(--fg-subtle); font-family: var(--font-mono); letter-spacing: var(--tracking-caps); text-transform: uppercase; }
+  .meta-strip .v { font-size: var(--text-md); color: var(--fg); margin-top: 6px; font-weight: 500; }
+
+  section {
+    margin-top: 64px;
+  }
+  section > header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+  }
+  section h2 {
+    font-size: var(--text-2xl);
+    line-height: var(--leading-2xl);
+    letter-spacing: -0.015em;
+    font-weight: 600;
+    margin: 0;
+  }
+  section header .hint {
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+  }
+
+  /* ── Color swatches ─────────────────────────────────────────────────── */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .swatch {
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+    border-radius: var(--radius-lg);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .swatch .chip {
+    height: 72px;
+    border-radius: var(--radius);
+    border: 1px solid oklch(0.18 0.008 80 / 0.06);
+    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.04);
+  }
+  .swatch .name {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .swatch .name b { font-weight: 600; font-size: var(--text-sm); }
+  .swatch .name code {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--fg-subtle);
+  }
+  .swatch .role { font-size: var(--text-xs); color: var(--fg-muted); line-height: 1.4; }
+
+  /* ── Stage badges (the real component) ─────────────────────────────── */
+  .stage-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .stage {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 24px;
+    padding: 0 9px 0 11px;
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .stage .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .stage--new      { background: var(--stage-new-bg);       color: var(--stage-new-fg);       border-color: var(--stage-new-line); }
+  .stage--new .dot { background: var(--stage-new-dot); }
+  .stage--review   { background: var(--stage-review-bg);    color: var(--stage-review-fg);    border-color: var(--stage-review-line); }
+  .stage--review .dot { background: var(--stage-review-dot); }
+  .stage--interview{ background: var(--stage-interview-bg); color: var(--stage-interview-fg); border-color: var(--stage-interview-line); }
+  .stage--interview .dot { background: var(--stage-interview-dot); }
+  .stage--accepted { background: var(--stage-accepted-bg);  color: var(--stage-accepted-fg);  border-color: var(--stage-accepted-line); }
+  .stage--accepted .dot { background: var(--stage-accepted-dot); }
+  .stage--rejected { background: var(--stage-rejected-bg);  color: var(--stage-rejected-fg);  border-color: var(--stage-rejected-line); }
+  .stage--rejected .dot { background: var(--stage-rejected-dot); }
+
+  .stage-card {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .stage-cell {
+    background: var(--surface);
+    padding: 18px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 156px;
+  }
+  .stage-cell .label-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .stage-cell .label-row b { font-weight: 600; font-size: var(--text-sm); }
+  .stage-cell .label-row code { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-subtle); }
+  .stage-cell .preview { display: flex; justify-content: center; padding: 14px 0; border-radius: var(--radius); }
+  .stage-cell .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stage-cell .meta .m { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-muted); }
+  .stage-cell .meta .m i {
+    display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+    border: 1px solid oklch(0.18 0.008 80 / 0.08);
+  }
+
+  /* ── Type scale ──────────────────────────────────────────────────────── */
+  .type-stack {
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+    border-radius: var(--radius-lg);
+    padding: 8px 0;
+  }
+  .type-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 220px;
+    align-items: baseline;
+    gap: 20px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--line-faint);
+  }
+  .type-row:last-child { border-bottom: 0; }
+  .type-row .token { font-family: var(--font-mono); font-size: 11px; color: var(--fg-subtle); letter-spacing: var(--tracking-caps); text-transform: uppercase; }
+  .type-row .specimen { color: var(--fg); font-weight: 400; }
+  .type-row .specs { font-family: var(--font-mono); font-size: 11px; color: var(--fg-muted); text-align: left; direction: ltr; }
+
+  /* ── Spacing ─────────────────────────────────────────────────────────── */
+  .spacing-grid {
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+    border-radius: var(--radius-lg);
+    padding: 18px 22px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 36px;
+    row-gap: 10px;
+  }
+  .sp-row { display: flex; align-items: center; gap: 14px; }
+  .sp-row .label { font-family: var(--font-mono); font-size: 11px; color: var(--fg-subtle); width: 80px; }
+  .sp-row .bar { height: 10px; background: var(--accent-soft); border-radius: 2px; }
+  .sp-row .px { font-family: var(--font-mono); font-size: 11px; color: var(--fg-muted); margin-right: auto; }
+
+  /* ── Radii ───────────────────────────────────────────────────────────── */
+  .radii {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+  .radii .r {
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .radii .r .box {
+    width: 64px; height: 64px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+  }
+  .radii .r .lbl { font-family: var(--font-mono); font-size: 11px; color: var(--fg-muted); }
+  .radii .r:nth-child(1) { border-radius: var(--radius-xs); }
+  .radii .r:nth-child(2) { border-radius: var(--radius-sm); }
+  .radii .r:nth-child(3) { border-radius: var(--radius); }
+  .radii .r:nth-child(4) { border-radius: var(--radius-md); }
+  .radii .r:nth-child(5) { border-radius: var(--radius-lg); }
+  .radii .r:nth-child(6) { border-radius: var(--radius-xl); }
+
+  /* ── Shadows ─────────────────────────────────────────────────────────── */
+  .shadows {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+  .shadows .sh {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .shadows .sh .box {
+    height: 80px;
+    background: var(--surface);
+    border-radius: var(--radius);
+  }
+  .shadows .sh:nth-child(1) .box { box-shadow: var(--shadow-xs); }
+  .shadows .sh:nth-child(2) .box { box-shadow: var(--shadow-sm); }
+  .shadows .sh:nth-child(3) .box { box-shadow: var(--shadow-md); }
+  .shadows .sh:nth-child(4) .box { box-shadow: var(--shadow-lg); }
+  .shadows .sh:nth-child(5) .box { box-shadow: var(--shadow-card); }
+  .shadows .sh .lbl { font-family: var(--font-mono); font-size: 11px; color: var(--fg-muted); }
+  .shadows .sh { background: var(--bg-subtle); }
+
+  /* ── Buttons / inputs sample ─────────────────────────────────────────── */
+  .components {
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  .components h3 {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    color: var(--fg-subtle);
+    margin: 0 0 14px;
+    font-family: var(--font-mono);
+    font-weight: 400;
+  }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: var(--radius);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background var(--duration) var(--ease-out), box-shadow var(--duration) var(--ease-out);
+    font-family: inherit;
+    letter-spacing: var(--tracking-tight);
+  }
+  .btn-primary { background: var(--accent); color: var(--fg-on-accent); }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-secondary { background: var(--surface); color: var(--fg); border-color: var(--line-strong); box-shadow: var(--shadow-xs); }
+  .btn-secondary:hover { background: var(--bg-subtle); }
+  .btn-ghost { background: transparent; color: var(--fg-muted); }
+  .btn-ghost:hover { background: var(--bg-muted); color: var(--fg); }
+  .btn-danger { background: var(--surface); color: var(--danger); border-color: oklch(0.85 0.05 25); }
+  .btn-danger:hover { background: oklch(0.97 0.02 25); }
+
+  .input {
+    height: 34px;
+    padding: 0 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: var(--text-sm);
+    color: var(--fg);
+    width: 100%;
+    outline: none;
+    transition: box-shadow var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out);
+  }
+  .input::placeholder { color: var(--fg-subtle); }
+  .input:focus { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+
+  .input-stack { display: flex; flex-direction: column; gap: 10px; max-width: 360px; }
+  .input-stack label { font-size: var(--text-xs); color: var(--fg-muted); font-weight: 500; }
+
+  /* ── Source code listing ─────────────────────────────────────────────── */
+  details.source {
+    margin-top: 56px;
+    border-top: 1px dashed var(--line);
+    padding-top: 24px;
+  }
+  details.source summary {
+    cursor: pointer;
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    list-style: none;
+    user-select: none;
+  }
+  details.source summary::-webkit-details-marker { display: none; }
+  details.source summary::before {
+    content: "›";
+    display: inline-block;
+    margin-left: 8px;
+    transition: transform var(--duration);
+  }
+  details[open].source summary::before { transform: rotate(90deg); }
+  details.source pre {
+    margin-top: 16px;
+    padding: 20px 24px;
+    background: var(--bg-muted);
+    border-radius: var(--radius-lg);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--fg);
+    overflow: auto;
+    direction: ltr;
+    text-align: left;
+    border: 1px solid var(--line);
+    max-height: 520px;
+  }
+
+  /* ── Footer note ─────────────────────────────────────────────────────── */
+  .footnote {
+    margin-top: 56px;
+    padding: 18px 22px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    line-height: 1.65;
+  }
+  .footnote svg { flex-shrink: 0; margin-top: 2px; color: var(--accent); }
+  .footnote b { color: var(--fg); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Mechinet · Design tokens · v0.1</div>
+    <h1 class="display">מערכת עיצוב לניהול מועמדים</h1>
+    <p class="lede">
+      בסיס ויזואלי לפלטפורמה של מכינות קדם־צבאיות. פלטה ניטרלית חמה,
+      אקצנט יחיד של דיו־כחול, וחמש קטגוריות סטטוס בעלות נוכחות שווה ויזואלית.
+      כל הערכים נחשפים כ־CSS custom properties וזמינים ל־Tailwind דרך
+      <code style="font-family:var(--font-mono);font-size:12px;color:var(--fg);background:var(--bg-muted);padding:1px 5px;border-radius:4px;">theme.extend</code>.
+    </p>
+
+    <div class="meta-strip">
+      <div><div class="k">Font</div><div class="v">Heebo · JetBrains Mono</div></div>
+      <div><div class="k">Base unit</div><div class="v">4px</div></div>
+      <div><div class="k">Accent hue</div><div class="v">oklch(.42 .13 260)</div></div>
+      <div><div class="k">Direction</div><div class="v">RTL · עברית</div></div>
+    </div>
+  </header>
+
+  <!-- ── COLOR · Surfaces & ink ──────────────────────────────────────── -->
+  <section>
+    <header>
+      <h2>צבע · משטחים ודיו</h2>
+      <span class="hint">10 משתנים · רקעים, טקסט, מבנה</span>
+    </header>
+
+    <div class="swatch-grid">
+      <div class="swatch"><div class="chip" style="background:var(--bg)"></div>
+        <div class="name"><b>bg</b><code>--bg</code></div>
+        <div class="role">רקע ראשי של האפליקציה</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--bg-subtle)"></div>
+        <div class="name"><b>bg subtle</b><code>--bg-subtle</code></div>
+        <div class="role">שורה במעבר עכבר, זברה</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--bg-muted)"></div>
+        <div class="name"><b>bg muted</b><code>--bg-muted</code></div>
+        <div class="role">תיבת קוד, well, kbd</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--surface)"></div>
+        <div class="name"><b>surface</b><code>--surface</code></div>
+        <div class="role">כרטיס, popover, modal</div></div>
+
+      <div class="swatch"><div class="chip" style="background:var(--fg)"></div>
+        <div class="name"><b>fg</b><code>--fg</code></div>
+        <div class="role">טקסט ראשי, כותרות</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--fg-muted)"></div>
+        <div class="name"><b>fg muted</b><code>--fg-muted</code></div>
+        <div class="role">טקסט משני, meta</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--fg-subtle)"></div>
+        <div class="name"><b>fg subtle</b><code>--fg-subtle</code></div>
+        <div class="role">placeholder, helper</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--line)"></div>
+        <div class="name"><b>line</b><code>--line</code></div>
+        <div class="role">קווי הפרדה (1px)</div></div>
+    </div>
+  </section>
+
+  <!-- ── COLOR · Accent ─────────────────────────────────────────────── -->
+  <section>
+    <header>
+      <h2>צבע · אקצנט</h2>
+      <span class="hint">משמש במשורה — קישורים, focus, פעולה ראשית</span>
+    </header>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="chip" style="background:var(--accent)"></div>
+        <div class="name"><b>accent</b><code>--accent</code></div>
+        <div class="role">כפתור ראשי, קישור, focus ring</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--accent-hover)"></div>
+        <div class="name"><b>accent hover</b><code>--accent-hover</code></div>
+        <div class="role">מצב hover/active</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--accent-soft)"></div>
+        <div class="name"><b>accent soft</b><code>--accent-soft</code></div>
+        <div class="role">selection, tint עדין</div></div>
+      <div class="swatch"><div class="chip" style="background:var(--accent-line)"></div>
+        <div class="name"><b>accent line</b><code>--accent-line</code></div>
+        <div class="role">גבול של accent-soft</div></div>
+    </div>
+  </section>
+
+  <!-- ── Stages ──────────────────────────────────────────────────────── -->
+  <section>
+    <header>
+      <h2>שלבי תהליך · stage badges</h2>
+      <span class="hint">חמישה צבעים בעלי כרומה נמוכה · רקע / טקסט / נקודה / גבול</span>
+    </header>
+
+    <div class="stage-row" style="margin-bottom:18px;">
+      <span class="stage stage--new"><span class="dot"></span>חדש</span>
+      <span class="stage stage--review"><span class="dot"></span>בבדיקה</span>
+      <span class="stage stage--interview"><span class="dot"></span>ראיון</span>
+      <span class="stage stage--accepted"><span class="dot"></span>התקבל</span>
+      <span class="stage stage--rejected"><span class="dot"></span>נדחה</span>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-cell">
+        <div class="label-row"><b>חדש</b><code>new</code></div>
+        <div class="preview" style="background:var(--stage-new-bg)">
+          <span class="stage stage--new"><span class="dot"></span>חדש</span>
+        </div>
+        <div class="meta">
+          <div class="m"><i style="background:var(--stage-new-bg)"></i>bg</div>
+          <div class="m"><i style="background:var(--stage-new-fg)"></i>fg</div>
+          <div class="m"><i style="background:var(--stage-new-dot)"></i>dot</div>
+          <div class="m"><i style="background:var(--stage-new-line)"></i>line</div>
+        </div>
+      </div>
+      <div class="stage-cell">
+        <div class="label-row"><b>בבדיקה</b><code>review</code></div>
+        <div class="preview" style="background:var(--stage-review-bg)">
+          <span class="stage stage--review"><span class="dot"></span>בבדיקה</span>
+        </div>
+        <div class="meta">
+          <div class="m"><i style="background:var(--stage-review-bg)"></i>bg</div>
+          <div class="m"><i style="background:var(--stage-review-fg)"></i>fg</div>
+          <div class="m"><i style="background:var(--stage-review-dot)"></i>dot</div>
+          <div class="m"><i style="background:var(--stage-review-line)"></i>line</div>
+        </div>
+      </div>
+      <div class="stage-cell">
+        <div class="label-row"><b>ראיון</b><code>interview</code></div>
+        <div class="preview" style="background:var(--stage-interview-bg)">
+          <span class="stage stage--interview"><span class="dot"></span>ראיון</span>
+        </div>
+        <div class="meta">
+          <div class="m"><i style="background:var(--stage-interview-bg)"></i>bg</div>
+          <div class="m"><i style="background:var(--stage-interview-fg)"></i>fg</div>
+          <div class="m"><i style="background:var(--stage-interview-dot)"></i>dot</div>
+          <div class="m"><i style="background:var(--stage-interview-line)"></i>line</div>
+        </div>
+      </div>
+      <div class="stage-cell">
+        <div class="label-row"><b>התקבל</b><code>accepted</code></div>
+        <div class="preview" style="background:var(--stage-accepted-bg)">
+          <span class="stage stage--accepted"><span class="dot"></span>התקבל</span>
+        </div>
+        <div class="meta">
+          <div class="m"><i style="background:var(--stage-accepted-bg)"></i>bg</div>
+          <div class="m"><i style="background:var(--stage-accepted-fg)"></i>fg</div>
+          <div class="m"><i style="background:var(--stage-accepted-dot)"></i>dot</div>
+          <div class="m"><i style="background:var(--stage-accepted-line)"></i>line</div>
+        </div>
+      </div>
+      <div class="stage-cell">
+        <div class="label-row"><b>נדחה</b><code>rejected</code></div>
+        <div class="preview" style="background:var(--stage-rejected-bg)">
+          <span class="stage stage--rejected"><span class="dot"></span>נדחה</span>
+        </div>
+        <div class="meta">
+          <div class="m"><i style="background:var(--stage-rejected-bg)"></i>bg</div>
+          <div class="m"><i style="background:var(--stage-rejected-fg)"></i>fg</div>
+          <div class="m"><i style="background:var(--stage-rejected-dot)"></i>dot</div>
+          <div class="m"><i style="background:var(--stage-rejected-line)"></i>line</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Typography ─────────────────────────────────────────────────── -->
+  <section>
+    <header>
+      <h2>טיפוגרפיה · Heebo</h2>
+      <span class="hint">9 רמות · tracking הדוק לכותרות</span>
+    </header>
+    <div class="type-stack">
+      <div class="type-row">
+        <div class="token">display · 4xl</div>
+        <div class="specimen" style="font-size:var(--text-4xl);line-height:var(--leading-4xl);font-weight:700;letter-spacing:-0.02em;">מועמדים השנה</div>
+        <div class="specs">38 / 46 · 700</div>
+      </div>
+      <div class="type-row">
+        <div class="token">heading · 3xl</div>
+        <div class="specimen" style="font-size:var(--text-3xl);line-height:var(--leading-3xl);font-weight:600;letter-spacing:-0.015em;">פרופיל המועמד</div>
+        <div class="specs">30 / 38 · 600</div>
+      </div>
+      <div class="type-row">
+        <div class="token">heading · 2xl</div>
+        <div class="specimen" style="font-size:var(--text-2xl);line-height:var(--leading-2xl);font-weight:600;letter-spacing:-0.015em;">תהליך גיוס</div>
+        <div class="specs">24 / 32 · 600</div>
+      </div>
+      <div class="type-row">
+        <div class="token">title · xl</div>
+        <div class="specimen" style="font-size:var(--text-xl);line-height:var(--leading-xl);font-weight:600;">תשובות מהטופס</div>
+        <div class="specs">20 / 28 · 600</div>
+      </div>
+      <div class="type-row">
+        <div class="token">lead · lg</div>
+        <div class="specimen" style="font-size:var(--text-lg);line-height:var(--leading-lg);color:var(--fg-muted);">סיכום קצר על המועמד וההתאמה שלו לתוכנית</div>
+        <div class="specs">17 / 24 · 400</div>
+      </div>
+      <div class="type-row">
+        <div class="token">body · md</div>
+        <div class="specimen" style="font-size:var(--text-md);line-height:var(--leading-md);">טקסט בגוף המסמך — נקרא בנוחות גם בעברית וגם באנגלית.</div>
+        <div class="specs">15 / 22 · 400</div>
+      </div>
+      <div class="type-row">
+        <div class="token">body · base</div>
+        <div class="specimen" style="font-size:var(--text-base);line-height:var(--leading-base);">ברירת המחדל של ממשק המשתמש — שורות בטבלה, תוויות, פסקאות קצרות.</div>
+        <div class="specs">14 / 21 · 400</div>
+      </div>
+      <div class="type-row">
+        <div class="token">small · sm</div>
+        <div class="specimen" style="font-size:var(--text-sm);line-height:var(--leading-sm);color:var(--fg-muted);">טקסט עזר ומטא — עיר מגורים, תאריך הגשה, מקור.</div>
+        <div class="specs">13 / 18 · 400</div>
+      </div>
+      <div class="type-row">
+        <div class="token">micro · xs</div>
+        <div class="specimen" style="font-size:var(--text-xs);line-height:var(--leading-xs);text-transform:uppercase;letter-spacing:var(--tracking-caps);color:var(--fg-subtle);font-family:var(--font-mono);">eyebrow · ID · timestamp</div>
+        <div class="specs">11 / 16 · mono</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Spacing ────────────────────────────────────────────────────── -->
+  <section>
+    <header>
+      <h2>ריווח</h2>
+      <span class="hint">בסיס 4px · 13 ערכים</span>
+    </header>
+    <div class="spacing-grid">
+      <div class="sp-row"><span class="label">space-0_5</span><span class="bar" style="width:2px"></span><span class="px">2px</span></div>
+      <div class="sp-row"><span class="label">space-1</span><span class="bar" style="width:4px"></span><span class="px">4px</span></div>
+      <div class="sp-row"><span class="label">space-2</span><span class="bar" style="width:8px"></span><span class="px">8px</span></div>
+      <div class="sp-row"><span class="label">space-3</span><span class="bar" style="width:12px"></span><span class="px">12px</span></div>
+      <div class="sp-row"><span class="label">space-4</span><span class="bar" style="width:16px"></span><span class="px">16px</span></div>
+      <div class="sp-row"><span class="label">space-5</span><span class="bar" style="width:20px"></span><span class="px">20px</span></div>
+      <div class="sp-row"><span class="label">space-6</span><span class="bar" style="width:24px"></span><span class="px">24px</span></div>
+      <div class="sp-row"><span class="label">space-8</span><span class="bar" style="width:32px"></span><span class="px">32px</span></div>
+      <div class="sp-row"><span class="label">space-10</span><span class="bar" style="width:40px"></span><span class="px">40px</span></div>
+      <div class="sp-row"><span class="label">space-12</span><span class="bar" style="width:48px"></span><span class="px">48px</span></div>
+      <div class="sp-row"><span class="label">space-16</span><span class="bar" style="width:64px"></span><span class="px">64px</span></div>
+      <div class="sp-row"><span class="label">space-20</span><span class="bar" style="width:80px"></span><span class="px">80px</span></div>
+    </div>
+  </section>
+
+  <!-- ── Radii ───────────────────────────────────────────────────────── -->
+  <section>
+    <header>
+      <h2>פינות מעוגלות</h2>
+      <span class="hint">6 רמות · ברירת מחדל 7px</span>
+    </header>
+    <div class="radii">
+      <div class="r"><div class="box" style="border-radius:var(--radius-xs)"></div><div class="lbl">xs · 3px</div></div>
+      <div class="r"><div class="box" style="border-radius:var(--radius-sm)"></div><div class="lbl">sm · 5px</div></div>
+      <div class="r"><div class="box" style="border-radius:var(--radius)"></div><div class="lbl">base · 7px</div></div>
+      <div class="r"><div class="box" style="border-radius:var(--radius-md)"></div><div class="lbl">md · 9px</div></div>
+      <div class="r"><div class="box" style="border-radius:var(--radius-lg)"></div><div class="lbl">lg · 12px</div></div>
+      <div class="r"><div class="box" style="border-radius:var(--radius-xl)"></div><div class="lbl">xl · 16px</div></div>
+    </div>
+  </section>
+
+  <!-- ── Shadows ─────────────────────────────────────────────────────── -->
+  <section>
+    <header>
+      <h2>צללים</h2>
+      <span class="hint">מינימליים · "card" משלב hairline פנימי</span>
+    </header>
+    <div class="shadows">
+      <div class="sh"><div class="box"></div><div class="lbl">shadow-xs</div></div>
+      <div class="sh"><div class="box"></div><div class="lbl">shadow-sm</div></div>
+      <div class="sh"><div class="box"></div><div class="lbl">shadow-md</div></div>
+      <div class="sh"><div class="box"></div><div class="lbl">shadow-lg</div></div>
+      <div class="sh"><div class="box"></div><div class="lbl">shadow-card</div></div>
+    </div>
+  </section>
+
+  <!-- ── Components peek ─────────────────────────────────────────────── -->
+  <section>
+    <header>
+      <h2>פריקרס · רכיבי בסיס</h2>
+      <span class="hint">חזרה מלאה תופיע בעמודים הבאים</span>
+    </header>
+    <div class="components">
+      <div>
+        <h3>כפתורים</h3>
+        <div class="row">
+          <button class="btn btn-primary">שמור שינויים</button>
+          <button class="btn btn-secondary">ביטול</button>
+          <button class="btn btn-ghost">עוד פעולות</button>
+          <button class="btn btn-danger">מחק</button>
+        </div>
+      </div>
+      <div>
+        <h3>שדות קלט</h3>
+        <div class="input-stack">
+          <label for="ex1">שם מלא</label>
+          <input id="ex1" class="input" placeholder="לדוגמה: יעל כהן" />
+          <label for="ex2">אימייל</label>
+          <input id="ex2" class="input" placeholder="yael@example.com" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────── -->
+  <div class="footnote">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 16v-4"></path><path d="M12 8h.01"></path>
+    </svg>
+    <div>
+      <b>הצעד הבא:</b> אישור הטוקנים שלמעלה. ברגע שמאשרים — עוברים ל־
+      <b>פריסת ה־Sidebar</b> (מסך 2 מתוך 8), עם רכיבי הניווט, מצבים פעילים,
+      ואזור המשתמש בתחתית. במידת הצורך, אצרף כעת גם את ההגדרות של
+      <code style="font-family:var(--font-mono);background:var(--bg-muted);padding:1px 5px;border-radius:4px;">tailwind.config.ts</code>
+      שמייצאות את הטוקנים האלה ל־<code style="font-family:var(--font-mono);background:var(--bg-muted);padding:1px 5px;border-radius:4px;">bg-surface</code>, <code style="font-family:var(--font-mono);background:var(--bg-muted);padding:1px 5px;border-radius:4px;">text-fg-muted</code> וכו'.
+    </div>
+  </div>
+
+  <details class="source">
+    <summary>הצג את הקוד המלא של <code style="font-family:var(--font-mono);">globals.css</code></summary>
+    <pre id="src"></pre>
+  </details>
+
+</div>
+
+<script>
+  // Inline the globals.css file so reviewers can copy it without leaving the page.
+  fetch("globals.css").then(r => r.text()).then(t => { document.getElementById("src").textContent = t; });
+</script>
+</body>
+</html>

@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Mechinet · Pipeline</title>
+<link rel="stylesheet" href="globals.css" />
+<style>
+  /* Search field (reused pattern) */
+  .search { position: relative; width: 320px; }
+  .search input { width: 100%; height: 36px; padding: 0 36px 0 12px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--bg-subtle); font-family: inherit; font-size: var(--text-sm); color: var(--fg); outline: none; }
+  .search input::placeholder { color: var(--fg-subtle); }
+  .search input:focus { background: var(--surface); border-color: var(--accent); box-shadow: var(--shadow-focus); }
+  .search svg { position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--fg-subtle); pointer-events: none; }
+  .search .kbd { position: absolute; inset-inline-end: 10px; top: 50%; transform: translateY(-50%); font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-faint); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px; background: var(--surface); direction: ltr; }
+
+  /* Page head */
+  .page-head { padding: 28px var(--gutter) 18px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .page-head h1 { font-size: var(--text-3xl); line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; margin: 0; color: var(--primary); }
+  .page-head .sub { font-size: var(--text-md); color: var(--fg-muted); margin-top: 8px; }
+
+  /* Mode switcher (Table / Kanban) */
+  .mode-switch { display: inline-flex; background: var(--bg-subtle); border: 1px solid var(--line); border-radius: var(--radius); padding: 3px; gap: 2px; }
+  .mode-switch button { background: transparent; border: 0; padding: 0 12px; height: 30px; font-size: var(--text-sm); color: var(--fg-muted); cursor: pointer; border-radius: var(--radius-sm); font-family: inherit; display: inline-flex; align-items: center; gap: 6px; }
+  .mode-switch button svg { width: 14px; height: 14px; }
+  .mode-switch button.on { background: var(--surface); color: var(--primary); box-shadow: var(--shadow-xs); font-weight: 500; }
+
+  /* Toolbar */
+  .toolbar { padding: 0 var(--gutter) 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .toolbar .spacer { flex: 1; }
+  .meta-text { font-size: var(--text-sm); color: var(--fg-subtle); font-family: var(--font-mono); font-size: 11.5px; }
+
+  /* Pill button (reuse) */
+  .pill { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-size: var(--text-sm); color: var(--fg-muted); cursor: pointer; font-family: inherit; }
+  .pill:hover { background: var(--bg-subtle); color: var(--fg); }
+  .pill svg { width: 14px; height: 14px; }
+  .pill.on { background: var(--primary-soft); color: var(--primary); border-color: var(--primary-line); }
+
+  /* Kanban board */
+  .board {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 var(--gutter) 28px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(280px, 1fr));
+    gap: 14px;
+    min-height: 0;
+  }
+
+  .column {
+    background: var(--bg-subtle);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    /* Each column gets its own accent color via --c */
+  }
+  .column.drop-target {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    border-style: dashed;
+  }
+  .col-head {
+    padding: 14px 14px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    position: relative;
+  }
+  .col-head::before {
+    /* Top border accent in stage color */
+    content: "";
+    position: absolute;
+    top: 0; inset-inline-start: 0; right: 0;
+    height: 3px;
+    background: var(--c);
+  }
+  .col-head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+  .col-head h2 {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--primary);
+    flex: 1;
+  }
+  .col-head .count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg-muted);
+    background: var(--bg-muted);
+    border: 1px solid var(--line);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-variant-numeric: tabular-nums;
+  }
+  .col-head .add-btn {
+    width: 24px; height: 24px;
+    border: 0;
+    background: transparent;
+    border-radius: var(--radius-sm);
+    color: var(--fg-faint);
+    cursor: pointer;
+    display: inline-grid; place-items: center;
+  }
+  .col-head .add-btn:hover { background: var(--bg-subtle); color: var(--primary); }
+  .col-head .add-btn svg { width: 14px; height: 14px; }
+
+  .col-list {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 100px;
+  }
+  .col-list:empty::before {
+    content: "אין מועמדים בשלב זה";
+    display: block;
+    text-align: center;
+    color: var(--fg-faint);
+    font-size: 12px;
+    padding: 40px 16px;
+  }
+
+  /* Candidate card */
+  .ccard {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px;
+    cursor: grab;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color var(--duration), box-shadow var(--duration), transform var(--duration);
+    position: relative;
+  }
+  .ccard:hover { border-color: var(--line-strong); box-shadow: var(--shadow-sm); }
+  .ccard:active { cursor: grabbing; }
+  .ccard.is-dragging {
+    opacity: 0.4;
+    transform: rotate(-1deg);
+  }
+  .ccard.is-drop-preview {
+    background: var(--accent-soft);
+    border: 1.5px dashed var(--accent);
+    box-shadow: var(--shadow-md);
+    transform: rotate(-1.5deg);
+    cursor: grabbing;
+  }
+  .ccard .top { display: flex; align-items: center; gap: 8px; }
+  .ccard .av {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    color: #fff;
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35);
+  }
+  .ccard .nm { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; flex: 1; }
+  .ccard .nm b { font-size: 13.5px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ccard .nm small { font-size: 11px; color: var(--fg-subtle); }
+  .ccard .kebab {
+    width: 22px; height: 22px;
+    border: 0; background: transparent; color: var(--fg-faint);
+    cursor: pointer; display: inline-grid; place-items: center;
+    border-radius: var(--radius-sm);
+    opacity: 0;
+    transition: opacity var(--duration), background var(--duration), color var(--duration);
+  }
+  .ccard:hover .kebab { opacity: 1; }
+  .ccard .kebab:hover { background: var(--bg-subtle); color: var(--fg); }
+  .ccard .kebab svg { width: 14px; height: 14px; }
+
+  /* AI fit pill — teal accent */
+  .ccard .ai-fit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: var(--ai-deep);
+    background: var(--ai-soft);
+    border: 1px solid var(--ai-line);
+    padding: 3px 8px 3px 6px;
+    border-radius: var(--radius-full);
+    align-self: flex-start;
+    font-family: var(--font-mono);
+    font-weight: 500;
+  }
+  .ccard .ai-fit svg { width: 11px; height: 11px; color: var(--ai); }
+  .ccard .ai-fit.warn { color: #8a5400; background: #fff6e0; border-color: #f6d27a; }
+  .ccard .ai-fit.warn svg { color: var(--warning); }
+  .ccard .ai-fit.danger { color: var(--stage-rejected-fg); background: var(--stage-rejected-bg); border-color: var(--stage-rejected-line); }
+  .ccard .ai-fit.danger svg { color: var(--danger); }
+
+  .ccard .snippet {
+    font-size: 12px;
+    color: var(--fg-muted);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .ccard .meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 8px;
+    margin-top: 2px;
+    border-top: 1px dashed var(--line);
+    font-size: 11px;
+    color: var(--fg-subtle);
+    font-family: var(--font-mono);
+  }
+  .ccard .meta .m { display: inline-flex; align-items: center; gap: 4px; }
+  .ccard .meta .m svg { width: 11px; height: 11px; opacity: 0.7; }
+  .ccard .meta .m.warn { color: var(--warning); font-weight: 600; }
+  .ccard .meta .m.warn svg { opacity: 1; }
+  .ccard .meta .tags { margin-inline-start: auto; display: inline-flex; gap: 4px; }
+  .ccard .tag {
+    font-family: inherit;
+    font-size: 10px;
+    padding: 1px 6px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    border-radius: 4px;
+    border: 1px solid var(--primary-line);
+  }
+  .ccard .tag.alert {
+    background: var(--accent-soft);
+    color: var(--accent-hover);
+    border-color: var(--accent-line);
+  }
+
+  /* Card accent (left border bar by stage color) */
+  .ccard::before {
+    content: "";
+    position: absolute;
+    inset-block: 12px;
+    inset-inline-end: 0;
+    width: 2px;
+    background: var(--c, transparent);
+    border-radius: 2px;
+  }
+
+  /* Drag-and-drop ghost (the floating preview) */
+  .drag-ghost {
+    position: fixed;
+    z-index: 100;
+    width: 240px;
+    pointer-events: none;
+    top: 280px;
+    inset-inline-end: 700px;
+  }
+
+  /* Footer add-card button */
+  .col-add {
+    margin: 4px 10px 12px;
+    height: 36px;
+    background: transparent;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius);
+    color: var(--fg-subtle);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: inherit;
+    transition: color var(--duration), border-color var(--duration), background var(--duration);
+  }
+  .col-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .col-add svg { width: 14px; height: 14px; }
+
+  /* Bulk action floating bar (when card is selected) */
+  .selection-bar {
+    position: fixed;
+    bottom: 28px;
+    inset-inline-start: 50%;
+    transform: translateX(50%);
+    background: var(--primary);
+    color: var(--on-primary);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow-lg);
+    font-size: var(--text-sm);
+    z-index: 50;
+  }
+</style>
+</head>
+<body>
+
+<div class="mf-shell">
+
+  <!-- Sidebar (compact, pipeline active) -->
+  <aside class="mf-sidebar">
+    <div class="mf-brand">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg></div>
+      <div class="org"><b>מכינת אורות</b><small>mechinet · admin</small></div>
+    </div>
+    <nav class="mf-nav">
+      <div class="mf-group">
+        <div class="label">ניווט ראשי</div>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>לוח בקרה</a>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>מועמדים<span class="count">147</span></a>
+        <a class="mf-nav-item is-active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="14" x="3" y="5" rx="1"/><rect width="6" height="10" x="11" y="5" rx="1"/><rect width="6" height="7" x="19" y="5" rx="1" transform="translate(0 -2)"/></svg>פייפליין</a>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>יומן<span class="count">12</span></a>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>טפסים</a>
+      </div>
+      <div class="mf-group">
+        <div class="label">ארגון</div>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>חברי צוות</a>
+        <a class="mf-nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>הגדרות</a>
+      </div>
+    </nav>
+    <div class="mf-user">
+      <div class="mf-user-row">
+        <div class="mf-avatar">י.כ</div>
+        <div class="mf-user-meta"><b>יעל כהן</b><small>yael@orot.org.il</small></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="mf-main">
+
+    <div class="mf-topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input placeholder="חיפוש לפי שם, אימייל…" />
+        <span class="kbd">⌘K</span>
+      </div>
+      <div style="margin-inline-start:auto;display:flex;gap:8px;align-items:center;">
+        <button class="mf-icon-btn" aria-label="התראות" style="position:relative;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span style="position:absolute;top:4px;inset-inline-end:5px;width:7px;height:7px;background:var(--accent);border-radius:50%;border:1.5px solid var(--surface);"></span>
+        </button>
+        <button class="mf-btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          מועמד חדש
+        </button>
+      </div>
+    </div>
+
+    <div class="page-head">
+      <div>
+        <h1>פייפליין</h1>
+        <p class="sub">147 מועמדים בתהליך · גרור כרטיס כדי לשנות שלב · עדכון מיידי</p>
+      </div>
+      <div class="mode-switch">
+        <button>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          טבלה
+        </button>
+        <button class="on">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="14" x="3" y="5" rx="1"/><rect width="6" height="10" x="11" y="5" rx="1"/><rect width="6" height="7" x="19" y="5" rx="1" transform="translate(0 -2)"/></svg>
+          פייפליין
+        </button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+        טופס: גיוס תשפ"ז ראשי
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <button class="pill on">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+        סינון AI: התאמה ≥ 70%
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <button class="pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/></svg>
+        סינון נוסף
+      </button>
+      <div class="spacer"></div>
+      <span class="meta-text">10 כרטיסים מוצגים · 137 מסוננים החוצה</span>
+      <button class="pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12c3-7 15-7 18 0"/><path d="M3 12c3 7 15 7 18 0"/></svg>
+        תצוגה
+      </button>
+    </div>
+
+    <!-- Kanban board -->
+    <div class="board" id="board">
+
+      <!-- 1. New / חדש -->
+      <div class="column" style="--c: var(--stage-new-dot);" data-stage="new">
+        <div class="col-head">
+          <span class="dot"></span>
+          <h2>חדש</h2>
+          <span class="count">38</span>
+          <button class="add-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+        </div>
+        <div class="col-list">
+
+          <div class="ccard" style="--c: var(--stage-new-dot);" data-id="c1" draggable="true">
+            <div class="top">
+              <div class="av av-d">י.ש</div>
+              <div class="nm"><b>יונתן שני</b><small>באר שבע</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+              81% התאמה
+            </span>
+            <div class="snippet">מעוניין להעמיק בלימודי יהדות, מדריך נוער בעיר, חיפש שנה משמעותית.</div>
+            <div class="meta">
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>היום</span>
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>טופס מלא</span>
+            </div>
+          </div>
+
+          <div class="ccard" style="--c: var(--stage-new-dot);" data-id="c2" draggable="true">
+            <div class="top">
+              <div class="av av-b">ר.ג</div>
+              <div class="nm"><b>רוני גולן</b><small>הרצליה</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit warn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              חסר וידאו הצגה
+            </span>
+            <div class="snippet">השלים פרטים בסיסיים בלבד. ה־AI מציע לבקש השלמה לפני שמתחילים לבדוק.</div>
+            <div class="meta">
+              <span class="m warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>2 ימים · חסר</span>
+            </div>
+          </div>
+
+          <div class="ccard" style="--c: var(--stage-new-dot);" data-id="c3" draggable="true">
+            <div class="top">
+              <div class="av av-c">א.נ</div>
+              <div class="nm"><b>אביב נחום</b><small>נתניה</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+              74% התאמה
+            </span>
+            <div class="meta">
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>3 ימים</span>
+              <div class="tags"><span class="tag">המלצה</span></div>
+            </div>
+          </div>
+
+        </div>
+        <button class="col-add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          הוסף מועמד
+        </button>
+      </div>
+
+      <!-- 2. Review / בבדיקה -->
+      <div class="column" style="--c: var(--stage-review-dot);" data-stage="review">
+        <div class="col-head">
+          <span class="dot"></span>
+          <h2>בבדיקה</h2>
+          <span class="count">42</span>
+          <button class="add-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+        </div>
+        <div class="col-list">
+
+          <div class="ccard" style="--c: var(--stage-review-dot);" data-id="c4" draggable="true">
+            <div class="top">
+              <div class="av av-b">ע.ל</div>
+              <div class="nm"><b>עומר לוי</b><small>חיפה</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+              87% התאמה
+            </span>
+            <div class="snippet">רקע משמעותי בתנועת נוער, ראיון מקדים חיובי. ה־AI מציין מנהיגות גבוהה ויכולת ביטוי.</div>
+            <div class="meta">
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>4 ימים</span>
+              <div class="tags"><span class="tag">מנהיגות</span></div>
+            </div>
+          </div>
+
+          <div class="ccard" style="--c: var(--stage-review-dot);" data-id="c5" draggable="true">
+            <div class="top">
+              <div class="av av-a">מ.כ</div>
+              <div class="nm"><b>מאיה כץ</b><small>תל אביב</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+              79% התאמה
+            </span>
+            <div class="snippet">מובילה פרויקט חברתי בעמותת "ידידים", ניסיון עשיר בעבודה עם נוער בסיכון.</div>
+            <div class="meta">
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>5 ימים</span>
+              <div class="tags"><span class="tag">חברתי</span></div>
+            </div>
+          </div>
+
+          <div class="ccard" style="--c: var(--stage-review-dot);" data-id="c6" draggable="true">
+            <div class="top">
+              <div class="av av-c">ד.ל</div>
+              <div class="nm"><b>דניאל לוי</b><small>חיפה</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit warn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              65% · סתירות
+            </span>
+            <div class="snippet">ה־AI זיהה סתירות קלות בין תשובות אישיות והערכת מקצועות. ממליץ לדון בראיון.</div>
+            <div class="meta">
+              <span class="m warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>8 ימים · דחוף</span>
+            </div>
+          </div>
+
+        </div>
+        <button class="col-add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          הוסף מועמד
+        </button>
+      </div>
+
+      <!-- 3. Interview / ראיון (drop target preview) -->
+      <div class="column drop-target" style="--c: var(--stage-interview-dot);" data-stage="interview">
+        <div class="col-head">
+          <span class="dot"></span>
+          <h2>ראיון</h2>
+          <span class="count">19 → 20</span>
+          <button class="add-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+        </div>
+        <div class="col-list">
+
+          <div class="ccard" style="--c: var(--stage-interview-dot);" data-id="c7" draggable="true">
+            <div class="top">
+              <div class="av av-a">נ.ב</div>
+              <div class="nm"><b>נועה ברקת</b><small>תל אביב</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+              92% התאמה
+            </span>
+            <div class="snippet">מועמדת חזקה, רקע משמעותי בהדרכה. ראיון מתוכנן ל־16/05 בשעה 11:00.</div>
+            <div class="meta">
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>16.05, 11:00</span>
+              <div class="tags"><span class="tag">מנהיגות</span><span class="tag">חינוך</span></div>
+            </div>
+          </div>
+
+          <!-- Drop preview placeholder -->
+          <div class="ccard is-drop-preview" style="--c: var(--stage-interview-dot);" data-id="dropping">
+            <div class="top">
+              <div class="av av-e">ת.פ</div>
+              <div class="nm"><b>תמר פלד</b><small>רעננה · מועברת לכאן</small></div>
+            </div>
+            <span class="ai-fit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+              84% התאמה
+            </span>
+            <div class="meta">
+              <span class="m" style="color:var(--accent-hover);font-weight:600;">משחרר כאן → ראיון</span>
+            </div>
+          </div>
+
+          <div class="ccard" style="--c: var(--stage-interview-dot);" data-id="c8" draggable="true">
+            <div class="top">
+              <div class="av av-d">ל.ש</div>
+              <div class="nm"><b>ליאם שמש</b><small>רחובות</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+              82% התאמה
+            </span>
+            <div class="meta">
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/></svg>17.05, 14:00</span>
+              <div class="tags"><span class="tag alert">ללא מראיין</span></div>
+            </div>
+          </div>
+
+        </div>
+        <button class="col-add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          הוסף מועמד
+        </button>
+      </div>
+
+      <!-- 4. Accepted / התקבל -->
+      <div class="column" style="--c: var(--stage-accepted-dot);" data-stage="accepted">
+        <div class="col-head">
+          <span class="dot"></span>
+          <h2>התקבל</h2>
+          <span class="count">26</span>
+          <button class="add-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+        </div>
+        <div class="col-list">
+
+          <div class="ccard" style="--c: var(--stage-accepted-dot);" data-id="c9" draggable="true">
+            <div class="top">
+              <div class="av av-c">ש.מ</div>
+              <div class="nm"><b>שירה מזרחי</b><small>ירושלים</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+              95% התאמה
+            </span>
+            <div class="meta">
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>הודעה נשלחה</span>
+              <div class="tags"><span class="tag">חתימת מסמכים</span></div>
+            </div>
+          </div>
+
+          <div class="ccard" style="--c: var(--stage-accepted-dot);" data-id="c10" draggable="true">
+            <div class="top">
+              <div class="av av-d">ד.א</div>
+              <div class="nm"><b>דניאל אבני</b><small>פתח תקווה</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 9.91 8.91 3 12l6.91 3.09L12 22l3.09-6.91L22 12l-6.91-3.09z"/></svg>
+              89% התאמה
+            </span>
+            <div class="meta">
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>הצטרף לקבוצה</span>
+            </div>
+          </div>
+
+        </div>
+        <button class="col-add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          הוסף ידנית
+        </button>
+      </div>
+
+      <!-- 5. Rejected / נדחה -->
+      <div class="column" style="--c: var(--stage-rejected-dot);" data-stage="rejected">
+        <div class="col-head">
+          <span class="dot"></span>
+          <h2>נדחה</h2>
+          <span class="count">22</span>
+          <button class="add-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+        </div>
+        <div class="col-list">
+
+          <div class="ccard" style="--c: var(--stage-rejected-dot);" data-id="c11" draggable="true">
+            <div class="top">
+              <div class="av av-b">א.ד</div>
+              <div class="nm"><b>איתי דביר</b><small>מודיעין</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit danger">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              42% · אי־התאמה
+            </span>
+            <div class="snippet">סיבה: חוסר התאמה לאופי המכינה. הודעה רגישה נשלחה ידנית על־ידי יעל.</div>
+            <div class="meta">
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>הודעה נשלחה</span>
+            </div>
+          </div>
+
+          <div class="ccard" style="--c: var(--stage-rejected-dot);" data-id="c12" draggable="true">
+            <div class="top">
+              <div class="av av-e">ה.צ</div>
+              <div class="nm"><b>הדר צור</b><small>חיפה</small></div>
+              <button class="kebab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+            </div>
+            <span class="ai-fit warn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+              58% · שמור לעתיד
+            </span>
+            <div class="meta">
+              <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>הודעה נשלחה</span>
+            </div>
+          </div>
+
+        </div>
+        <button class="col-add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          הוסף ידנית
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Simple cosmetic drag-and-drop — visual only, no persistence
+  const board = document.getElementById('board');
+  let dragged = null;
+
+  board.querySelectorAll('.ccard[draggable="true"]').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      dragged = card;
+      card.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      dragged?.classList.remove('is-dragging');
+      board.querySelectorAll('.column.drop-target').forEach(c => c.classList.remove('drop-target'));
+      dragged = null;
+    });
+  });
+
+  board.querySelectorAll('.column').forEach(col => {
+    col.addEventListener('dragover', e => {
+      e.preventDefault();
+      col.classList.add('drop-target');
+    });
+    col.addEventListener('dragleave', e => {
+      if (e.target === col) col.classList.remove('drop-target');
+    });
+    col.addEventListener('drop', e => {
+      e.preventDefault();
+      if (dragged) {
+        col.querySelector('.col-list').appendChild(dragged);
+      }
+      col.classList.remove('drop-target');
+    });
+  });
+</script>
+</body>
+</html>
