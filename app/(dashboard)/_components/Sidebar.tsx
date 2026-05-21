@@ -31,23 +31,37 @@ const nav = [
   },
 ]
 
-export function Sidebar() {
+type SidebarProps = {
+  orgName: string
+  orgLogoUrl: string | null
+  userEmail: string
+}
+
+export function Sidebar({ orgName, orgLogoUrl, userEmail }: SidebarProps) {
   const pathname = usePathname()
+  const initial = orgName.trim().charAt(0) || "מ"
+  const userInitials = userEmail.charAt(0).toUpperCase() || "מ"
 
   return (
     <aside className="sticky top-0 flex h-screen w-[248px] flex-col border-s border-line bg-[var(--surface-2)]">
       {/* Brand */}
       <div className="flex h-14 items-center gap-2.5 border-b border-line px-4">
-        <div className="grid h-7 w-7 place-items-center rounded-md bg-accent font-mono text-[13px] font-bold text-[var(--fg-on-accent)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]">
-          מ
-        </div>
+        {orgLogoUrl ? (
+          <img
+            src={orgLogoUrl}
+            alt={orgName}
+            className="h-7 w-7 shrink-0 rounded-md object-cover shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+          />
+        ) : (
+          <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-accent text-[13px] font-bold text-[var(--fg-on-accent)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]">
+            {initial}
+          </div>
+        )}
         <div className="flex min-w-0 flex-col leading-tight">
           <b className="truncate text-[15px] font-semibold tracking-tight">
-            מכינת ראות
+            {orgName}
           </b>
-          <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-fg-subtle">
-            mechinet · admin
-          </span>
+          <span className="text-[11px] text-fg-subtle">חשבון מכינה</span>
         </div>
         <button className="ms-auto grid h-6 w-6 place-items-center rounded text-[var(--fg-faint)] hover:bg-[var(--bg-muted)] hover:text-fg-muted">
           <ChevronsUpDown className="h-4 w-4" />
@@ -58,7 +72,7 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-2.5 py-3.5">
         {nav.map((g, gi) => (
           <div key={g.group} className={gi ? "mt-4" : ""}>
-            <div className="px-2.5 pb-2 font-mono text-[10.5px] uppercase tracking-[0.06em] text-fg-subtle">
+            <div className="px-2.5 pb-2 text-[11px] font-medium text-fg-subtle">
               {g.group}
             </div>
             {g.items.map(({ href, icon: Icon, label }) => {
@@ -93,12 +107,12 @@ export function Sidebar() {
       <div className="border-t border-line p-2.5">
         <button className="flex w-full items-center gap-2.5 rounded-md p-2 hover:bg-[var(--bg-subtle)]">
           <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#ffb59f] to-[#fe6f42] text-[12px] font-semibold text-white shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.4)]">
-            מ.ר
+            {userInitials}
           </span>
           <span className="flex min-w-0 flex-col leading-tight text-start">
             <b className="truncate text-[13px] font-semibold">מנהל מכינה</b>
-            <span className="font-mono text-[11px] text-fg-subtle [direction:ltr]">
-              admin@mechinet.app
+            <span className="truncate text-[11px] text-fg-subtle [direction:ltr]">
+              {userEmail}
             </span>
           </span>
           <MoreHorizontal className="ms-auto h-4 w-4 text-[var(--fg-faint)]" />

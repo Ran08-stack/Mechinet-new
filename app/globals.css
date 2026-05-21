@@ -103,7 +103,8 @@
   /* ── TYPOGRAPHY (Rubik) ───────────────────────────────────────────────── */
   --font-sans: "Rubik", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
                "Noto Sans Hebrew", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-mono: "Rubik", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+               "Noto Sans Hebrew", sans-serif;
 
   /* Scale tuned for Hebrew (+10–15% leading vs Latin defaults) */
   --text-xs:   11px;   --leading-xs:   16px;
