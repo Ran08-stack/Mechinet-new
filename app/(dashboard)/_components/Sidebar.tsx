@@ -61,7 +61,9 @@ export function Sidebar({ orgName, orgLogoUrl, userEmail }: SidebarProps) {
           <b className="truncate text-[15px] font-semibold tracking-tight">
             {orgName}
           </b>
-          <span className="text-[11px] text-fg-subtle">חשבון מכינה</span>
+          <span className="text-[11px] uppercase tracking-[0.06em] text-fg-subtle">
+            MECHINET · ACADEMY
+          </span>
         </div>
         <button className="ms-auto grid h-6 w-6 place-items-center rounded text-[var(--fg-faint)] hover:bg-[var(--bg-muted)] hover:text-fg-muted">
           <ChevronsUpDown className="h-4 w-4" />
