@@ -1,7 +1,20 @@
-import { CandidateEvent } from "@/types/database"
-import { Activity, ArrowLeftRight, MessageSquare, Sparkles, Calendar, FileText } from "lucide-react"
+"use client"
 
-// ציר זמן פעילות — מציג את האירועים של המועמד
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { CandidateEvent } from "@/types/database"
+import {
+  Activity,
+  ArrowLeftRight,
+  MessageSquare,
+  Sparkles,
+  Calendar,
+  CalendarX,
+  FileText,
+} from "lucide-react"
+
+// ציר זמן פעילות — מציג את האירועים של המועמד.
+// מאזין ל-INSERTים חדשים דרך Supabase Realtime ומוסיף אותם מעלה ברשימה.
 
 const EVENT_ICON: Record<
   string,
@@ -27,6 +40,11 @@ const EVENT_ICON: Record<
     bg: "var(--accent-soft)",
     fg: "var(--accent-hover)",
   },
+  interview_cancelled: {
+    icon: CalendarX,
+    bg: "var(--danger-soft)",
+    fg: "var(--danger)",
+  },
   form_submitted: {
     icon: FileText,
     bg: "var(--bg-muted)",
@@ -44,7 +62,52 @@ function fmtWhen(iso: string | null) {
   )
 }
 
-export function ActivityTimeline({ events }: { events: CandidateEvent[] }) {
+export function ActivityTimeline({
+  candidateId,
+  initialEvents,
+}: {
+  candidateId: string
+  initialEvents: CandidateEvent[]
+}) {
+  const [events, setEvents] = useState<CandidateEvent[]>(initialEvents)
+
+  useEffect(() => {
+    if (!candidateId) return
+    const supabase = createClient()
+
+    async function refetch() {
+      const { data } = await supabase
+        .from("candidate_events")
+        .select("*")
+        .eq("candidate_id", candidateId)
+        .order("created_at", { ascending: false })
+      if (data) setEvents(data)
+    }
+
+    const channel = supabase
+      .channel(`candidate_events:candidate:${candidateId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "candidate_events",
+          filter: `candidate_id=eq.${candidateId}`,
+        },
+        () => {
+          refetch()
+        }
+      )
+      .subscribe()
+
+    const poll = setInterval(refetch, 8000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(poll)
+    }
+  }, [candidateId])
+
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-surface">
       <div className="flex items-center gap-2.5 border-b border-[var(--line-faint)] px-[18px] py-3.5">
@@ -86,7 +149,7 @@ export function ActivityTimeline({ events }: { events: CandidateEvent[] }) {
                   <span className="text-[13px] leading-snug text-fg">
                     {event.description ?? event.type}
                   </span>
-                  <span className="font-mono text-[10.5px] text-fg-subtle">
+                  <span className="text-[10.5px] text-fg-subtle">
                     {fmtWhen(event.created_at)}
                   </span>
                 </div>

@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Mechinet · Dashboard + Funnel (Mockup)</title>
+<link rel="stylesheet" href="mechinet - ui/globals.css" />
+<style>
+  body { background: var(--bg); margin: 0; font-family: var(--font-sans); }
+
+  .frame { max-width: 1180px; margin: 0 auto; padding: 28px 28px 60px; }
+
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding-bottom: 18px; }
+  .page-head h1 { margin: 0; font-size: var(--text-3xl); font-weight: 600; letter-spacing: -0.01em; color: var(--primary); line-height: 1.15; }
+  .page-head .sub { font-size: var(--text-md); color: var(--fg-muted); margin-top: 8px; max-width: 60ch; }
+
+  .canvas { display: flex; flex-direction: column; gap: 22px; }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 4px;
+    transition: border-color var(--duration), box-shadow var(--duration);
+  }
+  .kpi:hover { border-color: var(--line-strong); box-shadow: var(--shadow-sm); }
+  .kpi-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .kpi-label { font-size: var(--text-sm); font-weight: 500; color: var(--fg-muted); }
+  .kpi-icon {
+    width: 32px; height: 32px; border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+  }
+  .kpi-icon.primary { background: var(--primary-soft); color: var(--primary); }
+  .kpi-icon.accent { background: var(--accent-soft); color: var(--accent-hover); }
+  .kpi-icon.ai { background: var(--ai-soft); color: var(--ai-deep); }
+  .kpi-value { font-size: 32px; font-weight: 700; line-height: 1.1; color: var(--primary); letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
+
+  /* Funnel — Interactive */
+  .funnel-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+  }
+  .funnel-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .funnel-head h2 { margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--primary); }
+  .funnel-head .hint { font-size: 12px; color: var(--fg-subtle); }
+  .funnel-head .total { font-family: var(--font-mono); font-size: 11px; color: var(--fg-subtle); }
+
+  .funnel-rows { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+  .funnel-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 100px 28px;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: background var(--duration), border-color var(--duration), transform var(--duration);
+  }
+  .funnel-row:hover {
+    background: var(--bg-subtle);
+    border-color: var(--line);
+  }
+  .funnel-row:hover .arrow { opacity: 1; transform: translateX(-3px); }
+  .funnel-row .name { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: var(--fg); }
+  .funnel-row .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .funnel-row .bar-wrap { position: relative; height: 26px; background: var(--bg-muted); border-radius: var(--radius-sm); overflow: hidden; }
+  .funnel-row .bar { height: 100%; border-radius: var(--radius-sm); transition: width 0.5s ease; }
+  .funnel-row .pct {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; padding-inline-start: 10px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--fg); pointer-events: none;
+  }
+  .funnel-row .count {
+    font-size: 22px; font-weight: 700; color: var(--primary);
+    text-align: end; font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .funnel-row .arrow {
+    color: var(--fg-faint);
+    opacity: 0.35;
+    transition: opacity var(--duration), transform var(--duration);
+    display: grid; place-items: center;
+  }
+
+  /* Different stage colors */
+  .stage-1 .dot { background: oklch(0.65 0.02 250); }
+  .stage-1 .bar { background: oklch(0.85 0.04 250); }
+  .stage-2 .dot { background: oklch(0.62 0.15 240); }
+  .stage-2 .bar { background: oklch(0.78 0.10 240); }
+  .stage-3 .dot { background: oklch(0.72 0.18 80); }
+  .stage-3 .bar { background: oklch(0.86 0.11 80); }
+  .stage-4 .dot { background: oklch(0.62 0.18 145); }
+  .stage-4 .bar { background: oklch(0.80 0.11 145); }
+
+  /* Recent table */
+  .recent {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .recent-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line-faint); }
+  .recent-head h2 { margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--primary); }
+  .recent-head a { font-size: 13px; font-weight: 500; color: var(--primary); text-decoration: none; }
+  .recent-head a:hover { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--bg-subtle); padding: 10px 16px; text-align: start; border-bottom: 1px solid var(--line); font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--fg-subtle); text-transform: uppercase; letter-spacing: 0.06em; }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--line-faint); }
+  tr:last-child td { border-bottom: 0; }
+  .av { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: white; font-size: 11px; font-weight: 600; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.35); }
+  .badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11.5px; font-weight: 500; border: 1px solid; }
+  .badge .b-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* Demo annotation */
+  .note {
+    background: oklch(0.97 0.03 80);
+    border: 1px solid oklch(0.85 0.10 80);
+    color: oklch(0.40 0.15 60);
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
+  .note b { font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="note">
+    <b>Mockup לצורך החלטה:</b> כך ייראה לוח הבקרה אם נמחק את עמוד הפייפליין ונהפוך את המשפך כאן לאינטראקטיבי. לחיצה על שלב = ניווט לטבלה מסוננת. רחף עם העכבר.
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h1>לוח בקרה</h1>
+      <div class="sub">סקירה של מחזור הגיוס — 580 מועמדים בתהליך.</div>
+    </div>
+  </div>
+
+  <div class="canvas">
+
+    <!-- KPIs -->
+    <section class="kpis">
+      <div class="kpi">
+        <div class="kpi-head">
+          <span class="kpi-label">סך מועמדים</span>
+          <span class="kpi-icon primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+        </div>
+        <div class="kpi-value">580</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-head">
+          <span class="kpi-label">ראיון</span>
+          <span class="kpi-icon accent">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </span>
+        </div>
+        <div class="kpi-value">90</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-head">
+          <span class="kpi-label">מיון פרונטלי</span>
+          <span class="kpi-icon primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="22 11.08 12 21.08 9 18.08 12 15.08 22 11.08"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+        </div>
+        <div class="kpi-value">50</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-head">
+          <span class="kpi-label">סיכומי AI</span>
+          <span class="kpi-icon ai">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="12 2 15 9 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 9 9 12 2"/></svg>
+          </span>
+        </div>
+        <div class="kpi-value">142</div>
+      </div>
+    </section>
+
+    <!-- Funnel — Interactive -->
+    <section class="funnel-card">
+      <div class="funnel-head">
+        <div>
+          <h2>שלבי קבלה</h2>
+          <div class="hint">לחץ על שלב כדי לראות את המועמדים בו</div>
+        </div>
+        <span class="total">580 סה״כ</span>
+      </div>
+
+      <div class="funnel-rows">
+
+        <a href="#" class="funnel-row stage-1">
+          <div class="name">
+            <span class="dot"></span>
+            שלב הטפסים
+          </div>
+          <div class="bar-wrap">
+            <div class="bar" style="width: 100%;"></div>
+            <div class="pct">100%</div>
+          </div>
+          <div class="count">440</div>
+          <span class="arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+          </span>
+        </a>
+
+        <a href="#" class="funnel-row stage-2">
+          <div class="name">
+            <span class="dot"></span>
+            ראיון אישי
+          </div>
+          <div class="bar-wrap">
+            <div class="bar" style="width: 20%;"></div>
+            <div class="pct">20%</div>
+          </div>
+          <div class="count">90</div>
+          <span class="arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+          </span>
+        </a>
+
+        <a href="#" class="funnel-row stage-3">
+          <div class="name">
+            <span class="dot"></span>
+            מיון פרונטלי
+          </div>
+          <div class="bar-wrap">
+            <div class="bar" style="width: 11%;"></div>
+            <div class="pct">11%</div>
+          </div>
+          <div class="count">50</div>
+          <span class="arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+          </span>
+        </a>
+
+        <a href="#" class="funnel-row stage-4">
+          <div class="name">
+            <span class="dot"></span>
+            ראיון מול מנהל המכינה
+          </div>
+          <div class="bar-wrap">
+            <div class="bar" style="width: 7%;"></div>
+            <div class="pct">7%</div>
+          </div>
+          <div class="count">30</div>
+          <span class="arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+          </span>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- Recent -->
+    <section class="recent">
+      <div class="recent-head">
+        <h2>מועמדים אחרונים</h2>
+        <a href="#">כל המועמדים →</a>
+      </div>
+      <table>
+        <thead><tr><th>מועמד</th><th>עיר</th><th>שלב</th><th>תאריך</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>
+              <span style="display: inline-flex; align-items: center; gap: 10px;">
+                <span class="av" style="background: linear-gradient(135deg,#b6c7ea,#374765);">ע.ב</span>
+                <span style="font-weight: 500; color: var(--fg);">עדי בוזגלו</span>
+              </span>
+            </td>
+            <td style="color: var(--fg-muted);">חדרה</td>
+            <td><span class="badge" style="background: oklch(0.96 0.03 250); color: oklch(0.40 0.05 250); border-color: oklch(0.85 0.04 250);"><span class="b-dot" style="background: oklch(0.65 0.02 250);"></span>שלב הטפסים</span></td>
+            <td style="font-family: var(--font-mono); color: var(--fg-muted);">12.05.2026</td>
+          </tr>
+          <tr>
+            <td>
+              <span style="display: inline-flex; align-items: center; gap: 10px;">
+                <span class="av" style="background: linear-gradient(135deg,#ffb59f,#fe6f42);">י.כ</span>
+                <span style="font-weight: 500; color: var(--fg);">יעל כהן-לוי</span>
+              </span>
+            </td>
+            <td style="color: var(--fg-muted);">ירושלים</td>
+            <td><span class="badge" style="background: oklch(0.94 0.05 240); color: oklch(0.35 0.15 240); border-color: oklch(0.78 0.10 240);"><span class="b-dot" style="background: oklch(0.62 0.15 240);"></span>ראיון אישי</span></td>
+            <td style="font-family: var(--font-mono); color: var(--fg-muted);">10.05.2026</td>
+          </tr>
+          <tr>
+            <td>
+              <span style="display: inline-flex; align-items: center; gap: 10px;">
+                <span class="av" style="background: linear-gradient(135deg,#44ddc1,#00a58e);">נ.ב</span>
+                <span style="font-weight: 500; color: var(--fg);">נועה ברקת</span>
+              </span>
+            </td>
+            <td style="color: var(--fg-muted);">תל אביב</td>
+            <td><span class="badge" style="background: oklch(0.96 0.08 80); color: oklch(0.45 0.18 80); border-color: oklch(0.86 0.11 80);"><span class="b-dot" style="background: oklch(0.72 0.18 80);"></span>מיון פרונטלי</span></td>
+            <td style="font-family: var(--font-mono); color: var(--fg-muted);">08.05.2026</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </div>
+</div>
+</body>
+</html>

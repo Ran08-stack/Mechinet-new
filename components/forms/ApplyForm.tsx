@@ -4,6 +4,8 @@ import { useState, useRef } from "react"
 import { FormField } from "@/types/database"
 import { createClient } from "@/lib/supabase/client"
 import { normalizePhone } from "@/lib/utils"
+import { normalizeType } from "./fieldTypes"
+import { getDataset } from "./datasets"
 
 const ISRAEL_CITIES = [
   "אבו גוש", "אור יהודה", "אור עקיבא", "אילת", "אלעד", "אריאל", "אשדוד", "אשקלון",
@@ -197,12 +199,12 @@ function DatePicker({
   onChange: (val: string) => void
   required?: boolean
 }) {
-  const parts = value ? value.split("-") : ["", "", ""]
-  const year = parts[0] ?? ""
-  const month = parts[1] ?? ""
-  const day = parts[2] ?? ""
+  const initial = value ? value.split("-") : ["", "", ""]
+  const [year, setYear] = useState(initial[0] ?? "")
+  const [month, setMonth] = useState(initial[1] ?? "")
+  const [day, setDay] = useState(initial[2] ?? "")
 
-  function update(y: string, m: string, d: string) {
+  function emit(y: string, m: string, d: string) {
     if (y && m && d) onChange(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`)
     else onChange("")
   }
@@ -213,13 +215,14 @@ function DatePicker({
   ]
 
   const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: 10 }, (_, i) => currentYear - 15 - i)
+  // טווח שנים: מ-100 שנה אחורה ועד השנה הנוכחית
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i)
 
   return (
     <div className="flex gap-2">
       <select
         value={day}
-        onChange={(e) => update(year, month, e.target.value)}
+        onChange={(e) => { setDay(e.target.value); emit(year, month, e.target.value) }}
         required={required}
         className="flex-1 rounded-md border border-line bg-surface px-2 py-2 text-sm outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
       >
@@ -230,7 +233,7 @@ function DatePicker({
       </select>
       <select
         value={month}
-        onChange={(e) => update(year, e.target.value, day)}
+        onChange={(e) => { setMonth(e.target.value); emit(year, e.target.value, day) }}
         required={required}
         className="flex-1 rounded-md border border-line bg-surface px-2 py-2 text-sm outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
       >
@@ -241,7 +244,7 @@ function DatePicker({
       </select>
       <select
         value={year}
-        onChange={(e) => update(e.target.value, month, day)}
+        onChange={(e) => { setYear(e.target.value); emit(e.target.value, month, day) }}
         required={required}
         className="flex-1 rounded-md border border-line bg-surface px-2 py-2 text-sm outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
       >
@@ -320,20 +323,63 @@ function AutocompleteInput({
 export default function ApplyForm({
   formId,
   organizationId,
-  fields,
+  fields: rawFields,
+  defaultStage,
 }: {
   formId: string
   organizationId: string
   fields: FormField[]
+  defaultStage: string | null
 }) {
+  // הוספה אוטומטית של שדה ת"ז חובה, אם לא קיים בטופס
+  const fields: FormField[] = (() => {
+    const hasNationalId = rawFields.some(
+      (f) => f.label === 'ת"ז' || f.label === "תעודת זהות"
+    )
+    if (hasNationalId) return rawFields
+    const nationalIdField: FormField = {
+      id: "national_id",
+      label: 'ת"ז',
+      type: "text",
+      required: true,
+    } as FormField
+    // ממוקם אחרי שם מלא אם קיים
+    const nameIdx = rawFields.findIndex((f) => f.label === "שם מלא")
+    if (nameIdx >= 0) {
+      return [
+        ...rawFields.slice(0, nameIdx + 1),
+        nationalIdField,
+        ...rawFields.slice(nameIdx + 1),
+      ]
+    }
+    return [nationalIdField, ...rawFields]
+  })()
   const supabase = createClient()
-  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [answers, setAnswers] = useState<Record<string, unknown>>({})
+  const [files, setFiles] = useState<Record<string, File>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState("")
 
-  function setAnswer(fieldId: string, value: string) {
+  function setAnswer(fieldId: string, value: unknown) {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }))
+  }
+  function getStringAnswer(fieldId: string): string {
+    const v = answers[fieldId]
+    return typeof v === "string" ? v : ""
+  }
+  function getArrayAnswer(fieldId: string): string[] {
+    const v = answers[fieldId]
+    return Array.isArray(v) ? (v as string[]) : []
+  }
+
+  function setFile(fieldId: string, file: File | null) {
+    setFiles((prev) => {
+      const next = { ...prev }
+      if (file) next[fieldId] = file
+      else delete next[fieldId]
+      return next
+    })
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -348,31 +394,72 @@ export default function ApplyForm({
     const cityField = fields.find((f) => f.label === "עיר מגורים")
     const schoolField = fields.find((f) => f.label === "בית ספר")
     const birthField = fields.find((f) => f.label === "תאריך לידה")
+    const nationalIdField = fields.find(
+      (f) => f.label === 'ת"ז' || f.label === "תעודת זהות"
+    )
 
-    const fullName = nameField ? answers[nameField.id] ?? "" : ""
-    const email = emailField ? answers[emailField.id] ?? "" : ""
-    const phone = phoneField ? answers[phoneField.id] ?? "" : ""
-    const city = cityField ? answers[cityField.id] ?? "" : ""
-    const school = schoolField ? answers[schoolField.id] ?? "" : ""
-    const birthDate = birthField ? answers[birthField.id] ?? "" : ""
+    const fullName = nameField ? getStringAnswer(nameField.id) : ""
+    const email = emailField ? getStringAnswer(emailField.id) : ""
+    const phone = phoneField ? getStringAnswer(phoneField.id) : ""
+    const city = cityField ? getStringAnswer(cityField.id) : ""
+    const school = schoolField ? getStringAnswer(schoolField.id) : ""
+    const birthDate = birthField ? getStringAnswer(birthField.id) : ""
+    const nationalId = nationalIdField
+      ? String(getStringAnswer(nationalIdField.id)).replace(/\D/g, "")
+      : ""
 
-    const { error } = await supabase.from("candidates").insert({
-      form_id: formId,
-      organization_id: organizationId,
-      full_name: fullName,
-      email: email,
-      phone: phone || null,
-      city: city || null,
-      school: school || null,
-      birth_date: birthDate || null,
-      answers,
-    })
+    // העלאת קבצים ל-Supabase Storage
+    const attachments: { file_name: string; file_url: string; file_type: string; uploaded_at: string }[] = []
+    for (const [fieldId, file] of Object.entries(files)) {
+      const ext = file.name.split(".").pop() || "bin"
+      const path = `${organizationId}/${Date.now()}-${fieldId}.${ext}`
+      const { error: upErr } = await supabase.storage.from("attachments").upload(path, file)
+      if (upErr) {
+        setError("שגיאה בהעלאת קובץ. נסה שוב.")
+        setSubmitting(false)
+        return
+      }
+      const { data: urlData } = supabase.storage.from("attachments").getPublicUrl(path)
+      attachments.push({
+        file_name: file.name,
+        file_url: urlData.publicUrl,
+        file_type: file.type || ext,
+        uploaded_at: new Date().toISOString(),
+      })
+    }
 
-    if (error) {
+    const { data: newCandidate, error: insertError } = await supabase
+      .from("candidates")
+      .insert({
+        form_id: formId,
+        organization_id: organizationId,
+        full_name: fullName,
+        email: email,
+        phone: phone || null,
+        city: city || null,
+        school: school || null,
+        birth_date: birthDate || null,
+        national_id: nationalId || null,
+        answers: answers as Record<string, unknown> as never,
+        attachments,
+        ...(defaultStage ? { stage: defaultStage } : {}),
+      })
+      .select("id")
+      .single()
+
+    if (insertError || !newCandidate) {
       setError("שגיאה בשליחת הטופס. נסה שוב.")
       setSubmitting(false)
       return
     }
+
+    // רישום אירוע — טופס הוגש (ללא actor — anonymous מהאתר)
+    await supabase.from("candidate_events").insert({
+      candidate_id: newCandidate.id,
+      organization_id: organizationId,
+      type: "form_submitted",
+      description: "טופס מועמדות הוגש",
+    })
 
     setSubmitted(true)
     setSubmitting(false)
@@ -388,120 +475,248 @@ export default function ApplyForm({
     )
   }
 
+  const inputCls =
+    "w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none placeholder:text-fg-subtle focus:border-accent focus:shadow-[var(--shadow-focus)]"
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {fields.map((field) => (
-        <div key={field.id}>
-          <label className="mb-1.5 block text-sm font-medium text-fg">
-            {field.label}
-            {field.required && <span className="me-1 text-[var(--danger)]">*</span>}
-          </label>
+      {fields.map((field) => {
+        const t = normalizeType(field.type)
 
-          {field.type === "text" &&
-            (field.label === "טלפון" ? (
+        // מבנה — section / info: בלי input
+        if (t === "section") {
+          return (
+            <div key={field.id} className="relative border-t-2 border-primary pt-2 mt-4">
+              <span className="absolute -top-2.5 start-0 bg-surface pe-2 text-[11px] uppercase tracking-[0.06em] text-primary">
+                {field.label}
+              </span>
+            </div>
+          )
+        }
+        if (t === "info") {
+          return (
+            <div
+              key={field.id}
+              className="rounded-md border-s-[3px] border-[var(--accent)] bg-[var(--accent-soft)] px-3.5 py-3 text-sm text-fg-muted"
+            >
+              {field.help || field.label}
+            </div>
+          )
+        }
+
+        return (
+          <div key={field.id}>
+            <label className="mb-1.5 block text-sm font-medium text-fg">
+              {field.label}
+              {field.required && <span className="me-1 text-[var(--danger)]">*</span>}
+            </label>
+            {field.help && (
+              <p className="-mt-1 mb-1.5 text-[11.5px] text-fg-subtle">{field.help}</p>
+            )}
+
+            {/* טקסט קצר + סוגי טקסט מיוחדים */}
+            {(t === "short_text" || t === "url") && (
+              <input
+                type={t === "url" ? "url" : "text"}
+                value={getStringAnswer(field.id)}
+                onChange={(e) => setAnswer(field.id, e.target.value)}
+                required={field.required}
+                placeholder={field.placeholder || ""}
+                dir={t === "url" ? "ltr" : undefined}
+                className={inputCls}
+              />
+            )}
+
+            {t === "email" && (
+              <input
+                type="email"
+                dir="ltr"
+                value={getStringAnswer(field.id)}
+                onChange={(e) => setAnswer(field.id, e.target.value)}
+                required={field.required}
+                placeholder={field.placeholder || "name@example.com"}
+                className={inputCls}
+              />
+            )}
+
+            {t === "phone" && (
               <input
                 type="tel"
+                dir="ltr"
                 inputMode="numeric"
                 maxLength={10}
-                value={answers[field.id] ?? ""}
+                value={getStringAnswer(field.id)}
                 onChange={(e) =>
                   setAnswer(field.id, normalizePhone(e.target.value))
                 }
                 required={field.required}
-                placeholder="0500000000"
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none placeholder:text-fg-subtle focus:border-accent focus:shadow-[var(--shadow-focus)]"
+                placeholder={field.placeholder || "0500000000"}
+                className={inputCls}
               />
-            ) : (
+            )}
+
+            {t === "id_number" && (
               <input
-                value={answers[field.id] ?? ""}
+                type="text"
+                dir="ltr"
+                inputMode="numeric"
+                maxLength={9}
+                value={getStringAnswer(field.id)}
+                onChange={(e) =>
+                  setAnswer(
+                    field.id,
+                    e.target.value.replace(/\D/g, "").slice(0, 9)
+                  )
+                }
+                required={field.required}
+                placeholder={field.placeholder || "9 ספרות"}
+                className={inputCls}
+              />
+            )}
+
+            {t === "long_text" && (
+              <textarea
+                value={getStringAnswer(field.id)}
                 onChange={(e) => setAnswer(field.id, e.target.value)}
                 required={field.required}
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
+                rows={4}
+                placeholder={field.placeholder || ""}
+                className={inputCls + " resize-y min-h-[96px]"}
               />
-            ))}
+            )}
 
-          {field.type === "textarea" && (
-            <textarea
-              value={answers[field.id] ?? ""}
-              onChange={(e) => setAnswer(field.id, e.target.value)}
-              required={field.required}
-              rows={4}
-              className="w-full resize-none rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
-            />
-          )}
+            {t === "number" && (
+              <input
+                type="number"
+                min={field.min as number | undefined}
+                max={field.max as number | undefined}
+                value={getStringAnswer(field.id)}
+                onChange={(e) => setAnswer(field.id, e.target.value)}
+                required={field.required}
+                placeholder={field.placeholder || ""}
+                className={inputCls}
+              />
+            )}
 
-          {field.type === "number" && (
-            <input
-              type="number"
-              value={answers[field.id] ?? ""}
-              onChange={(e) => setAnswer(field.id, e.target.value)}
-              required={field.required}
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
-            />
-          )}
+            {t === "date" && (
+              <DatePicker
+                value={getStringAnswer(field.id)}
+                onChange={(val) => setAnswer(field.id, val)}
+                required={field.required}
+              />
+            )}
 
-          {field.type === "date" && (
-            <DatePicker
-              value={answers[field.id] ?? ""}
-              onChange={(val) => setAnswer(field.id, val)}
-              required={field.required}
-            />
-          )}
+            {t === "dropdown" && (
+              <select
+                value={getStringAnswer(field.id)}
+                onChange={(e) => setAnswer(field.id, e.target.value)}
+                required={field.required}
+                className={inputCls}
+              >
+                <option value="">בחר…</option>
+                {mergeOpts(field).map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            )}
 
-          {field.type === "select" && (
-            <select
-              value={answers[field.id] ?? ""}
-              onChange={(e) => setAnswer(field.id, e.target.value)}
-              required={field.required}
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
-            >
-              <option value="">בחר...</option>
-              {field.options?.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          )}
+            {t === "radio" && (
+              <div className="flex flex-col gap-2">
+                {mergeOpts(field).map((opt) => (
+                  <label
+                    key={opt}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-md border border-line px-3 py-2.5 text-sm transition-colors hover:border-[var(--line-strong)] hover:bg-[var(--bg-subtle)]"
+                  >
+                    <input
+                      type="radio"
+                      name={field.id}
+                      checked={(getStringAnswer(field.id)) === opt}
+                      onChange={() => setAnswer(field.id, opt)}
+                      required={field.required}
+                      className="accent-[var(--accent)]"
+                    />
+                    {opt}
+                  </label>
+                ))}
+              </div>
+            )}
 
-          {field.type === "multiselect" && (
-            <div className="space-y-2">
-              {field.options?.map((opt) => (
-                <label key={opt} className="flex cursor-pointer items-center gap-2 text-sm text-fg">
-                  <input
-                    type="checkbox"
-                    checked={(answers[field.id] ?? "").split(",").filter(Boolean).includes(opt)}
-                    onChange={(e) => {
-                      const current = (answers[field.id] ?? "").split(",").filter(Boolean)
-                      const next = e.target.checked
-                        ? [...current, opt]
-                        : current.filter((v) => v !== opt)
-                      setAnswer(field.id, next.join(","))
-                    }}
-                    className="rounded"
-                  />
-                  {opt}
-                </label>
-              ))}
-            </div>
-          )}
+            {t === "checkbox" && (
+              <div className="flex flex-col gap-2">
+                {mergeOpts(field).map((opt) => {
+                  const current = getArrayAnswer(field.id)
+                  const checked = current.includes(opt)
+                  return (
+                    <label
+                      key={opt}
+                      className="flex cursor-pointer items-center gap-2.5 rounded-md border border-line px-3 py-2.5 text-sm transition-colors hover:border-[var(--line-strong)] hover:bg-[var(--bg-subtle)]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...current, opt]
+                            : current.filter((v) => v !== opt)
+                          // נשמר כ-array ב-JSONB (ולא CSV string) — מאפשר אופציות עם פסיק
+                          setAnswer(field.id, next)
+                        }}
+                        className="accent-[var(--accent)]"
+                      />
+                      {opt}
+                    </label>
+                  )
+                })}
+              </div>
+            )}
 
-          {field.type === "autocomplete" && (
-            <AutocompleteInput
-              field={field}
-              value={answers[field.id] ?? ""}
-              onChange={(val) => setAnswer(field.id, val)}
-            />
-          )}
+            {t === "rating" && (
+              <RatingInput
+                max={Number(field.max) || 5}
+                value={parseInt(getStringAnswer(field.id) || "0") || 0}
+                onChange={(v) => setAnswer(field.id, String(v))}
+              />
+            )}
 
-          {(field.type === "file" || field.type === "video") && (
-            <input
-              type="file"
-              accept={field.type === "video" ? "video/*" : "*"}
-              required={field.required}
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
-            />
-          )}
-        </div>
-      ))}
+            {t === "file" && (
+              <input
+                type="file"
+                accept={parseAcceptAttr(field.accept)}
+                required={field.required}
+                onChange={(e) => setFile(field.id, e.target.files?.[0] ?? null)}
+                className={inputCls}
+              />
+            )}
+
+            {t === "signature" && (
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-md border-[1.5px] border-dashed border-[var(--line-strong)] bg-[var(--bg-subtle)] px-3.5 py-3 text-sm transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]">
+                <input
+                  type="checkbox"
+                  required={field.required}
+                  checked={getStringAnswer(field.id) === "signed"}
+                  onChange={(e) =>
+                    setAnswer(field.id, e.target.checked ? "signed" : "")
+                  }
+                  className="mt-0.5 accent-[var(--accent)]"
+                />
+                <span className="text-fg-muted">
+                  {field.help || "אני מאשר/ת שכל הפרטים שמילאתי נכונים"}
+                </span>
+              </label>
+            )}
+
+            {field.type === "autocomplete" && (
+              <AutocompleteInput
+                field={field}
+                value={getStringAnswer(field.id)}
+                onChange={(val) => setAnswer(field.id, val)}
+              />
+            )}
+          </div>
+        )
+      })}
 
       {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
@@ -513,5 +728,82 @@ export default function ApplyForm({
         {submitting ? "שולח..." : "שלח מועמדות"}
       </button>
     </form>
+  )
+}
+
+function mergeOpts(field: FormField): string[] {
+  const builtin = getDataset(field.dataset)
+  const custom = field.options ?? []
+  return [...custom, ...builtin]
+}
+
+// פירוש טקסט "accept" של אדמין ל-attribute שדפדפן מבין.
+// תומך בסיומות נפוצות + שמות כלליים בעברית/אנגלית.
+function parseAcceptAttr(text?: string): string {
+  if (!text) return "*"
+  const t = text.toLowerCase()
+  const out: string[] = []
+  const map: Record<string, string[]> = {
+    pdf: [".pdf"],
+    jpg: [".jpg", ".jpeg"],
+    jpeg: [".jpg", ".jpeg"],
+    png: [".png"],
+    gif: [".gif"],
+    webp: [".webp"],
+    heic: [".heic"],
+    doc: [".doc"],
+    docx: [".docx"],
+    תמונה: ["image/*"],
+    image: ["image/*"],
+    video: ["video/*"],
+    וידאו: ["video/*"],
+    סרטון: ["video/*"],
+  }
+  for (const [k, v] of Object.entries(map)) {
+    if (t.includes(k)) out.push(...v)
+  }
+  // dedupe
+  const dedup = Array.from(new Set(out))
+  return dedup.length > 0 ? dedup.join(",") : "*"
+}
+
+function RatingInput({
+  max,
+  value,
+  onChange,
+}: {
+  max: number
+  value: number
+  onChange: (v: number) => void
+}) {
+  return (
+    <div className="flex gap-2">
+      {Array.from({ length: max }).map((_, i) => {
+        const filled = i < value
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onChange(i + 1)}
+            className={
+              filled
+                ? "text-[var(--accent)]"
+                : "text-[var(--fg-faint)] hover:text-[var(--accent)]"
+            }
+          >
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill={filled ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <polygon points="12 2 15 9 22 9.5 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.5 9 9 12 2" />
+            </svg>
+          </button>
+        )
+      })}
+    </div>
   )
 }

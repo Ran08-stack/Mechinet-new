@@ -1,17 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import { GraduationCap, CheckCircle2, Clock, Calendar } from "lucide-react"
-import { STAGE_LABELS, formatDate } from "@/lib/utils"
-
-const STAGE_ORDER = ["new", "review", "interview", "accepted"] as const
-
-const STAGE_DESC: Record<string, string> = {
-  new: "הטופס שלך התקבל ונמצא בבדיקה ראשונית.",
-  review: "הצוות בוחן את המועמדות שלך.",
-  interview: "התקדמת לשלב הראיון האישי.",
-  accepted: "מזל טוב — התקבלת למכינה!",
-  rejected: "תהליך המועמדות הסתיים.",
-}
+import { formatDate } from "@/lib/utils"
+import { getStages } from "@/lib/stages"
 
 export default async function CandidatePortalPage({
   params,
@@ -46,11 +37,12 @@ export default async function CandidatePortalPage({
     .limit(1)
     .maybeSingle()
 
-  const currentStageIndex = STAGE_ORDER.indexOf(
-    candidate.stage as (typeof STAGE_ORDER)[number]
-  )
-  const isRejected = candidate.stage === "rejected"
-  const isAccepted = candidate.stage === "accepted"
+  const stages = await getStages(candidate.organization_id)
+  const currentStageIndex = stages.findIndex((s) => s.name === candidate.stage)
+  const isLast = currentStageIndex === stages.length - 1 && stages.length > 0
+  // אין לנו "rejected" כשלב מובחן — משאירים false (השלב פשוט יוצג כשלב הנוכחי).
+  const isRejected = false
+  const isAccepted = isLast
 
   return (
     <div className="min-h-screen bg-bg py-8 font-sans sm:py-12" dir="rtl">
@@ -93,11 +85,8 @@ export default async function CandidatePortalPage({
               ? "מזל טוב, התקבלת!"
               : isRejected
               ? "תהליך המועמדות הסתיים"
-              : `המועמדות שלך בשלב: ${STAGE_LABELS[candidate.stage]}`}
+              : `המועמדות שלך בשלב: ${candidate.stage}`}
           </h1>
-          <p className="mt-2 text-[14px] leading-relaxed text-fg-muted">
-            {STAGE_DESC[candidate.stage] ?? ""}
-          </p>
         </div>
 
         {/* פס התקדמות שלבים */}
@@ -107,11 +96,11 @@ export default async function CandidatePortalPage({
               שלבי התהליך
             </h2>
             <div className="flex flex-col gap-3">
-              {STAGE_ORDER.map((stage, idx) => {
+              {stages.map((stage, idx) => {
                 const done = idx < currentStageIndex
                 const current = idx === currentStageIndex
                 return (
-                  <div key={stage} className="flex items-center gap-3">
+                  <div key={stage.id} className="flex items-center gap-3">
                     <span
                       className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
                       style={
@@ -150,7 +139,7 @@ export default async function CandidatePortalPage({
                         fontWeight: current ? 600 : 500,
                       }}
                     >
-                      {STAGE_LABELS[stage]}
+                      {stage.name}
                     </span>
                   </div>
                 )

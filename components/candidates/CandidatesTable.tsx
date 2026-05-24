@@ -16,19 +16,9 @@ import {
   Trash2,
   X,
 } from "lucide-react"
-import { Candidate } from "@/types/database"
-import { STAGE_LABELS, formatDate } from "@/lib/utils"
+import { Candidate, PipelineStage } from "@/types/database"
+import { formatDate } from "@/lib/utils"
 import { StageBadge } from "@/components/ui/StageBadge"
-
-const ALL_STAGES = ["new", "review", "interview", "accepted", "rejected"]
-
-const STAGE_DOT: Record<string, string> = {
-  new: "var(--stage-new-dot)",
-  review: "var(--stage-review-dot)",
-  interview: "var(--stage-interview-dot)",
-  accepted: "var(--stage-accepted-dot)",
-  rejected: "var(--stage-rejected-dot)",
-}
 
 const AV_GRADIENTS = [
   "linear-gradient(135deg,#b6c7ea,#374765)",
@@ -73,7 +63,7 @@ function exportToExcel(rows: Candidate[]) {
       c.email,
       c.phone ?? "",
       c.city ?? "",
-      STAGE_LABELS[c.stage] ?? c.stage,
+      c.stage,
       formatDate(c.created_at),
     ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
@@ -91,12 +81,16 @@ function exportToExcel(rows: Candidate[]) {
 
 export default function CandidatesTable({
   candidates,
+  stages,
+  initialStage = "all",
 }: {
   candidates: Candidate[]
+  stages: PipelineStage[]
+  initialStage?: string
 }) {
   const router = useRouter()
   const [search, setSearch] = useState("")
-  const [stageFilter, setStageFilter] = useState<string>("all")
+  const [stageFilter, setStageFilter] = useState<string>(initialStage)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [sortKey, setSortKey] = useState<SortKey>("date")
   const [sortOpen, setSortOpen] = useState(false)
@@ -127,7 +121,9 @@ export default function CandidatesTable({
     const matchSearch =
       c.full_name.toLowerCase().includes(q) ||
       c.email.toLowerCase().includes(q) ||
-      (c.city ?? "").toLowerCase().includes(q)
+      (c.city ?? "").toLowerCase().includes(q) ||
+      (c.national_id ?? "").includes(q) ||
+      (c.phone ?? "").includes(q)
     const matchStage = stageFilter === "all" || c.stage === stageFilter
     const matchCity = !cityFilter || c.city === cityFilter
     return matchSearch && matchStage && matchCity
@@ -189,10 +185,24 @@ export default function CandidatesTable({
   async function bulkChangeStage(stage: string) {
     setBusy(true)
     const supabase = createClient()
+    const ids = Array.from(selected)
     await supabase
       .from("candidates")
       .update({ stage })
-      .in("id", Array.from(selected))
+      .in("id", ids)
+    const { data: { user } } = await supabase.auth.getUser()
+    const events = candidates
+      .filter((c) => selected.has(c.id))
+      .map((c) => ({
+        candidate_id: c.id,
+        organization_id: c.organization_id,
+        type: "stage_changed",
+        description: `השלב שונה ל"${stage}"`,
+        actor_id: user?.id ?? null,
+      }))
+    if (events.length > 0) {
+      await supabase.from("candidate_events").insert(events)
+    }
     setBusy(false)
     closeBulkMenus()
     setSelected(new Set())
@@ -201,8 +211,13 @@ export default function CandidatesTable({
 
   async function bulkDelete() {
     setBusy(true)
-    const supabase = createClient()
-    await supabase.from("candidates").delete().in("id", Array.from(selected))
+    const ids = Array.from(selected)
+    // API מטפל גם בניקוי קבצים מ-storage לפני מחיקת ה-rows
+    await fetch("/api/candidates/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    })
     setBusy(false)
     closeBulkMenus()
     setSelected(new Set())
@@ -214,10 +229,22 @@ export default function CandidatesTable({
     if (!singleSelected) return
     setBusy(true)
     const supabase = createClient()
+    const trimmed = noteText.trim()
     await supabase
       .from("candidates")
-      .update({ notes: noteText.trim() || null })
+      .update({ notes: trimmed || null })
       .eq("id", singleSelected.id)
+    // רישום אירוע פעילות — הוספת/עריכת הערה
+    if (trimmed) {
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase.from("candidate_events").insert({
+        candidate_id: singleSelected.id,
+        organization_id: singleSelected.organization_id,
+        type: "note_added",
+        description: "הערה נוספה/עודכנה",
+        actor_id: user?.id ?? null,
+      })
+    }
     setBusy(false)
     closeBulkMenus()
     setSelected(new Set())
@@ -250,29 +277,26 @@ export default function CandidatesTable({
             {candidates.length}
           </span>
         </button>
-        {ALL_STAGES.map((stage) => {
-          const count = candidates.filter((c) => c.stage === stage).length
+        {stages.map((s) => {
+          const count = candidates.filter((c) => c.stage === s.name).length
           return (
             <button
-              key={stage}
+              key={s.id}
               onClick={() => {
-                setStageFilter(stage)
+                setStageFilter(s.name)
                 setPage(0)
               }}
               className={`-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-3 pb-[11px] pt-3 text-[13px] font-medium transition-colors ${
-                stageFilter === stage
+                stageFilter === s.name
                   ? "border-accent text-fg"
                   : "border-transparent text-fg-muted hover:text-fg"
               }`}
             >
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ background: STAGE_DOT[stage] }}
-              />
-              {STAGE_LABELS[stage]}
+              <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
+              {s.name}
               <span
                 className={`rounded-full border px-1.5 py-px font-mono text-[10.5px] ${
-                  stageFilter === stage
+                  stageFilter === s.name
                     ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--accent-hover)]"
                     : "border-line bg-[var(--bg-muted)] text-fg-subtle"
                 }`}
@@ -304,7 +328,7 @@ export default function CandidatesTable({
           <button
             onClick={() => setFilterOpen((v) => !v)}
             className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[13px] transition-colors ${
-              cityFilter
+              cityFilter || stageFilter !== "all"
                 ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--accent-hover)]"
                 : "border-line bg-surface text-fg-muted hover:bg-[var(--bg-subtle)] hover:text-fg"
             }`}
@@ -313,7 +337,26 @@ export default function CandidatesTable({
             סינון נוסף
           </button>
           {filterOpen && (
-            <div className="absolute end-0 top-10 z-40 w-[220px] rounded-lg border border-line bg-surface p-3 shadow-[var(--shadow-lg)]">
+            <div className="absolute end-0 top-10 z-40 w-[240px] rounded-lg border border-line bg-surface p-3 shadow-[var(--shadow-lg)]">
+              <label className="mb-1.5 block text-[12px] font-medium text-fg-subtle">
+                סינון לפי שלב
+              </label>
+              <select
+                value={stageFilter}
+                onChange={(e) => {
+                  setStageFilter(e.target.value)
+                  setPage(0)
+                }}
+                className="mb-3 h-8 w-full rounded-md border border-line bg-surface px-2 text-[13px] text-fg outline-none focus:border-accent"
+              >
+                <option value="all">כל השלבים</option>
+                {stages.map((s) => (
+                  <option key={s.id} value={s.name}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+
               <label className="mb-1.5 block text-[12px] font-medium text-fg-subtle">
                 סינון לפי עיר
               </label>
@@ -332,15 +375,17 @@ export default function CandidatesTable({
                   </option>
                 ))}
               </select>
-              {cityFilter && (
+
+              {(cityFilter || stageFilter !== "all") && (
                 <button
                   onClick={() => {
                     setCityFilter("")
+                    setStageFilter("all")
                     setPage(0)
                   }}
-                  className="mt-2 text-[12px] text-accent hover:underline"
+                  className="mt-3 text-[12px] text-accent hover:underline"
                 >
-                  נקה סינון
+                  נקה את כל הסינונים
                 </button>
               )}
             </div>
@@ -434,18 +479,15 @@ export default function CandidatesTable({
               שינוי שלב
             </button>
             {stageMenuOpen && (
-              <div className="absolute top-9 z-50 w-[150px] rounded-lg border border-line bg-surface p-1 text-fg shadow-[var(--shadow-lg)]">
-                {ALL_STAGES.map((s) => (
+              <div className="absolute top-9 z-50 min-w-[180px] rounded-lg border border-line bg-surface p-1 text-fg shadow-[var(--shadow-lg)]">
+                {stages.map((s) => (
                   <button
-                    key={s}
-                    onClick={() => bulkChangeStage(s)}
+                    key={s.id}
+                    onClick={() => bulkChangeStage(s.name)}
                     className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-start text-[13px] text-fg-muted transition-colors hover:bg-[var(--bg-subtle)]"
                   >
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: STAGE_DOT[s] }}
-                    />
-                    {STAGE_LABELS[s]}
+                    <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
+                    {s.name}
                   </button>
                 ))}
               </div>
@@ -642,7 +684,10 @@ export default function CandidatesTable({
                     {candidate.city ?? "—"}
                   </td>
                   <td className="px-3.5 py-[11px]">
-                    <StageBadge stage={candidate.stage} />
+                    <StageBadge
+                      stage={candidate.stage}
+                      colorClass={stages.find((s) => s.name === candidate.stage)?.color}
+                    />
                   </td>
                   <td className="px-3.5 py-[11px] text-start text-fg-muted">
                     {note ? (
@@ -766,8 +811,8 @@ export default function CandidatesTable({
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="px-5 py-4">
-              <p className="m-0 whitespace-pre-line text-[13px] leading-relaxed text-fg">
+            <div className="max-h-[50vh] overflow-y-auto px-5 py-4">
+              <p className="m-0 whitespace-pre-line break-words text-[13px] leading-relaxed text-fg">
                 {viewNote.note}
               </p>
             </div>

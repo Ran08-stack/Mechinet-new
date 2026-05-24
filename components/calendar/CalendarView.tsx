@@ -1,423 +1,472 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Calendar, Clock, MapPin, Video, X, Trash2, ClipboardCheck } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Sparkles } from "lucide-react"
 import { Interview, Candidate } from "@/types/database"
 import { logCandidateEvent } from "@/lib/events"
+import { WeekGrid } from "./WeekGrid"
+import { AgendaList } from "./AgendaList"
+import { EventPopover } from "./EventPopover"
+import { NewEventModal } from "./NewEventModal"
+import { AutoScheduleModal } from "./AutoScheduleModal"
+import { DeleteInterviewConfirm } from "./DeleteInterviewConfirm"
 
-type InterviewWithCandidate = Interview & {
+export type InterviewWithCandidate = Interview & {
   candidates: { full_name: string } | null
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: "מתוכנן",
-  completed: "הושלם",
-  cancelled: "בוטל",
-  no_show: "לא הגיע",
+export type Interviewer = {
+  id: string
+  full_name: string | null
+  email: string
 }
 
-const STATUS_STYLE: Record<
-  string,
-  { bg: string; fg: string; line: string }
-> = {
-  scheduled: {
-    bg: "var(--stage-interview-bg)",
-    fg: "var(--stage-interview-fg)",
-    line: "var(--stage-interview-line)",
-  },
-  completed: {
-    bg: "var(--stage-accepted-bg)",
-    fg: "var(--stage-accepted-fg)",
-    line: "var(--stage-accepted-line)",
-  },
-  cancelled: {
-    bg: "var(--stage-rejected-bg)",
-    fg: "var(--stage-rejected-fg)",
-    line: "var(--stage-rejected-line)",
-  },
-  no_show: {
-    bg: "var(--bg-muted)",
-    fg: "var(--fg-muted)",
-    line: "var(--line-strong)",
-  },
+type View = "week" | "agenda"
+
+// תחילת השבוע = ראשון מקומי
+function startOfWeek(d: Date): Date {
+  const out = new Date(d)
+  out.setHours(0, 0, 0, 0)
+  out.setDate(out.getDate() - out.getDay())
+  return out
+}
+function addDays(d: Date, n: number): Date {
+  const out = new Date(d)
+  out.setDate(out.getDate() + n)
+  return out
+}
+function sameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
 }
 
-function fmtDateHeader(iso: string) {
-  return new Date(iso).toLocaleDateString("he-IL", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  })
+function fmtRange(start: Date): string {
+  const end = addDays(start, 6)
+  const sameMonth = start.getMonth() === end.getMonth()
+  const f = new Intl.DateTimeFormat("he-IL", { day: "numeric", month: "long" })
+  const year = end.getFullYear()
+  if (sameMonth) {
+    return `${start.getDate()}–${end.getDate()} ב${f.formatToParts(end).find((p) => p.type === "month")?.value} ${year}`
+  }
+  return `${f.format(start)} — ${f.format(end)} ${year}`
 }
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("he-IL", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-}
-
-function dateKey(iso: string) {
-  return new Date(iso).toISOString().slice(0, 10)
+function fmtHebrewMonth(d: Date): string {
+  try {
+    return new Intl.DateTimeFormat("he-IL-u-ca-hebrew", {
+      month: "long",
+      year: "numeric",
+    }).format(d)
+  } catch {
+    return ""
+  }
 }
 
 export default function CalendarView({
   initialInterviews,
   candidates,
+  interviewers,
+  pendingCandidates,
   organizationId,
 }: {
   initialInterviews: InterviewWithCandidate[]
   candidates: Candidate[]
+  interviewers: Interviewer[]
+  pendingCandidates: Candidate[]
   organizationId: string
 }) {
   const router = useRouter()
-  const [interviews, setInterviews] = useState(initialInterviews)
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const supabase = createClient()
 
-  const [candidateId, setCandidateId] = useState("")
-  const [date, setDate] = useState("")
-  const [time, setTime] = useState("")
-  const [duration, setDuration] = useState("55")
-  const [location, setLocation] = useState("")
-  const [meetingUrl, setMeetingUrl] = useState("")
+  const [interviews, setInterviews] =
+    useState<InterviewWithCandidate[]>(initialInterviews)
+  const [view, setView] = useState<View>("week")
+  const [anchor, setAnchor] = useState<Date>(startOfWeek(new Date()))
+  const [selected, setSelected] = useState<InterviewWithCandidate | null>(null)
+  const [newModal, setNewModal] = useState<{
+    open: boolean
+    prefillDate?: string
+    prefillTime?: string
+    prefillCandidateId?: string
+  }>({ open: false })
+  const [autoOpen, setAutoOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<InterviewWithCandidate | null>(null)
 
-  function resetForm() {
-    setCandidateId("")
-    setDate("")
-    setTime("")
-    setDuration("55")
-    setLocation("")
-    setMeetingUrl("")
+  // מסנן מראיינים — סט של ids פעילים. ריק = הצג הכול.
+  const [activeInterviewers, setActiveInterviewers] = useState<Set<string>>(
+    new Set()
+  )
+
+  const filtered = useMemo(() => {
+    if (activeInterviewers.size === 0) return interviews
+    return interviews.filter(
+      (i) => i.interviewer_id && activeInterviewers.has(i.interviewer_id)
+    )
+  }, [interviews, activeInterviewers])
+
+  function toggleInterviewer(id: string) {
+    setActiveInterviewers((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
-    if (!candidateId || !date || !time) return
-    setSaving(true)
-    const scheduled_at = new Date(`${date}T${time}`).toISOString()
-    const supabase = createClient()
+  async function handleCreate(input: {
+    candidateId: string
+    date: string
+    time: string
+    duration: number
+    location: string
+    meetingUrl: string
+    interviewerId: string
+  }) {
+    const scheduled_at = new Date(`${input.date}T${input.time}`).toISOString()
     const { data, error } = await supabase
       .from("interviews")
       .insert({
         organization_id: organizationId,
-        candidate_id: candidateId,
+        candidate_id: input.candidateId,
         scheduled_at,
-        duration_minutes: parseInt(duration) || 55,
-        location: location || null,
-        meeting_url: meetingUrl || null,
+        duration_minutes: input.duration || 55,
+        location: input.location || null,
+        meeting_url: input.meetingUrl || null,
+        interviewer_id: input.interviewerId || null,
       })
       .select("*, candidates(full_name)")
       .single()
-    if (!error && data) {
-      await logCandidateEvent({
-        candidateId,
-        organizationId,
-        type: "interview_scheduled",
-        description: "ראיון נקבע",
-      })
-      setInterviews((prev) =>
-        [...prev, data as InterviewWithCandidate].sort(
-          (a, b) =>
-            new Date(a.scheduled_at).getTime() -
-            new Date(b.scheduled_at).getTime()
-        )
-      )
-      resetForm()
-      setShowForm(false)
-      router.refresh()
+    if (error || !data) {
+      alert("שגיאה בקביעת ראיון")
+      return
     }
-    setSaving(false)
+    await logCandidateEvent({
+      candidateId: input.candidateId,
+      organizationId,
+      type: "interview_scheduled",
+      description: "ראיון נקבע",
+    })
+    setInterviews((prev) =>
+      [...prev, data as InterviewWithCandidate].sort(
+        (a, b) =>
+          new Date(a.scheduled_at).getTime() -
+          new Date(b.scheduled_at).getTime()
+      )
+    )
+    setNewModal({ open: false })
+    router.refresh()
   }
 
-  async function handleDelete(id: string) {
-    const supabase = createClient()
-    await supabase.from("interviews").delete().eq("id", id)
-    setInterviews((prev) => prev.filter((i) => i.id !== id))
+  async function handleDelete(iv: InterviewWithCandidate) {
+    await supabase.from("interviews").delete().eq("id", iv.id)
+    // רישום אירוע — יופיע ב-LiveActivity וב-ActivityTimeline
+    await logCandidateEvent({
+      candidateId: iv.candidate_id,
+      organizationId,
+      type: "interview_cancelled",
+      description: `ראיון בוטל — ${iv.candidates?.full_name ?? "מועמד"}`,
+    })
+    setInterviews((prev) => prev.filter((i) => i.id !== iv.id))
+    setSelected(null)
+    setConfirmDelete(null)
     router.refresh()
   }
 
   async function handleStatusChange(id: string, status: string) {
-    const supabase = createClient()
     await supabase.from("interviews").update({ status }).eq("id", id)
     setInterviews((prev) =>
       prev.map((i) => (i.id === id ? { ...i, status } : i))
     )
+    if (selected?.id === id) setSelected({ ...selected, status })
     router.refresh()
   }
 
-  const grouped: Record<string, InterviewWithCandidate[]> = {}
-  for (const iv of interviews) {
-    const k = dateKey(iv.scheduled_at)
-    if (!grouped[k]) grouped[k] = []
-    grouped[k].push(iv)
+  function gotoToday() {
+    setAnchor(startOfWeek(new Date()))
   }
-  const sortedDays = Object.keys(grouped).sort()
+  function gotoPrev() {
+    setAnchor(addDays(anchor, -7))
+  }
+  function gotoNext() {
+    setAnchor(addDays(anchor, 7))
+  }
+
+  function openNewAt(dayIso: string, hour: number) {
+    setNewModal({
+      open: true,
+      prefillDate: dayIso,
+      prefillTime: `${String(hour).padStart(2, "0")}:00`,
+    })
+  }
+
+  function schedulePending(candidateId: string) {
+    setNewModal({ open: true, prefillCandidateId: candidateId })
+  }
 
   return (
-    <div className="pb-14">
-      <div className="flex items-end justify-between gap-5 px-7 pb-[18px] pt-7">
-        <div>
-          <h1 className="m-0 text-[24px] font-semibold leading-[34px] tracking-[-0.015em] text-primary">
-            יומן ראיונות
-          </h1>
-          <p className="mt-1.5 text-[13px] text-fg-muted">
-            כל הראיונות המתוכננים, לפי תאריך.
-          </p>
+    <div className="flex h-[calc(100vh-60px)] flex-col bg-surface">
+      {/* TOOLBAR */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-line bg-surface px-7 py-3">
+        <h1 className="m-0 text-[20px] font-semibold tracking-[-0.01em] text-primary">
+          יומן
+        </h1>
+        <button
+          onClick={gotoToday}
+          className="h-7 rounded-md border border-line bg-surface px-3 text-[12.5px] font-medium text-primary hover:bg-[var(--bg-subtle)]"
+        >
+          היום
+        </button>
+        <div className="inline-flex items-center gap-0.5">
+          {/* RTL: ימין = שבוע קודם, שמאל = שבוע הבא — לפי כיוון הזמן בעברית */}
+          <button
+            onClick={gotoPrev}
+            aria-label="שבוע קודם"
+            title="שבוע קודם"
+            className="inline-grid h-7 w-7 place-items-center rounded text-fg-muted hover:bg-[var(--bg-subtle)] hover:text-fg"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={gotoNext}
+            aria-label="שבוע הבא"
+            title="שבוע הבא"
+            className="inline-grid h-7 w-7 place-items-center rounded text-fg-muted hover:bg-[var(--bg-subtle)] hover:text-fg"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <span className="text-[15px] font-medium text-primary">
+          {fmtRange(anchor)}
+          <em className="ms-2 not-italic text-[12.5px] font-normal text-fg-subtle">
+            {fmtHebrewMonth(anchor)}
+          </em>
+        </span>
+        <div className="flex-1" />
+        <div className="inline-flex rounded-md bg-[var(--bg-subtle)] p-0.5">
+          {(["week", "agenda"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`h-7 rounded px-3 text-[12.5px] transition-colors ${
+                view === v
+                  ? "bg-surface font-medium text-primary shadow-[var(--shadow-xs)]"
+                  : "text-fg-muted hover:bg-surface"
+              }`}
+            >
+              {v === "week" ? "שבוע" : "רשימה"}
+            </button>
+          ))}
         </div>
         <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover"
+          onClick={() => setAutoOpen(true)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium text-white"
+          style={{
+            background:
+              "linear-gradient(135deg, var(--ai-bright), var(--ai))",
+          }}
+          title="תזמון אוטומטי של כל הממתינים לראיון"
         >
-          <Plus className="h-4 w-4" />
-          ראיון חדש
+          <Sparkles className="h-3.5 w-3.5" />
+          תזמון אוטומטי
+          {pendingCandidates.length > 0 && (
+            <span className="ms-0.5 rounded-full bg-white/25 px-1.5 py-px text-[10.5px] font-semibold">
+              {pendingCandidates.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setNewModal({ open: true })}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-[13px] font-medium text-white hover:bg-[var(--primary-2)]"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          אירוע
         </button>
       </div>
 
-      <div className="px-7">
-        {sortedDays.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 rounded-lg border border-line bg-surface px-8 py-16 text-center">
-            <span className="grid h-14 w-14 place-items-center rounded-lg border border-line bg-[var(--bg-subtle)] text-fg-muted">
-              <Calendar className="h-6 w-6" />
-            </span>
-            <p className="m-0 text-[13px] text-fg-muted">
-              אין ראיונות מתוכננים
-            </p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-5 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover"
-            >
-              <Plus className="h-4 w-4" />
-              קבע ראיון ראשון
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-6">
-            {sortedDays.map((day) => (
-              <div key={day}>
-                <div className="mb-2.5 font-mono text-[11px] uppercase tracking-[0.06em] text-fg-subtle">
-                  {fmtDateHeader(grouped[day][0].scheduled_at)}
-                </div>
-                <div className="flex flex-col gap-2">
-                  {grouped[day].map((iv) => {
-                    const st =
-                      STATUS_STYLE[iv.status] ?? STATUS_STYLE.scheduled
-                    return (
-                      <div
-                        key={iv.id}
-                        className="flex items-center gap-4 rounded-lg border border-line bg-surface p-4 transition-[border-color,box-shadow] hover:border-[var(--line-strong)] hover:shadow-[var(--shadow-sm)]"
-                      >
-                        <div className="flex w-16 shrink-0 flex-col items-center">
-                          <span className="text-[17px] font-semibold tracking-[-0.01em] text-primary [font-variant-numeric:tabular-nums]">
-                            {fmtTime(iv.scheduled_at)}
-                          </span>
-                          <span className="font-mono text-[10.5px] text-fg-subtle">
-                            {iv.duration_minutes} דק׳
-                          </span>
-                        </div>
-
-                        <div className="h-10 w-px bg-line" />
-
-                        <div className="flex min-w-0 flex-1 flex-col gap-1">
-                          <span className="text-[14px] font-semibold text-fg">
-                            {iv.candidates?.full_name ?? "מועמד"}
-                          </span>
-                          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[12px] text-fg-muted">
-                            {iv.location && (
-                              <span className="inline-flex items-center gap-1">
-                                <MapPin className="h-3 w-3 text-[var(--fg-faint)]" />
-                                {iv.location}
-                              </span>
-                            )}
-                            {iv.meeting_url && (
-                              <a
-                                href={iv.meeting_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-primary hover:text-accent"
-                              >
-                                <Video className="h-3 w-3" />
-                                קישור לפגישה
-                              </a>
-                            )}
-                          </div>
-                        </div>
-
-                        <select
-                          value={iv.status}
-                          onChange={(e) =>
-                            handleStatusChange(iv.id, e.target.value)
-                          }
-                          className="h-[26px] cursor-pointer rounded-full border px-2.5 text-[11.5px] font-medium outline-none"
-                          style={{
-                            background: st.bg,
-                            color: st.fg,
-                            borderColor: st.line,
-                          }}
-                        >
-                          {Object.entries(STATUS_LABELS).map(([v, l]) => (
-                            <option key={v} value={v}>
-                              {l}
-                            </option>
-                          ))}
-                        </select>
-
-                        <Link
-                          href={`/interviews/${iv.id}/evaluate`}
-                          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[12px] text-fg-muted transition-colors hover:bg-[var(--bg-subtle)] hover:text-fg"
-                        >
-                          <ClipboardCheck className="h-3.5 w-3.5" />
-                          הערכה
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(iv.id)}
-                          className="inline-grid h-8 w-8 shrink-0 place-items-center rounded-md border border-line text-[var(--fg-faint)] transition-colors hover:border-[var(--stage-rejected-line)] hover:bg-[var(--stage-rejected-bg)] hover:text-[var(--stage-rejected-fg)]"
-                          aria-label="מחק ראיון"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+      {/* PENDING STRIP */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-line bg-bg px-7 py-2 text-[12.5px] text-fg-muted">
+        <span className="inline-flex items-center gap-2">
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ background: "var(--accent)" }}
+          />
+          <span>
+            <b className="font-medium text-fg">
+              {pendingCandidates.length} מועמדים
+            </b>{" "}
+            ממתינים לזימון לראיון
+          </span>
+        </span>
+        {pendingCandidates.length > 0 && (
+          <div className="flex gap-1.5">
+            {pendingCandidates.slice(0, 3).map((c) => (
+              <button
+                key={c.id}
+                onClick={() => schedulePending(c.id)}
+                className="inline-flex h-6 items-center gap-1 rounded-full border border-line bg-surface px-2.5 text-[11.5px] text-fg hover:border-accent hover:bg-[var(--accent-soft)]"
+              >
+                + {c.full_name}
+              </button>
             ))}
+            {pendingCandidates.length > 3 && (
+              <span className="text-[11.5px] text-fg-subtle">
+                ועוד {pendingCandidates.length - 3}…
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="flex-1" />
+
+        {interviewers.length > 0 && (
+          <div className="inline-flex flex-wrap items-center gap-1">
+            <span className="me-1 text-[11px] text-fg-subtle">מסנן:</span>
+            {interviewers.map((iv) => {
+              const on =
+                activeInterviewers.size === 0 || activeInterviewers.has(iv.id)
+              const display = iv.full_name?.trim() || iv.email.split("@")[0]
+              return (
+                <button
+                  key={iv.id}
+                  onClick={() => toggleInterviewer(iv.id)}
+                  className={`inline-flex h-6 items-center gap-1.5 rounded-full border bg-surface px-2 ps-2.5 text-[11.5px] transition-opacity ${
+                    on
+                      ? "border-line text-fg"
+                      : "border-line text-fg opacity-40"
+                  } hover:bg-[var(--bg-subtle)]`}
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ background: avatarColor(iv.id) }}
+                  />
+                  {display}
+                </button>
+              )
+            })}
+            {activeInterviewers.size > 0 && (
+              <button
+                onClick={() => setActiveInterviewers(new Set())}
+                className="text-[11.5px] text-primary hover:text-accent"
+              >
+                נקה
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {showForm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "var(--overlay)" }}
-          onClick={() => setShowForm(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-lg border border-line bg-surface shadow-[var(--shadow-lg)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-[var(--line-faint)] px-5 py-4">
-              <h2 className="m-0 text-[15px] font-semibold text-primary">
-                ראיון חדש
-              </h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="inline-grid h-7 w-7 place-items-center rounded text-fg-subtle hover:bg-[var(--bg-subtle)] hover:text-fg"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <form onSubmit={handleCreate} className="flex flex-col gap-4 p-5">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-fg">
-                  מועמד
-                </label>
-                <select
-                  required
-                  value={candidateId}
-                  onChange={(e) => setCandidateId(e.target.value)}
-                  className="h-10 rounded-md border border-line bg-surface px-3 text-[13px] text-fg outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
-                >
-                  <option value="">בחר מועמד…</option>
-                  {candidates.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.full_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+      {/* BODY */}
+      <div className="flex-1 overflow-hidden">
+        {view === "week" ? (
+          <WeekGrid
+            weekStart={anchor}
+            interviews={filtered}
+            interviewers={interviewers}
+            onEventClick={setSelected}
+            onSlotClick={openNewAt}
+          />
+        ) : (
+          <AgendaList
+            interviews={filtered}
+            onEventClick={setSelected}
+          />
+        )}
+      </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-medium text-fg">
-                    תאריך
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="h-10 rounded-md border border-line bg-surface px-3 text-[13px] text-fg outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-medium text-fg">
-                    שעה
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className="h-10 rounded-md border border-line bg-surface px-3 text-[13px] text-fg outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
-                  />
-                </div>
-              </div>
+      {selected && (
+        <EventPopover
+          interview={selected}
+          interviewers={interviewers}
+          onClose={() => setSelected(null)}
+          onDelete={() => setConfirmDelete(selected)}
+          onStatusChange={(s) => handleStatusChange(selected.id, s)}
+        />
+      )}
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-fg">
-                  משך (דקות)
-                </label>
-                <input
-                  type="number"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  className="h-10 rounded-md border border-line bg-surface px-3 text-[13px] text-fg outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
-                />
-              </div>
+      {confirmDelete && (
+        <DeleteInterviewConfirm
+          interview={confirmDelete}
+          onClose={() => setConfirmDelete(null)}
+          onConfirm={() => handleDelete(confirmDelete)}
+        />
+      )}
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-fg">
-                  מיקום <span className="text-fg-subtle">(אופציונלי)</span>
-                </label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="חדר ראיונות, כתובת…"
-                  className="h-10 rounded-md border border-line bg-surface px-3 text-[13px] text-fg outline-none placeholder:text-fg-subtle focus:border-accent focus:shadow-[var(--shadow-focus)]"
-                />
-              </div>
+      {autoOpen && (
+        <AutoScheduleModal
+          pendingCandidates={pendingCandidates}
+          existingInterviews={interviews}
+          interviewers={interviewers}
+          onClose={() => setAutoOpen(false)}
+          onConfirm={async (plan, duration) => {
+            const rows = plan.map((p) => ({
+              organization_id: organizationId,
+              candidate_id: p.candidateId,
+              scheduled_at: p.scheduledAt,
+              duration_minutes: duration,
+              interviewer_id: p.interviewerId,
+            }))
+            const { data, error } = await supabase
+              .from("interviews")
+              .insert(rows)
+              .select("*, candidates(full_name)")
+            if (error || !data) {
+              alert("שגיאה בתזמון אוטומטי")
+              return
+            }
+            for (const p of plan) {
+              await logCandidateEvent({
+                candidateId: p.candidateId,
+                organizationId,
+                type: "interview_scheduled",
+                description: "ראיון נקבע אוטומטית",
+              })
+            }
+            setInterviews((prev) =>
+              [...prev, ...(data as InterviewWithCandidate[])].sort(
+                (a, b) =>
+                  new Date(a.scheduled_at).getTime() -
+                  new Date(b.scheduled_at).getTime()
+              )
+            )
+            setAutoOpen(false)
+            router.refresh()
+          }}
+        />
+      )}
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-fg">
-                  קישור לפגישה{" "}
-                  <span className="text-fg-subtle">(אופציונלי)</span>
-                </label>
-                <input
-                  type="url"
-                  dir="ltr"
-                  value={meetingUrl}
-                  onChange={(e) => setMeetingUrl(e.target.value)}
-                  placeholder="https://…"
-                  className="h-10 rounded-md border border-line bg-surface px-3 text-[13px] text-fg outline-none placeholder:text-fg-subtle focus:border-accent focus:shadow-[var(--shadow-focus)]"
-                />
-              </div>
-
-              <div className="mt-1 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="inline-flex h-9 items-center rounded-md border border-line bg-surface px-4 text-[13px] text-fg-muted hover:bg-[var(--bg-subtle)]"
-                >
-                  ביטול
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
-                >
-                  <Clock className="h-4 w-4" />
-                  {saving ? "שומר…" : "קבע ראיון"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {newModal.open && (
+        <NewEventModal
+          candidates={candidates}
+          interviewers={interviewers}
+          prefillDate={newModal.prefillDate}
+          prefillTime={newModal.prefillTime}
+          prefillCandidateId={newModal.prefillCandidateId}
+          onClose={() => setNewModal({ open: false })}
+          onSubmit={handleCreate}
+        />
       )}
     </div>
   )
 }
+
+// צבע אווטאר יציב לפי id
+const AVATAR_COLORS = [
+  "#374765",
+  "#fe6f42",
+  "#00a58e",
+  "#7c5cd6",
+  "#c1583d",
+  "#3a8fb7",
+]
+export function avatarColor(id: string): string {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
+}
+
+export { startOfWeek, addDays, sameDay }

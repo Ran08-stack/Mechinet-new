@@ -23,6 +23,8 @@ export function normalizePhone(value: string): string {
   return value.replace(/\D/g, "").slice(0, 10)
 }
 
+// fallback labels — בשימוש רק אם השלב לא נמצא ב-pipeline_stages
+// (למשל ערכים legacy שעוד לא עברו migration).
 export const STAGE_LABELS: Record<string, string> = {
   new: "חדש",
   review: "בבדיקה",
@@ -31,10 +33,5 @@ export const STAGE_LABELS: Record<string, string> = {
   rejected: "נדחה",
 }
 
-export const STAGE_COLORS: Record<string, string> = {
-  new: "bg-gray-100 text-gray-700",
-  review: "bg-blue-100 text-blue-700",
-  interview: "bg-yellow-100 text-yellow-700",
-  accepted: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
-}
+// צבע ברירת מחדל אם השלב לא מצא צבע משלו
+export const DEFAULT_STAGE_COLOR = "bg-gray-100 text-gray-700"

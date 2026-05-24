@@ -15,6 +15,7 @@ export type Database = {
       candidates: {
         Row: {
           ai_summary: string | null
+          ai_summary_at: string | null
           answers: Json
           attachments: Json
           birth_date: string | null
@@ -23,7 +24,9 @@ export type Database = {
           email: string
           form_id: string | null
           full_name: string
+          gender: string | null
           id: string
+          national_id: string | null
           notes: string | null
           organization_id: string
           phone: string | null
@@ -32,6 +35,7 @@ export type Database = {
         }
         Insert: {
           ai_summary?: string | null
+          ai_summary_at?: string | null
           answers?: Json
           attachments?: Json
           birth_date?: string | null
@@ -40,7 +44,9 @@ export type Database = {
           email: string
           form_id?: string | null
           full_name: string
+          gender?: string | null
           id?: string
+          national_id?: string | null
           notes?: string | null
           organization_id: string
           phone?: string | null
@@ -49,6 +55,7 @@ export type Database = {
         }
         Update: {
           ai_summary?: string | null
+          ai_summary_at?: string | null
           answers?: Json
           attachments?: Json
           birth_date?: string | null
@@ -57,7 +64,9 @@ export type Database = {
           email?: string
           form_id?: string | null
           full_name?: string
+          gender?: string | null
           id?: string
+          national_id?: string | null
           notes?: string | null
           organization_id?: string
           phone?: string | null
@@ -107,6 +116,7 @@ export type Database = {
       forms: {
         Row: {
           created_at: string | null
+          description: string | null
           fields: Json
           id: string
           is_active: boolean
@@ -115,6 +125,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          description?: string | null
           fields?: Json
           id?: string
           is_active?: boolean
@@ -123,6 +134,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          description?: string | null
           fields?: Json
           id?: string
           is_active?: boolean
@@ -236,6 +248,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          branch_name: string | null
           created_at: string | null
           gender_policy: string
           id: string
@@ -245,6 +258,7 @@ export type Database = {
           slug: string
         }
         Insert: {
+          branch_name?: string | null
           created_at?: string | null
           gender_policy?: string
           id?: string
@@ -254,6 +268,7 @@ export type Database = {
           slug: string
         }
         Update: {
+          branch_name?: string | null
           created_at?: string | null
           gender_policy?: string
           id?: string
@@ -269,6 +284,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           id: string
+          is_default: boolean
           name: string
           order_index: number
           organization_id: string
@@ -277,6 +293,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           id?: string
+          is_default?: boolean
           name: string
           order_index: number
           organization_id: string
@@ -285,6 +302,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           id?: string
+          is_default?: boolean
           name?: string
           order_index?: number
           organization_id?: string
@@ -298,7 +316,9 @@ export type Database = {
           full_name: string | null
           id: string
           organization_id: string | null
+          phone: string | null
           role: string
+          role_label: string | null
         }
         Insert: {
           created_at?: string | null
@@ -306,7 +326,9 @@ export type Database = {
           full_name?: string | null
           id: string
           organization_id?: string | null
+          phone?: string | null
           role?: string
+          role_label?: string | null
         }
         Update: {
           created_at?: string | null
@@ -314,7 +336,30 @@ export type Database = {
           full_name?: string | null
           id?: string
           organization_id?: string | null
+          phone?: string | null
           role?: string
+          role_label?: string | null
+        }
+        Relationships: []
+      }
+      org_role_labels: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          created_at?: string | null
         }
         Relationships: []
       }
@@ -357,19 +402,56 @@ export type CandidateEvent = Tables<"candidate_events">
 export type Interview = Tables<"interviews">
 export type InterviewEvaluation = Tables<"interview_evaluations">
 
-export type CandidateStage = "new" | "review" | "interview" | "accepted" | "rejected"
+// CandidateStage עכשיו string חופשי — שם השלב הדינמי לפי pipeline_stages.
+// נשאר alias לסוג string לקריאות הקוד הקיים.
+export type CandidateStage = string
 
 export type InterviewStatus = "scheduled" | "completed" | "cancelled" | "no_show"
 
 export type UserRole = "admin" | "staff"
 
+// טיפוסי שדות —
+// legacy: text, textarea, select, multiselect, date, number, file, video, autocomplete
+// v3:     short_text, long_text, email, phone, id_number, url, radio, checkbox,
+//         dropdown, rating, number, date, file, signature, section, info
+export type FormFieldType =
+  | "text"
+  | "textarea"
+  | "select"
+  | "multiselect"
+  | "date"
+  | "number"
+  | "file"
+  | "video"
+  | "autocomplete"
+  | "short_text"
+  | "long_text"
+  | "email"
+  | "phone"
+  | "id_number"
+  | "url"
+  | "radio"
+  | "checkbox"
+  | "dropdown"
+  | "rating"
+  | "signature"
+  | "section"
+  | "info"
+
 export type FormField = {
   id: string
-  type: "text" | "textarea" | "select" | "multiselect" | "date" | "number" | "file" | "video" | "autocomplete"
+  type: FormFieldType
   label: string
   required: boolean
   options?: string[]
   autocomplete_list?: "cities" | "schools" | "custom"
+  // dataset — מקור רשימה מובנה ל-dropdown/radio/checkbox. נמרג עם options.
+  dataset?: "schools" | "cities" | "custom"
+  placeholder?: string
+  help?: string
+  min?: number | string
+  max?: number | string
+  accept?: string
 }
 
 export type Attachment = {

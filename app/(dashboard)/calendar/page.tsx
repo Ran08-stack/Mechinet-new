@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import CalendarView from "@/components/calendar/CalendarView"
+import { Topbar } from "../_components/Topbar"
 
 export default async function CalendarPage() {
   const supabase = await createClient()
@@ -26,7 +27,12 @@ export default async function CalendarPage() {
     )
   }
 
-  const [{ data: interviews }, { data: candidates }] = await Promise.all([
+  const [
+    { data: interviews },
+    { data: candidates },
+    { data: members },
+    { data: stages },
+  ] = await Promise.all([
     supabase
       .from("interviews")
       .select("*, candidates(full_name)")
@@ -35,13 +41,45 @@ export default async function CalendarPage() {
       .from("candidates")
       .select("*")
       .order("full_name", { ascending: true }),
+    supabase
+      .from("users")
+      .select("id, full_name, email")
+      .eq("organization_id", userData.organization_id),
+    supabase
+      .from("pipeline_stages")
+      .select("name, order_index")
+      .eq("organization_id", userData.organization_id)
+      .order("order_index"),
   ])
 
+  // ממתינים לזימון: מועמדים בכל שלב שמכיל "ראיון" בשם (case insensitive),
+  // או שלב שני בסדר אם אין שלב כזה — שלא נישבר בשינוי שם.
+  const stageList = stages ?? []
+  const interviewStage =
+    stageList.find((s) => s.name.includes("ראיון"))?.name ??
+    stageList[1]?.name ??
+    null
+  const scheduledCandidateIds = new Set(
+    (interviews ?? [])
+      .filter((i) => i.status === "scheduled")
+      .map((i) => i.candidate_id)
+  )
+  const pendingCandidates = interviewStage
+    ? (candidates ?? []).filter(
+        (c) => c.stage === interviewStage && !scheduledCandidateIds.has(c.id)
+      )
+    : []
+
   return (
-    <CalendarView
-      initialInterviews={interviews ?? []}
-      candidates={candidates ?? []}
-      organizationId={userData.organization_id}
-    />
+    <>
+      <Topbar crumb="יומן" />
+      <CalendarView
+        initialInterviews={interviews ?? []}
+        candidates={candidates ?? []}
+        interviewers={members ?? []}
+        pendingCandidates={pendingCandidates}
+        organizationId={userData.organization_id}
+      />
+    </>
   )
 }

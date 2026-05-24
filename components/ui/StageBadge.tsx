@@ -1,9 +1,10 @@
-import { STAGE_LABELS } from "@/lib/utils"
+import { STAGE_LABELS, DEFAULT_STAGE_COLOR } from "@/lib/utils"
 
 // תווית שלב — צבע + נקודה + תווית, לפי מערכת העיצוב MechinaFlow.
 // משמש בכל המסכים (טבלת מועמדים, פרופיל, פייפליין, לוח בקרה).
+// תומך בשלבים דינמיים: אם נשלח colorClass, הוא משמש; אחרת fallback למיפוי הישן.
 
-const STAGE_CLASSES: Record<string, { bg: string; fg: string; line: string; dot: string }> = {
+const LEGACY_STAGE_CLASSES: Record<string, { bg: string; fg: string; line: string; dot: string }> = {
   new: {
     bg: "var(--stage-new-bg)",
     fg: "var(--stage-new-fg)",
@@ -36,8 +37,27 @@ const STAGE_CLASSES: Record<string, { bg: string; fg: string; line: string; dot:
   },
 }
 
-export function StageBadge({ stage }: { stage: string }) {
-  const c = STAGE_CLASSES[stage] ?? STAGE_CLASSES.new
+export function StageBadge({
+  stage,
+  colorClass,
+}: {
+  stage: string
+  colorClass?: string | null
+}) {
+  // אם הגיע colorClass (מ-pipeline_stages) — להשתמש בו
+  if (colorClass) {
+    return (
+      <span
+        className={`inline-flex h-[22px] items-center gap-[7px] whitespace-nowrap rounded-full border border-current/15 px-[9px] text-[11.5px] font-medium leading-none ${colorClass}`}
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+        {stage}
+      </span>
+    )
+  }
+
+  // fallback לשלבים legacy לפי key אנגלית
+  const c = LEGACY_STAGE_CLASSES[stage] ?? LEGACY_STAGE_CLASSES.new
   const label = STAGE_LABELS[stage] ?? stage
 
   return (

@@ -1,0 +1,1417 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<title>Mechinet · Form Builder v3</title>
+<link rel="stylesheet" href="globals.css" />
+<style>
+  /* ============================================================
+     Form Builder v3 — Airtable-inspired, modern, restrained
+     Two modes: Builder (3-pane) · Preview (form as applicant sees)
+     ============================================================ */
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: var(--font-sans);
+    color: var(--fg);
+    font-size: var(--text-base);
+    line-height: var(--leading-base);
+    -webkit-font-smoothing: antialiased;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  /* ── Top bar ──────────────────────────────────────────────── */
+  .topbar {
+    height: 56px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 18px;
+    position: sticky; top: 0; z-index: 30;
+  }
+  .back {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--fg-muted);
+    background: transparent; border: 0;
+    padding: 6px 8px; border-radius: var(--radius);
+    cursor: pointer; font-size: var(--text-sm);
+  }
+  .back:hover { background: var(--bg-subtle); color: var(--fg); }
+  .back svg { width: 14px; height: 14px; }
+
+  .title-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .title-edit {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--primary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    min-width: 160px;
+    outline: none;
+  }
+  .title-edit:hover { background: var(--bg-subtle); }
+  .title-edit:focus { background: var(--surface); border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--ring); }
+
+  .saved {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--success);
+  }
+  .saved svg { width: 12px; height: 12px; }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 22px; padding: 0 10px;
+    border-radius: var(--radius-full);
+    font-size: 11.5px; font-weight: 500;
+    background: var(--stage-review-bg);
+    color: var(--stage-review-fg);
+    border: 1px solid var(--stage-review-line);
+  }
+  .status-pill .d { width: 6px; height: 6px; border-radius: 50%; background: var(--stage-review-dot); }
+
+  .spacer { flex: 1; }
+
+  /* Mode toggle (Builder / Preview) */
+  .mode-tabs {
+    display: inline-flex;
+    background: var(--bg-muted);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 3px;
+  }
+  .mode-tabs button {
+    border: 0; background: transparent;
+    color: var(--fg-muted);
+    height: 30px; padding: 0 14px;
+    border-radius: 5px;
+    font-size: var(--text-sm); font-weight: 500;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .mode-tabs button svg { width: 13px; height: 13px; }
+  .mode-tabs button.is-active {
+    background: var(--surface);
+    color: var(--fg);
+    box-shadow: var(--shadow-xs), 0 1px 2px rgba(3,22,49,.06);
+  }
+
+  .top-actions { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    height: 32px; padding: 0 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface); color: var(--fg);
+    font-size: var(--text-sm); font-weight: 500;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { background: var(--bg-subtle); }
+  .btn svg { width: 13px; height: 13px; }
+  .btn.primary {
+    background: var(--accent); color: var(--fg-on-accent);
+    border-color: var(--accent);
+  }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn.ghost { border-color: transparent; }
+  .btn.ghost:hover { background: var(--bg-subtle); }
+
+  /* ── Workspace layout ─────────────────────────────────────── */
+  .workspace {
+    display: grid;
+    grid-template-columns: 264px 1fr 320px;
+    height: calc(100vh - 56px);
+    background: var(--bg);
+  }
+  .workspace.preview-mode { grid-template-columns: 1fr; }
+
+  /* ── Field library (right in RTL, visually on the right) ── */
+  .library {
+    background: var(--surface);
+    border-inline-start: 1px solid var(--line); /* divides from canvas */
+    overflow-y: auto;
+    padding: 18px 16px 28px;
+  }
+  .lib-search {
+    position: relative;
+    margin-bottom: 14px;
+  }
+  .lib-search input {
+    width: 100%;
+    height: 32px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--bg-subtle);
+    padding: 0 32px 0 10px;
+    font: inherit;
+    font-size: var(--text-sm);
+    outline: none;
+  }
+  .lib-search input:focus { background: var(--surface); border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--ring); }
+  .lib-search svg { position: absolute; inset-inline-end: 10px; top: 9px; width: 14px; height: 14px; color: var(--fg-faint); }
+
+  .lib-section-title {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    color: var(--fg-subtle);
+    margin: 14px 4px 8px;
+  }
+  .lib-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .lib-item {
+    display: flex; flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 10px 10px 9px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    cursor: grab;
+    transition: all .12s ease;
+    user-select: none;
+  }
+  .lib-item:hover {
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(3,22,49,.06);
+  }
+  .lib-item:active { cursor: grabbing; }
+  .lib-item .ico {
+    width: 26px; height: 26px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-muted);
+    color: var(--primary);
+    display: grid; place-items: center;
+  }
+  .lib-item:hover .ico { background: var(--surface); color: var(--accent); }
+  .lib-item .ico svg { width: 14px; height: 14px; }
+  .lib-item .lbl { font-size: 12.5px; font-weight: 500; color: var(--fg); line-height: 1.2; }
+
+  /* ── Canvas (center) ──────────────────────────────────────── */
+  .canvas-wrap {
+    overflow-y: auto;
+    padding: 32px 40px 80px;
+    background: var(--bg);
+  }
+  .canvas {
+    max-width: 720px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 0 rgba(3,22,49,.03), 0 12px 32px -16px rgba(3,22,49,.12);
+    overflow: hidden;
+  }
+  .canvas-head {
+    position: relative;
+    padding: 28px 32px 22px;
+    border-bottom: 1px solid var(--line-faint);
+    background:
+      radial-gradient(ellipse 600px 200px at 80% -20%, rgba(254,111,66,.06), transparent 60%),
+      var(--surface);
+  }
+  .canvas-head .form-title {
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    color: var(--primary);
+    letter-spacing: -0.01em;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    margin: -4px -8px 6px;
+    outline: none;
+  }
+  .canvas-head .form-title:hover { background: var(--bg-subtle); }
+  .canvas-head .form-title:focus { background: var(--surface); border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--ring); }
+  .canvas-head .form-desc {
+    font-size: var(--text-md);
+    color: var(--fg-muted);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    margin: 0 -8px;
+    outline: none;
+  }
+  .canvas-head .form-desc:hover { background: var(--bg-subtle); }
+  .canvas-head .form-desc:focus { background: var(--surface); border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--ring); }
+  .canvas-head .ribbon {
+    position: absolute; inset-inline-start: 0; top: 0;
+    width: 4px; height: 100%;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--primary) 100%);
+  }
+
+  .fields-list { padding: 12px 16px 24px; }
+
+  /* Field card */
+  .field {
+    position: relative;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    padding: 12px 14px 14px 14px;
+    margin: 4px 0;
+    transition: all .12s ease;
+  }
+  .field:hover { background: var(--bg-subtle); }
+  .field.is-selected {
+    background: var(--surface);
+    border-color: var(--accent-line);
+    box-shadow: 0 0 0 3px var(--ring), 0 1px 3px rgba(3,22,49,.04);
+  }
+  .field .grip {
+    position: absolute;
+    inset-inline-end: -22px;
+    top: 14px;
+    width: 18px; height: 22px;
+    display: grid; place-items: center;
+    color: var(--fg-faint);
+    cursor: grab;
+    opacity: 0;
+    transition: opacity .12s ease;
+  }
+  .field:hover .grip,
+  .field.is-selected .grip { opacity: 1; }
+  .field .grip svg { width: 12px; height: 12px; }
+
+  .field .meta-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px;
+  }
+  .field .type-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    color: var(--fg-subtle);
+    padding: 2px 7px;
+    border-radius: var(--radius-full);
+    background: var(--bg-muted);
+  }
+  .field .type-chip svg { width: 11px; height: 11px; }
+  .field .req-star {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .field .spacer { flex: 1; }
+  .field .field-actions {
+    display: flex; gap: 2px;
+    opacity: 0;
+    transition: opacity .12s ease;
+  }
+  .field:hover .field-actions,
+  .field.is-selected .field-actions { opacity: 1; }
+  .field .field-actions button {
+    width: 26px; height: 26px;
+    border-radius: var(--radius-sm);
+    border: 0;
+    background: transparent;
+    color: var(--fg-muted);
+    cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .field .field-actions button:hover { background: var(--bg-muted); color: var(--fg); }
+  .field .field-actions svg { width: 13px; height: 13px; }
+
+  .field .label {
+    font-size: var(--text-md);
+    font-weight: 500;
+    color: var(--fg);
+    margin-bottom: 4px;
+  }
+  .field .help {
+    font-size: var(--text-xs);
+    color: var(--fg-subtle);
+    margin-bottom: 8px;
+  }
+
+  /* Field "preview" controls (non-interactive in builder) */
+  .pv-input, .pv-textarea, .pv-select {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 8px 12px;
+    font: inherit;
+    font-size: var(--text-sm);
+    color: var(--fg-subtle);
+    pointer-events: none;
+  }
+  .pv-textarea { min-height: 72px; resize: none; }
+  .pv-select { display: flex; justify-content: space-between; align-items: center; }
+  .pv-select svg { width: 13px; height: 13px; color: var(--fg-faint); }
+
+  .pv-choices { display: flex; flex-direction: column; gap: 6px; }
+  .pv-choice {
+    display: flex; align-items: center; gap: 8px;
+    font-size: var(--text-sm); color: var(--fg-muted);
+  }
+  .pv-choice .box {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--line-strong);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .pv-choice .box.radio { border-radius: 50%; }
+  .pv-choice .box.check { border-radius: 4px; }
+
+  .pv-upload {
+    border: 1.5px dashed var(--line-strong);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    color: var(--fg-subtle);
+    font-size: var(--text-sm);
+    background: var(--bg-subtle);
+  }
+  .pv-upload svg { width: 18px; height: 18px; margin-bottom: 4px; display: block; margin-inline: auto; color: var(--fg-faint); }
+
+  .pv-signature {
+    height: 100px;
+    border: 1.5px dashed var(--line-strong);
+    border-radius: var(--radius);
+    display: grid; place-items: center;
+    color: var(--fg-faint);
+    font-style: italic;
+    background:
+      repeating-linear-gradient(45deg, transparent 0 6px, rgba(3,22,49,.015) 6px 12px),
+      var(--bg-subtle);
+  }
+
+  .pv-section-divider {
+    border-top: 2px solid var(--primary);
+    margin: 4px 0;
+    position: relative;
+  }
+  .pv-section-divider span {
+    position: absolute; inset-inline-start: 0; top: -10px;
+    background: var(--surface); padding-inline-end: 8px;
+    font-family: var(--font-mono);
+    font-size: 10.5px; letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+
+  /* Add-field placeholder (drop zone) */
+  .add-field {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1.5px dashed var(--line-strong);
+    background: transparent;
+    border-radius: var(--radius);
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all .12s ease;
+  }
+  .add-field:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .add-field svg { width: 14px; height: 14px; }
+
+  /* Canvas footer (Submit button preview) */
+  .canvas-foot {
+    padding: 20px 32px 28px;
+    border-top: 1px solid var(--line-faint);
+    display: flex; gap: 8px; align-items: center;
+    background: var(--bg-subtle);
+  }
+  .canvas-foot .submit-btn {
+    background: var(--accent); color: var(--fg-on-accent);
+    border: 0; padding: 10px 22px;
+    border-radius: var(--radius);
+    font-weight: 600; font-size: var(--text-sm);
+    cursor: pointer;
+  }
+  .canvas-foot .foot-meta {
+    color: var(--fg-subtle);
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
+  }
+
+  /* ── Properties panel (left in RTL) ───────────────────────── */
+  .props {
+    background: var(--surface);
+    border-inline-end: 1px solid var(--line);
+    overflow-y: auto;
+    padding: 0 0 32px;
+  }
+  .props-empty {
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--fg-subtle);
+    font-size: var(--text-sm);
+  }
+  .props-empty svg { width: 28px; height: 28px; margin-bottom: 10px; color: var(--fg-faint); }
+
+  .props-head {
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid var(--line-faint);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .props-head .ico-wrap {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-sm);
+    background: var(--primary-soft);
+    color: var(--primary);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .props-head .ico-wrap svg { width: 14px; height: 14px; }
+  .props-head .t-name {
+    font-size: var(--text-md); font-weight: 600;
+    color: var(--fg); line-height: 1.2;
+  }
+  .props-head .t-sub {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--fg-subtle);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  .props-section { padding: 16px 18px; border-bottom: 1px solid var(--line-faint); }
+  .props-section h4 {
+    margin: 0 0 12px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-caps);
+    color: var(--fg-subtle);
+    font-weight: 500;
+  }
+  .field-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .field-row > label {
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+    font-weight: 500;
+  }
+  .field-row input[type="text"],
+  .field-row input[type="number"],
+  .field-row textarea,
+  .field-row select {
+    width: 100%;
+    height: 32px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 0 10px;
+    font: inherit;
+    font-size: var(--text-sm);
+    color: var(--fg);
+    outline: none;
+    transition: border-color .12s ease, box-shadow .12s ease;
+  }
+  .field-row textarea { height: auto; padding: 8px 10px; min-height: 60px; resize: vertical; }
+  .field-row input:focus,
+  .field-row textarea:focus,
+  .field-row select:focus { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--ring); }
+
+  /* Toggle switch */
+  .switch-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0;
+  }
+  .switch-row .sr-label { font-size: var(--text-sm); color: var(--fg); }
+  .switch-row .sr-hint { font-size: var(--text-xs); color: var(--fg-subtle); display: block; margin-top: 2px; }
+  .switch {
+    width: 34px; height: 20px;
+    border-radius: var(--radius-full);
+    background: var(--line-strong);
+    position: relative;
+    cursor: pointer;
+    transition: background .15s ease;
+    flex-shrink: 0;
+  }
+  .switch::after {
+    content: ''; position: absolute;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    top: 2px;
+    inset-inline-end: 2px;
+    transition: inset-inline-end .15s ease, inset-inline-start .15s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  }
+  .switch.is-on { background: var(--accent); }
+  .switch.is-on::after { inset-inline-end: auto; inset-inline-start: 2px; }
+
+  /* Options editor (for choice fields) */
+  .opt-list { display: flex; flex-direction: column; gap: 6px; }
+  .opt-row {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .opt-row .drag {
+    color: var(--fg-faint); cursor: grab;
+    width: 14px; height: 14px; flex-shrink: 0;
+  }
+  .opt-row input {
+    flex: 1; height: 30px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 0 8px;
+    font: inherit;
+    font-size: var(--text-sm);
+    outline: none;
+  }
+  .opt-row input:focus { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--ring); }
+  .opt-row .x {
+    width: 26px; height: 26px;
+    border: 0; background: transparent;
+    color: var(--fg-faint);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .opt-row .x:hover { background: var(--danger-soft); color: var(--danger); }
+  .opt-row .x svg { width: 12px; height: 12px; }
+  .add-opt {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: transparent;
+    border: 0;
+    color: var(--accent);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    padding: 6px 0;
+    cursor: pointer;
+  }
+  .add-opt svg { width: 12px; height: 12px; }
+
+  /* Danger zone */
+  .danger {
+    padding: 14px 18px;
+  }
+  .delete-field {
+    width: 100%;
+    height: 32px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--danger);
+    font-size: var(--text-sm); font-weight: 500;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .delete-field:hover { background: var(--danger-soft); border-color: var(--danger); }
+  .delete-field svg { width: 13px; height: 13px; }
+
+  /* ── Preview mode (full-width form) ───────────────────────── */
+  .preview-wrap {
+    overflow-y: auto;
+    padding: 48px 24px 96px;
+    background:
+      radial-gradient(ellipse 800px 400px at 50% -10%, rgba(3,22,49,.04), transparent 60%),
+      var(--bg);
+    display: none;
+  }
+  .workspace.preview-mode .preview-wrap { display: block; }
+  .workspace.preview-mode .library,
+  .workspace.preview-mode .canvas-wrap,
+  .workspace.preview-mode .props { display: none; }
+
+  .preview-card {
+    max-width: 640px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 0 rgba(3,22,49,.03), 0 24px 64px -32px rgba(3,22,49,.20);
+    overflow: hidden;
+  }
+  .preview-banner {
+    height: 8px;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--primary) 100%);
+  }
+  .preview-head {
+    padding: 32px 36px 24px;
+    border-bottom: 1px solid var(--line-faint);
+  }
+  .preview-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg-subtle);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .preview-head h1 {
+    margin: 0 0 8px;
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    color: var(--primary);
+    letter-spacing: -0.01em;
+  }
+  .preview-head p {
+    margin: 0;
+    color: var(--fg-muted);
+    font-size: var(--text-md);
+  }
+  .preview-body { padding: 28px 36px 8px; }
+  .pv-field { margin-bottom: 22px; }
+  .pv-field > label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--fg);
+    margin-bottom: 6px;
+  }
+  .pv-field > .help-text {
+    font-size: var(--text-xs);
+    color: var(--fg-subtle);
+    margin-bottom: 8px;
+  }
+  .pv-field > label .req { color: var(--accent); margin-inline-start: 2px; }
+  .pv-field input[type="text"],
+  .pv-field input[type="email"],
+  .pv-field input[type="tel"],
+  .pv-field input[type="number"],
+  .pv-field input[type="date"],
+  .pv-field textarea,
+  .pv-field select {
+    width: 100%;
+    height: 40px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 0 12px;
+    font: inherit;
+    font-size: var(--text-md);
+    color: var(--fg);
+    outline: none;
+    transition: border-color .12s ease, box-shadow .12s ease;
+  }
+  .pv-field textarea { height: auto; padding: 10px 12px; min-height: 96px; resize: vertical; }
+  .pv-field input:focus,
+  .pv-field textarea:focus,
+  .pv-field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+
+  .pv-field .choices { display: flex; flex-direction: column; gap: 8px; }
+  .pv-field .choices label {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all .12s ease;
+    font-size: var(--text-md);
+  }
+  .pv-field .choices label:hover { background: var(--bg-subtle); border-color: var(--line-strong); }
+  .pv-field .choices input { accent-color: var(--accent); }
+
+  .preview-foot {
+    padding: 18px 36px 32px;
+    display: flex; align-items: center; gap: 14px;
+    border-top: 1px solid var(--line-faint);
+    background: var(--bg-subtle);
+  }
+  .preview-foot button.submit {
+    background: var(--accent); color: var(--fg-on-accent);
+    border: 0; padding: 12px 28px;
+    border-radius: var(--radius);
+    font-weight: 600; font-size: var(--text-md);
+    cursor: pointer;
+  }
+  .preview-foot button.submit:hover { background: var(--accent-hover); }
+  .preview-foot .req-note {
+    font-size: var(--text-xs); color: var(--fg-subtle);
+  }
+  .preview-foot .req-note .req { color: var(--accent); font-weight: 700; }
+
+  /* Drag state */
+  .field.dragging { opacity: 0.4; }
+  .drop-indicator {
+    height: 2px;
+    background: var(--accent);
+    margin: 0 8px;
+    border-radius: 2px;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform .12s ease;
+  }
+  .drop-indicator.active { transform: scaleX(1); }
+
+  /* Scrollbars (subtle) */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(3,22,49,.10); border-radius: 10px; border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(3,22,49,.20); }
+</style>
+</head>
+<body>
+
+<!-- ====================== TOP BAR ====================== -->
+<header class="topbar">
+  <button class="back" aria-label="חזרה">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    טפסים
+  </button>
+
+  <div class="title-wrap">
+    <input class="title-edit" id="formTitleTop" value="טופס מועמדות · מחזור תשפ״ז" />
+    <span class="saved">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      נשמר לפני 12ש׳
+    </span>
+    <span class="status-pill"><span class="d"></span> טיוטה</span>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="mode-tabs" id="modeTabs">
+    <button class="is-active" data-mode="builder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h12"/></svg>
+      עורך
+    </button>
+    <button data-mode="preview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      תצוגה מקדימה
+    </button>
+  </div>
+
+  <div class="top-actions">
+    <button class="btn ghost" title="שתף קישור">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      שתף
+    </button>
+    <button class="btn primary">פרסם טופס</button>
+  </div>
+</header>
+
+<!-- ====================== WORKSPACE ====================== -->
+<main class="workspace" id="workspace">
+
+  <!-- ── LIBRARY (right) ────────────────────────────────── -->
+  <aside class="library">
+    <div class="lib-search">
+      <input type="text" placeholder="חפש שדה…" />
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+
+    <div class="lib-section-title">טקסט</div>
+    <div class="lib-grid">
+      <div class="lib-item" data-type="short_text"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10"/></svg></div><span class="lbl">טקסט קצר</span></div>
+      <div class="lib-item" data-type="long_text"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 11h16M4 16h10"/></svg></div><span class="lbl">פסקה</span></div>
+      <div class="lib-item" data-type="email"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div><span class="lbl">אימייל</span></div>
+      <div class="lib-item" data-type="phone"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/></svg></div><span class="lbl">טלפון</span></div>
+      <div class="lib-item" data-type="id_number"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="2"/><path d="M14 10h4M14 14h3"/></svg></div><span class="lbl">תעודת זהות</span></div>
+      <div class="lib-item" data-type="url"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><span class="lbl">קישור</span></div>
+    </div>
+
+    <div class="lib-section-title">בחירה</div>
+    <div class="lib-grid">
+      <div class="lib-item" data-type="radio"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg></div><span class="lbl">בחירה יחידה</span></div>
+      <div class="lib-item" data-type="checkbox"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><polyline points="9 12 11 14 16 9"/></svg></div><span class="lbl">בחירה מרובה</span></div>
+      <div class="lib-item" data-type="dropdown"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="8 11 12 15 16 11"/></svg></div><span class="lbl">רשימה נפתחת</span></div>
+      <div class="lib-item" data-type="rating"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9.5 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.5 9 9 12 2"/></svg></div><span class="lbl">דירוג כוכבים</span></div>
+    </div>
+
+    <div class="lib-section-title">מספר ותאריך</div>
+    <div class="lib-grid">
+      <div class="lib-item" data-type="number"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg></div><span class="lbl">מספר</span></div>
+      <div class="lib-item" data-type="date"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><span class="lbl">תאריך</span></div>
+    </div>
+
+    <div class="lib-section-title">העלאה וחתימה</div>
+    <div class="lib-grid">
+      <div class="lib-item" data-type="file"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><span class="lbl">העלאת קובץ</span></div>
+      <div class="lib-item" data-type="signature"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-4 6-4 9 0s6 4 9 0"/><path d="M3 21h18"/></svg></div><span class="lbl">חתימה</span></div>
+    </div>
+
+    <div class="lib-section-title">מבנה</div>
+    <div class="lib-grid">
+      <div class="lib-item" data-type="section"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h18"/></svg></div><span class="lbl">כותרת מקטע</span></div>
+      <div class="lib-item" data-type="info"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16" r="0.7" fill="currentColor"/></svg></div><span class="lbl">טקסט הסבר</span></div>
+    </div>
+  </aside>
+
+  <!-- ── CANVAS (center) ────────────────────────────────── -->
+  <section class="canvas-wrap">
+    <div class="canvas">
+      <div class="canvas-head">
+        <div class="ribbon"></div>
+        <div class="form-title" contenteditable="true">טופס מועמדות · מחזור תשפ״ז</div>
+        <div class="form-desc" contenteditable="true">שלום! נשמח להכיר אותך. מילוי הטופס לוקח כ-7 דקות. ניתן לחזור ולערוך עד תאריך הסגירה.</div>
+      </div>
+
+      <div class="fields-list" id="fieldsList">
+        <!-- Fields injected by JS -->
+      </div>
+
+      <div class="canvas-foot">
+        <button class="submit-btn">שליחת הטופס</button>
+        <span class="foot-meta">·  הטופס מאובטח · נתונים מוצפנים</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PROPERTIES (left) ──────────────────────────────── -->
+  <aside class="props" id="propsPanel">
+    <div class="props-empty" id="propsEmpty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+      בחר שדה כדי לערוך את ההגדרות שלו
+    </div>
+    <div id="propsContent" style="display:none;"></div>
+  </aside>
+
+  <!-- ── PREVIEW (full-width) ───────────────────────────── -->
+  <section class="preview-wrap" id="previewWrap">
+    <div class="preview-card">
+      <div class="preview-banner"></div>
+      <div class="preview-head">
+        <div class="preview-eyebrow">מכינת נחשון · מועמדות</div>
+        <h1 id="pvTitle">טופס מועמדות · מחזור תשפ״ז</h1>
+        <p id="pvDesc">שלום! נשמח להכיר אותך. מילוי הטופס לוקח כ-7 דקות. ניתן לחזור ולערוך עד תאריך הסגירה.</p>
+      </div>
+      <div class="preview-body" id="previewBody"></div>
+      <div class="preview-foot">
+        <button class="submit">שליחת הטופס</button>
+        <span class="req-note"><span class="req">*</span> שדה חובה</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const TYPES = {
+  short_text:  { label: 'טקסט קצר',      icon: 'short_text' },
+  long_text:   { label: 'פסקה',           icon: 'long_text' },
+  email:       { label: 'אימייל',         icon: 'email' },
+  phone:       { label: 'טלפון',          icon: 'phone' },
+  id_number:   { label: 'תעודת זהות',     icon: 'id_number' },
+  url:         { label: 'קישור',          icon: 'url' },
+  radio:       { label: 'בחירה יחידה',    icon: 'radio' },
+  checkbox:    { label: 'בחירה מרובה',    icon: 'checkbox' },
+  dropdown:    { label: 'רשימה נפתחת',    icon: 'dropdown' },
+  rating:      { label: 'דירוג כוכבים',   icon: 'rating' },
+  number:      { label: 'מספר',           icon: 'number' },
+  date:        { label: 'תאריך',          icon: 'date' },
+  file:        { label: 'העלאת קובץ',     icon: 'file' },
+  signature:   { label: 'חתימה',          icon: 'signature' },
+  section:     { label: 'כותרת מקטע',     icon: 'section' },
+  info:        { label: 'טקסט הסבר',      icon: 'info' },
+};
+
+const ICONS = {
+  short_text: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10"/></svg>',
+  long_text:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 11h16M4 16h10"/></svg>',
+  email:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  phone:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/></svg>',
+  id_number:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="2"/><path d="M14 10h4M14 14h3"/></svg>',
+  url:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+  radio:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>',
+  checkbox:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><polyline points="9 12 11 14 16 9"/></svg>',
+  dropdown:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="8 11 12 15 16 11"/></svg>',
+  rating:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9.5 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.5 9 9 12 2"/></svg>',
+  number:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg>',
+  date:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  file:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  signature:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-4 6-4 9 0s6 4 9 0"/><path d="M3 21h18"/></svg>',
+  section:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h18"/></svg>',
+  info:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16" r="0.7" fill="currentColor"/></svg>',
+};
+
+let nextId = 1;
+const uid = () => `f${nextId++}`;
+
+const newField = (type) => {
+  const f = { id: uid(), type, label: TYPES[type].label, help: '', required: false, placeholder: '' };
+  if (['radio','checkbox','dropdown'].includes(type)) f.options = ['אפשרות א׳', 'אפשרות ב׳', 'אפשרות ג׳'];
+  if (type === 'rating') f.max = 5;
+  if (type === 'number') { f.min = ''; f.max = ''; }
+  if (type === 'file') f.accept = 'PDF, DOCX, JPG · עד 10MB';
+  if (type === 'section') { f.label = 'כותרת מקטע'; f.help = ''; }
+  if (type === 'info') { f.label = 'הסבר למילוי'; f.help = 'טקסט הסבר שיוצג למועמד מתחת לכותרת.'; }
+  return f;
+};
+
+let fields = [
+  { id: uid(), type: 'section',    label: 'פרטים אישיים', help: '', required: false },
+  { id: uid(), type: 'short_text', label: 'שם מלא',       help: 'שם פרטי + משפחה כפי שמופיע בת.ז', required: true, placeholder: 'ישראל ישראלי' },
+  { id: uid(), type: 'id_number',  label: 'תעודת זהות',   help: '9 ספרות כולל ספרת ביקורת', required: true },
+  { id: uid(), type: 'email',      label: 'אימייל',        help: '', required: true, placeholder: 'name@example.com' },
+  { id: uid(), type: 'phone',      label: 'טלפון נייד',   help: '', required: true, placeholder: '050-0000000' },
+  { id: uid(), type: 'date',       label: 'תאריך לידה',   help: '', required: true },
+  { id: uid(), type: 'section',    label: 'רקע ולימודים', help: '', required: false },
+  { id: uid(), type: 'dropdown',   label: 'בית ספר תיכון', help: '', required: true, options: ['ליאו באק', 'הרצוג', 'בליך', 'תלמה ילין', 'אחר'] },
+  { id: uid(), type: 'radio',      label: 'מסלול במכינה', help: 'תוכל לשנות עד הראיון', required: true, options: ['מסלול שנה', 'מסלול שנתיים', 'עדיין מתלבט'] },
+  { id: uid(), type: 'checkbox',   label: 'תחומי עניין',   help: 'אפשר לסמן כמה שרוצים', required: false, options: ['מנהיגות', 'חינוך', 'טכנולוגיה', 'אומנות', 'ספורט', 'התנדבות'] },
+  { id: uid(), type: 'long_text',  label: 'ספר/י על עצמך', help: 'בכמה שורות — מה חשוב לך, מה מעניין אותך, למה בחרת במכינה הזאת?', required: true, placeholder: '' },
+  { id: uid(), type: 'file',       label: 'העלאת קורות חיים', help: '', required: false, accept: 'PDF · עד 5MB' },
+  { id: uid(), type: 'signature',  label: 'חתימה דיגיטלית',   help: 'בחתימתך הינך מאשר/ת שכל הפרטים נכונים', required: true },
+];
+
+let selectedId = fields[1].id;
+
+/* ============================================================
+   RENDER — BUILDER CANVAS
+   ============================================================ */
+const $list = document.getElementById('fieldsList');
+const $propsContent = document.getElementById('propsContent');
+const $propsEmpty = document.getElementById('propsEmpty');
+
+function renderBuilder() {
+  $list.innerHTML = '';
+  fields.forEach((f, i) => {
+    const el = document.createElement('div');
+    el.className = 'field' + (f.id === selectedId ? ' is-selected' : '');
+    el.dataset.id = f.id;
+    el.draggable = true;
+    el.innerHTML = fieldCardHTML(f);
+    $list.appendChild(el);
+  });
+  // Add field button
+  const add = document.createElement('button');
+  add.className = 'add-field';
+  add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> הוסף שדה';
+  add.onclick = () => addField('short_text');
+  $list.appendChild(add);
+
+  renderProps();
+  bindFieldEvents();
+}
+
+function fieldCardHTML(f) {
+  const tName = TYPES[f.type]?.label || f.type;
+  const tIco = ICONS[f.type] || '';
+  const req = f.required ? '<span class="req-star">*</span>' : '';
+
+  if (f.type === 'section') {
+    return `
+      <div class="field-actions">
+        <button title="שכפל">${ICONS_BTN.copy}</button>
+        <button title="מחק">${ICONS_BTN.trash}</button>
+      </div>
+      <div class="grip">${ICONS_BTN.grip}</div>
+      <div class="pv-section-divider"><span>${escape(f.label)}</span></div>
+    `;
+  }
+  if (f.type === 'info') {
+    return `
+      <div class="field-actions">
+        <button title="שכפל">${ICONS_BTN.copy}</button>
+        <button title="מחק">${ICONS_BTN.trash}</button>
+      </div>
+      <div class="grip">${ICONS_BTN.grip}</div>
+      <div class="meta-row"><span class="type-chip">${tIco}${tName}</span></div>
+      <div style="font-size:var(--text-sm); color:var(--fg-muted); padding:8px 12px; background:var(--accent-soft); border-inline-start:3px solid var(--accent); border-radius:var(--radius-sm);">${escape(f.help || f.label)}</div>
+    `;
+  }
+
+  return `
+    <div class="field-actions">
+      <button title="שכפל">${ICONS_BTN.copy}</button>
+      <button title="מחק">${ICONS_BTN.trash}</button>
+    </div>
+    <div class="grip">${ICONS_BTN.grip}</div>
+    <div class="meta-row">
+      <span class="type-chip">${tIco}${tName}</span>
+      ${req}
+    </div>
+    <div class="label">${escape(f.label)}</div>
+    ${f.help ? `<div class="help">${escape(f.help)}</div>` : ''}
+    ${pvControlHTML(f)}
+  `;
+}
+
+function pvControlHTML(f) {
+  switch(f.type) {
+    case 'short_text':
+    case 'email':
+    case 'phone':
+    case 'id_number':
+    case 'url':
+      return `<input class="pv-input" type="text" placeholder="${escape(f.placeholder || ' ')}" disabled />`;
+    case 'long_text':
+      return `<textarea class="pv-textarea" placeholder="${escape(f.placeholder || ' ')}" disabled></textarea>`;
+    case 'number':
+      return `<input class="pv-input" type="text" placeholder="0" disabled />`;
+    case 'date':
+      return `<div class="pv-select"><span>dd / mm / yyyy</span>${ICONS_BTN.calendar}</div>`;
+    case 'dropdown':
+      return `<div class="pv-select"><span>בחר…</span>${ICONS_BTN.chevron}</div>`;
+    case 'radio':
+      return `<div class="pv-choices">${f.options.map(o => `<div class="pv-choice"><span class="box radio"></span>${escape(o)}</div>`).join('')}</div>`;
+    case 'checkbox':
+      return `<div class="pv-choices">${f.options.map(o => `<div class="pv-choice"><span class="box check"></span>${escape(o)}</div>`).join('')}</div>`;
+    case 'rating':
+      return `<div style="display:flex; gap:6px; color:var(--fg-faint);">${Array.from({length:f.max||5}).map(()=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9.5 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.5 9 9 12 2"/></svg>`).join('')}</div>`;
+    case 'file':
+      return `<div class="pv-upload">${ICONS_BTN.upload}<div>גרור קובץ לכאן או <span style="color:var(--accent); font-weight:500;">בחר מהמחשב</span></div><div style="font-size:11px; margin-top:4px; color:var(--fg-faint);">${escape(f.accept || '')}</div></div>`;
+    case 'signature':
+      return `<div class="pv-signature">חתום כאן</div>`;
+    default: return '';
+  }
+}
+
+const ICONS_BTN = {
+  copy:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  trash:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
+  grip:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="6" r=".7" fill="currentColor"/><circle cx="9" cy="12" r=".7" fill="currentColor"/><circle cx="9" cy="18" r=".7" fill="currentColor"/><circle cx="15" cy="6" r=".7" fill="currentColor"/><circle cx="15" cy="12" r=".7" fill="currentColor"/><circle cx="15" cy="18" r=".7" fill="currentColor"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+  calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  upload:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  x:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  plus:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+};
+
+function escape(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ============================================================
+   FIELD EVENTS
+   ============================================================ */
+function bindFieldEvents() {
+  $list.querySelectorAll('.field').forEach(el => {
+    const id = el.dataset.id;
+
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.field-actions')) return;
+      selectedId = id;
+      renderBuilder();
+    });
+
+    // Action buttons
+    const [copyBtn, trashBtn] = el.querySelectorAll('.field-actions button');
+    if (copyBtn) copyBtn.onclick = (e) => { e.stopPropagation(); duplicateField(id); };
+    if (trashBtn) trashBtn.onclick = (e) => { e.stopPropagation(); deleteField(id); };
+
+    // Drag reorder
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', `move:${id}`);
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+    el.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const data = e.dataTransfer.types.includes('text/plain');
+      if (!data) return;
+    });
+
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const payload = e.dataTransfer.getData('text/plain');
+      if (payload.startsWith('move:')) {
+        const fromId = payload.slice(5);
+        moveField(fromId, id);
+      } else if (payload.startsWith('new:')) {
+        const type = payload.slice(4);
+        addFieldBefore(id, type);
+      }
+    });
+  });
+
+  // Allow drop on canvas empty area / end
+  $list.addEventListener('dragover', e => e.preventDefault());
+  $list.addEventListener('drop', e => {
+    e.preventDefault();
+    const payload = e.dataTransfer.getData('text/plain');
+    if (payload.startsWith('new:')) {
+      const type = payload.slice(4);
+      addField(type);
+    }
+  });
+}
+
+// Library drag
+document.querySelectorAll('.lib-item').forEach(item => {
+  item.draggable = true;
+  item.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', `new:${item.dataset.type}`);
+  });
+  item.addEventListener('click', () => addField(item.dataset.type));
+});
+
+function addField(type) {
+  const f = newField(type);
+  fields.push(f);
+  selectedId = f.id;
+  renderBuilder();
+}
+function addFieldBefore(beforeId, type) {
+  const f = newField(type);
+  const idx = fields.findIndex(x => x.id === beforeId);
+  fields.splice(idx, 0, f);
+  selectedId = f.id;
+  renderBuilder();
+}
+function deleteField(id) {
+  fields = fields.filter(f => f.id !== id);
+  if (selectedId === id) selectedId = fields[0]?.id;
+  renderBuilder();
+}
+function duplicateField(id) {
+  const idx = fields.findIndex(f => f.id === id);
+  const copy = { ...fields[idx], id: uid() };
+  if (copy.options) copy.options = [...copy.options];
+  fields.splice(idx+1, 0, copy);
+  selectedId = copy.id;
+  renderBuilder();
+}
+function moveField(fromId, toId) {
+  if (fromId === toId) return;
+  const fromIdx = fields.findIndex(f => f.id === fromId);
+  const toIdx = fields.findIndex(f => f.id === toId);
+  const [item] = fields.splice(fromIdx, 1);
+  fields.splice(toIdx, 0, item);
+  renderBuilder();
+}
+
+/* ============================================================
+   PROPERTIES PANEL
+   ============================================================ */
+function renderProps() {
+  const f = fields.find(x => x.id === selectedId);
+  if (!f) {
+    $propsEmpty.style.display = 'block';
+    $propsContent.style.display = 'none';
+    return;
+  }
+  $propsEmpty.style.display = 'none';
+  $propsContent.style.display = 'block';
+
+  const hasOptions = ['radio','checkbox','dropdown'].includes(f.type);
+  const hasPlaceholder = ['short_text','long_text','email','phone','id_number','url','number'].includes(f.type);
+
+  $propsContent.innerHTML = `
+    <div class="props-head">
+      <div class="ico-wrap">${ICONS[f.type]||''}</div>
+      <div>
+        <div class="t-name">${escape(TYPES[f.type]?.label || f.type)}</div>
+        <div class="t-sub">field · ${f.id}</div>
+      </div>
+    </div>
+
+    <div class="props-section">
+      <h4>תוכן השדה</h4>
+      <div class="field-row">
+        <label>תווית (Label)</label>
+        <input type="text" id="p-label" value="${escape(f.label)}" />
+      </div>
+      <div class="field-row">
+        <label>טקסט עזרה</label>
+        <textarea id="p-help" placeholder="טיפ למילוי…">${escape(f.help||'')}</textarea>
+      </div>
+      ${hasPlaceholder ? `
+        <div class="field-row">
+          <label>טקסט placeholder</label>
+          <input type="text" id="p-placeholder" value="${escape(f.placeholder||'')}" />
+        </div>` : ''}
+    </div>
+
+    ${hasOptions ? `
+      <div class="props-section">
+        <h4>אפשרויות</h4>
+        <div class="opt-list" id="optList">
+          ${f.options.map((o, i) => `
+            <div class="opt-row" data-i="${i}">
+              <span class="drag">${ICONS_BTN.grip}</span>
+              <input type="text" value="${escape(o)}" />
+              <button class="x" title="מחק">${ICONS_BTN.x}</button>
+            </div>
+          `).join('')}
+        </div>
+        <button class="add-opt" id="addOpt">${ICONS_BTN.plus} הוסף אפשרות</button>
+      </div>
+    ` : ''}
+
+    ${f.type === 'number' ? `
+      <div class="props-section">
+        <h4>תחום ערכים</h4>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="field-row"><label>מינימום</label><input type="number" id="p-min" value="${f.min ?? ''}" /></div>
+          <div class="field-row"><label>מקסימום</label><input type="number" id="p-max" value="${f.max ?? ''}" /></div>
+        </div>
+      </div>` : ''}
+
+    ${f.type === 'file' ? `
+      <div class="props-section">
+        <h4>מגבלות קובץ</h4>
+        <div class="field-row">
+          <label>סוגים ומשקל</label>
+          <input type="text" id="p-accept" value="${escape(f.accept||'')}" />
+        </div>
+      </div>` : ''}
+
+    ${f.type === 'rating' ? `
+      <div class="props-section">
+        <h4>סולם הדירוג</h4>
+        <div class="field-row">
+          <label>מספר כוכבים</label>
+          <select id="p-rating-max">
+            ${[3,5,7,10].map(n=>`<option value="${n}" ${f.max===n?'selected':''}>${n}</option>`).join('')}
+          </select>
+        </div>
+      </div>` : ''}
+
+    ${!['section','info'].includes(f.type) ? `
+      <div class="props-section">
+        <h4>תיקוף</h4>
+        <div class="switch-row">
+          <div>
+            <div class="sr-label">שדה חובה</div>
+            <div class="sr-hint">המועמד לא יוכל לשלוח טופס בלי למלא</div>
+          </div>
+          <div class="switch ${f.required?'is-on':''}" id="p-required"></div>
+        </div>
+      </div>` : ''}
+
+    <div class="danger">
+      <button class="delete-field" id="p-delete">${ICONS_BTN.trash} מחק שדה</button>
+    </div>
+  `;
+
+  // Bind
+  const bindInput = (id, prop, parse=v=>v) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      const v = parse(el.value);
+      const ff = fields.find(x => x.id === selectedId);
+      ff[prop] = v;
+      // Soft re-render canvas card only
+      const card = $list.querySelector(`.field[data-id="${selectedId}"]`);
+      if (card) card.innerHTML = fieldCardHTML(ff);
+      bindFieldEvents();
+    });
+  };
+  bindInput('p-label', 'label');
+  bindInput('p-help', 'help');
+  bindInput('p-placeholder', 'placeholder');
+  bindInput('p-min', 'min');
+  bindInput('p-max', 'max');
+  bindInput('p-accept', 'accept');
+
+  const ratingMax = document.getElementById('p-rating-max');
+  if (ratingMax) ratingMax.addEventListener('change', () => {
+    const ff = fields.find(x => x.id === selectedId);
+    ff.max = parseInt(ratingMax.value, 10);
+    renderBuilder();
+  });
+
+  const reqSwitch = document.getElementById('p-required');
+  if (reqSwitch) reqSwitch.addEventListener('click', () => {
+    const ff = fields.find(x => x.id === selectedId);
+    ff.required = !ff.required;
+    renderBuilder();
+  });
+
+  // Options
+  const optList = document.getElementById('optList');
+  if (optList) {
+    optList.querySelectorAll('.opt-row').forEach(row => {
+      const i = parseInt(row.dataset.i, 10);
+      const inp = row.querySelector('input');
+      inp.addEventListener('input', () => {
+        const ff = fields.find(x => x.id === selectedId);
+        ff.options[i] = inp.value;
+        const card = $list.querySelector(`.field[data-id="${selectedId}"]`);
+        if (card) card.innerHTML = fieldCardHTML(ff);
+        bindFieldEvents();
+      });
+      row.querySelector('.x').addEventListener('click', () => {
+        const ff = fields.find(x => x.id === selectedId);
+        ff.options.splice(i, 1);
+        renderBuilder();
+      });
+    });
+    document.getElementById('addOpt').addEventListener('click', () => {
+      const ff = fields.find(x => x.id === selectedId);
+      ff.options.push(`אפשרות ${ff.options.length+1}`);
+      renderBuilder();
+    });
+  }
+
+  document.getElementById('p-delete').addEventListener('click', () => deleteField(selectedId));
+}
+
+/* ============================================================
+   MODE TABS + PREVIEW
+   ============================================================ */
+const $tabs = document.getElementById('modeTabs');
+const $ws = document.getElementById('workspace');
+const $title = document.getElementById('formTitleTop');
+const $canvasTitle = document.querySelector('.canvas-head .form-title');
+const $canvasDesc = document.querySelector('.canvas-head .form-desc');
+const $pvTitle = document.getElementById('pvTitle');
+const $pvDesc = document.getElementById('pvDesc');
+const $pvBody = document.getElementById('previewBody');
+
+$tabs.querySelectorAll('button').forEach(b => {
+  b.addEventListener('click', () => {
+    $tabs.querySelectorAll('button').forEach(x => x.classList.remove('is-active'));
+    b.classList.add('is-active');
+    if (b.dataset.mode === 'preview') {
+      $ws.classList.add('preview-mode');
+      renderPreview();
+    } else {
+      $ws.classList.remove('preview-mode');
+    }
+  });
+});
+
+$title.addEventListener('input', () => { $canvasTitle.textContent = $title.value; });
+$canvasTitle.addEventListener('input', () => { $title.value = $canvasTitle.textContent.trim(); });
+
+function renderPreview() {
+  $pvTitle.textContent = $canvasTitle.textContent.trim() || 'טופס מועמדות';
+  $pvDesc.textContent = $canvasDesc.textContent.trim() || '';
+  $pvBody.innerHTML = fields.map(f => {
+    if (f.type === 'section') {
+      return `<div style="margin: 28px 0 16px; padding-top: 8px; border-top: 1.5px solid var(--primary); position: relative;">
+        <div style="font-family:var(--font-mono); font-size:11px; letter-spacing:var(--tracking-caps); text-transform:uppercase; color:var(--primary); background:var(--surface); padding-inline-end: 10px; display:inline-block; transform: translateY(-14px);">${escape(f.label)}</div>
+      </div>`;
+    }
+    if (f.type === 'info') {
+      return `<div style="padding:12px 14px; background:var(--accent-soft); border-inline-start:3px solid var(--accent); border-radius:var(--radius); margin-bottom:22px; font-size:var(--text-sm); color:var(--accent-deep);">${escape(f.help || f.label)}</div>`;
+    }
+    const req = f.required ? ' <span class="req">*</span>' : '';
+    const help = f.help ? `<div class="help-text">${escape(f.help)}</div>` : '';
+    let control = '';
+    switch(f.type) {
+      case 'short_text': control = `<input type="text" placeholder="${escape(f.placeholder||'')}" />`; break;
+      case 'long_text':  control = `<textarea placeholder="${escape(f.placeholder||'')}"></textarea>`; break;
+      case 'email':      control = `<input type="email" placeholder="${escape(f.placeholder||'')}" />`; break;
+      case 'phone':      control = `<input type="tel" placeholder="${escape(f.placeholder||'')}" />`; break;
+      case 'id_number':  control = `<input type="text" inputmode="numeric" placeholder="${escape(f.placeholder||'')}" />`; break;
+      case 'url':        control = `<input type="text" placeholder="${escape(f.placeholder||'https://')}" />`; break;
+      case 'number':     control = `<input type="number" placeholder="${escape(f.placeholder||'')}" />`; break;
+      case 'date':       control = `<input type="date" />`; break;
+      case 'dropdown':   control = `<select><option>בחר…</option>${f.options.map(o=>`<option>${escape(o)}</option>`).join('')}</select>`; break;
+      case 'radio':      control = `<div class="choices">${f.options.map(o=>`<label><input type="radio" name="${f.id}" /> ${escape(o)}</label>`).join('')}</div>`; break;
+      case 'checkbox':   control = `<div class="choices">${f.options.map(o=>`<label><input type="checkbox" /> ${escape(o)}</label>`).join('')}</div>`; break;
+      case 'rating':     control = `<div style="display:flex; gap:8px;">${Array.from({length:f.max||5}).map((_,i)=>`<span style="cursor:pointer; color:var(--fg-faint);" onmouseover="this.parentNode.querySelectorAll('span').forEach((s,j)=>s.style.color=j<=${i}?'var(--accent)':'var(--fg-faint)')"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.5 9 9 12 2"/></svg></span>`).join('')}</div>`; break;
+      case 'file':       control = `<label style="display:block; border:1.5px dashed var(--line-strong); border-radius:var(--radius); padding:24px; text-align:center; color:var(--fg-muted); cursor:pointer; background:var(--bg-subtle);"><div style="margin-bottom:6px;">${ICONS_BTN.upload}</div>גרור קובץ או <span style="color:var(--accent); font-weight:500;">בחר מהמחשב</span><div style="font-size:11px; margin-top:4px; color:var(--fg-faint);">${escape(f.accept||'')}</div><input type="file" style="display:none;" /></label>`; break;
+      case 'signature':  control = `<div style="height:120px; border:1.5px dashed var(--line-strong); border-radius:var(--radius); background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(3,22,49,.02) 6px 12px), var(--bg-subtle); display:grid; place-items:center; color:var(--fg-faint); font-style:italic;">חתום כאן באמצעות העכבר או המגע</div>`; break;
+    }
+    return `<div class="pv-field"><label>${escape(f.label)}${req}</label>${help}${control}</div>`;
+  }).join('');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+renderBuilder();
+</script>
+</body>
+</html>

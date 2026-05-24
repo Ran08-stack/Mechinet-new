@@ -46,6 +46,6 @@ description: The working deploy process for Mechinet to Vercel. Use when the use
 
 ## כללים
 - חובה git push לפני vercel --prod — Vercel בונה מ-GitHub.
-- אם push נדחה — --force בטוח.
-- אל תנסה להריץ deploy מהסביבה — Claude לא יכול. רק רן בטרמינל.
+- Claude מריץ את כל הפקודות בעצמו. רן לא מריץ ידנית.
+- `--force` / פעולות הרסניות — דורש אישור רן מראש.
 - עברית בלבד בתקשורת.

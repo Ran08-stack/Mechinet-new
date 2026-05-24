@@ -23,6 +23,15 @@ export default async function ApplyPage({
   const fields = form.fields as FormField[]
   const orgName = (form.organizations as { name: string })?.name
 
+  // שלב ברירת מחדל למועמד חדש
+  const { data: defaultStageRow } = await supabase
+    .from("pipeline_stages")
+    .select("name")
+    .eq("organization_id", form.organization_id)
+    .eq("is_default", true)
+    .maybeSingle()
+  const defaultStage = defaultStageRow?.name ?? null
+
   return (
     <div className="min-h-screen bg-bg py-8 font-sans sm:py-12" dir="rtl">
       <div className="mx-auto max-w-2xl px-4">
@@ -53,6 +62,7 @@ export default async function ApplyPage({
             formId={form.id}
             organizationId={form.organization_id}
             fields={fields}
+            defaultStage={defaultStage}
           />
         </div>
       </div>

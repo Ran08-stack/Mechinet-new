@@ -128,6 +128,130 @@
 - נוצר memory/todo-ui.md — רשימת מה שהושמט מהעיצוב ויצטרך השלמה אחרי Sprint 1.
 - 2026-05-14: רן ביקש סדר. נוצר memory/מעקב-מסכים.md — קובץ מרכזי אחד לכל 16 המסכים: מה יש, מה צריך, סטטוס. מתעדכן בכל התקדמות. todo-ui.md הוחלף בהפניה לקובץ החדש.
 - מבנה מעקב-מסכים: חלק א = מסכים עם קוד עובד (החלפת עיצוב). חלק ב = מסכים לבנות מאפס. חלק ג = פיצ'רים גדולים (תשתית, לא מסך).
+- 2026-05-15: תוקן חלון "ראה עוד" ב-CandidatesTable.tsx — טקסט הערה נמרח בשורה אחת ברצף תווים ארוך. נוסף break-words ל-<p>, ה-div עוטף קיבל max-h-[50vh] overflow-y-auto. עלה לאתר, אומת ע"י רן — עובד.
+- אזהרה סביבתית חמורה שחזרה: גם ה-Edit tool, גם ה-bash sandbox וגם ה-Read tool הראו גרסאות לא מסונכרנות של הקובץ. Edit מחק 5 שורות סיום; heredoc הוסיף סיום כפול; הסביבה הראתה 779 שורות תקינות בזמן ש-npm run build של רן ראה סיום משובש. נפתר רק ע"י כתיבת בלוק הסיום מחדש מאפס דרך bash (head -771 + heredoc) ואימות ב-npm run build המקומי של רן.
+- כלל מאומת: הסביבה (Edit/Read/bash) לא תמיד מסונכרנת עם הדיסק של רן. המקור האמין היחיד לבדיקת build הוא npm run build המקומי של רן. אחרי כל שינוי קוד לא טריוויאלי — לבקש מרן npm run build לפני deploy.
+- 2026-05-15: שיפוץ מסך פרופיל מועמד הושלם — הוסר כפתור "..." מה-hero, הוסרה כפילות פרטים אישיים מה-hero, סיכום AI עבר לטור הצד, נוספו "צפייה בטופס המקורי" (עמוד read-only חדש: app/(dashboard)/candidates/[id]/form/page.tsx) ובלוק "קבצים מצורפים" עם הודעת ריקנות.
+- באג שתוקן ב-extraAnswers: הסינון היה לפי id קבוע (full_name/email/...) אבל ה-ids בטפסים אמיתיים הם slugs רנדומליים (kv5idfb). תוקן לסינון לפי label בעברית.
+- ApplyForm: נוסף מנגנון העלאת קבצים בפועל. שדות file/video לא היו מחוברים בכלל (אין onChange). נוסף state files, פונקציית setFile, העלאה ל-Supabase Storage bucket "attachments" ושמירה למערך candidates.attachments. ה-bucket היה כבר public עם policy אנונימית.
+- DatePicker שדרוג: state פנימי לכל שדה (יום/חודש/שנה) במקום שאיבה מ-value חיצוני. הטווח הורחב מ-10 ל-100 שנים אחורה. הבעיה הייתה שבחירה חלקית לא נשמרה (כי value החיצוני נשאר "" עד שלושה ערכים מלאים).
+- AI summary תוקן ל-2 כיוונים: (1) הקוד עכשיו שולח label בעברית במקום id ("שם מלא: עדי בוזגלו" במקום "kv5idfb: עדי בוזגלו"). (2) באג ב-Vercel env: OPENAI_API_KEY הכיל תו לא חוקי בכותרת HTTP (כנראה newline בהדבקה). תוקן ע"י החלפת המפתח. רן אישר: עובד.
+- נוצר טופס דוגמה מקיף (b689f108-64a1-467a-8278-e4bffd5848a8) עם 25 שאלות, ו-2 מועמדים בדיקה: עדי בוזגלו (6edf3998-...) — צופים/קרבי/רובוטיקה, ויעל כהן-לוי (a18141ee-...) — פילוסופית/אינטרוורטית/8200. שניהם עם תשובות מלאות וסגנון שונה לחלוטין.
+- 2026-05-15: שלבי קבלה דינמיים — הוסר ה-hard-coded של 5 שלבי אנגלית. עכשיו כל מכינה יכולה להגדיר שלבים משלה דרך הגדרות. מה שנעשה:
+  - migration dynamic_stages_phase1: הוסר constraint candidates_stage_check, נוספה עמודה is_default ל-pipeline_stages, מועמדים קיימים מופו מאנגלית לעברית (new→שלב הטפסים, review→שלב הטפסים, interview→ראיון אישי, accepted/rejected→מיון פרונטלי), trigger create_default_stages_for_org יוצר אוטומטית 3 שלבים למכינה חדשה (טופס הוגש/ראיון/מיון פרונטלי).
+  - הקוד עודכן: lib/stages.ts (helper חדש), StageBadge תומך ב-colorClass dynamic + fallback legacy, CandidatesTable/StageSelector/KanbanBoard/NewCandidateButton/ApplyForm/PipelineStagesEditor כולם מקבלים stages כ-prop ועובדים דינמית, dashboard/candidates/pipeline/profile/portal pages טוענים stages ומעבירים.
+  - PipelineStagesEditor: שלב is_default לא ניתן למחיקה (alert + disabled button). מועמד חדש מהטופס הציבורי נכנס אוטומטית לשלב is_default של המכינה.
+  - סינון בטבלה: "סינון נוסף" כולל עכשיו גם סינון לפי שלב (לא רק עיר). "נקה את כל הסינונים" אחד שמאפס את שניהם.
+  - types/database.ts: נוסף is_default ל-pipeline_stages, CandidateStage הומר ל-string פתוח, נוסף type PipelineStage. deploy עבר חלק, רן אישר: עובד.
+- 2026-05-15: נמחק עמוד pipeline + KanbanBoard. לוח הבקרה קיבל משפך אינטראקטיבי (שורות אופקיות, אחוז מתוך סך, קישור ל-/candidates?stage=...). CandidatesTable מקבל initialStage מ-URL.
+- 2026-05-15: ב-dashboard: Topbar חדש (רקע surface-2 אותו צבע של sidebar, רציף עם sidebar), ברכת בוקר/צהריים/ערב לפי שעה, שם החשבון בכותרת ה-sidebar (לא ב-Topbar). Topbar קיבל כפתור עזרה (HelpCircle) חוץ מהפעמון.
+- 2026-05-15: LiveActivity — רכיב חדש בלוח הבקרה ליד "מועמדים אחרונים". אייקונים צבעוניים לכל סוג אירוע (orange/navy/teal/default), timeline אנכי, שמות מועמד+מבצע מודגשים, "לפני X דקות". טוען עם join ל-actor (users) ול-candidate (candidates).
+- logCandidateEvent עכשיו שומר actor_id מ-auth.getUser. נרשמים אירועים: stage_changed (StageSelector + CandidatesTable bulk), note_added (NotesEditor + bulkbar single), ai_summary (api/ai/summary route), form_submitted (ApplyForm), interview_scheduled (CalendarView).
+- **תזכורת לעתיד — מסך יומן:** כשנגיע לסידור מסך היומן, לוודא שיבוץ ראיון מ-CalendarView מסונכרן עם LiveActivity (כבר רושם interview_scheduled, אבל הפורמט של description צריך להתאים — עכשיו ה-LiveActivity מציג "X שיבץ ראיון ל-Y"). לבדוק שהשמות מופיעים נכון. גם לבדוק שהאירוע נרשם עם actor_id (כבר תוקן ב-lib/events.ts).
+
+### 2026-05-21 — ת"ז בכל מקום
+
+- פרופיל מועמד: InfoCell ת"ז ראשון בפרטים האישיים.
+- ApplyForm: הזרקה אוטומטית של שדה "ת"ז" חובה אחרי "שם מלא" אם לא קיים. ולידציה: ספרות בלבד, 9. נשמר ל-candidates.national_id.
+- חיפוש בטבלת מועמדים + QuickSearch גלובלי: כולל גם national_id + phone.
+- לוח בקרה "מועמדים אחרונים": עמודות חדשות מועמד | עיר מגורים | טלפון | ת"ז | שלב | תאריך.
+
+### 2026-05-21 — מסך אנשי צוות + תיאור שינוי שלב
+
+- LiveActivity: תיאור stage_changed שופץ ל-"{actor} העביר את {cand} לשלב {stage}".
+- מסך /team לניהול אנשי צוות. רק admin של מכינה. UI: רשימת חברים + יצירה + איפוס סיסמה + מחיקה.
+- lib/supabase/admin.ts — service_role client (server-side בלבד).
+- API: POST /api/team (יצירה), PATCH /api/team/[id] (עדכון/סיסמה), DELETE /api/team/[id]. כל route מאמת auth + role=admin + שייכות לאותו org.
+- role חדש: org_staff (כבר היה ב-constraint).
+- חסום: SUPABASE_SERVICE_ROLE_KEY חסר ב-Vercel env. בלעדיו ה-API ייכשל. רן צריך להוסיף ע"י: copy מ-Supabase dashboard → vercel env add SUPABASE_SERVICE_ROLE_KEY (Production+Preview+Development) → redeploy.
+- LiveActivity + polling fallback (8s): רן אישר שזה עובד ללא F5.
+
+### 2026-05-24 — skill חדש: code-review-excellence
+
+- רן התקין את ה-skill דרך marketplace.
+- נוסף ל-CLAUDE.md בלוק "Code Review" — מתי להפעיל את ה-skill (בקשת review, security review, סוף פיצ'ר משמעותי, deploy גדול, שינוי רגיש).
+
+### 2026-05-24 — מסך 11 (לוח בקרה מועצה) עוצב מדויק
+
+- בוצע port מלא מ-`mechinet - ui/11 Council Dashboard.html` ל-`app/(council)/council/page.tsx` (~330 שורות).
+- 3 KPIs: ממוצע התקדמות עם progress bar + יעד 90%, סה"כ מכינות, מועמדים רשומים.
+- מפת ישראל SVG inline (sketch + 13 dots סטטיים), גרף breakdown (gender×religion) עם נתונים אמיתיים, פאנל עלויות $284 (4 cards), טבלת מכינות עם badges גרדיאנט + policy label עברית + status pill.
+- AI insight footer דינמי משתמש ב-totalCandidates/avgProgress.
+- skills שהופעלו: `mechinet-skill-router` (אוטו) + `mechinet-screen-port` (תהליך).
+- tsc נקי. ממתין ל-deploy + אישור רן.
+- חסר תיעד ב-`memory/מעקב-מסכים.md`: contact_person column, status חיבור אמיתי, מפת GeoJSON, AI call חי.
+
+### 2026-05-24 — סדר על אקוסיסטם Skills + תכנון Plugin פומבי
+
+- נסקר skills.sh, מוינו רלוונטיים ל-Mechinet (Next/Supabase/Vercel/SaaS עברית).
+- נוסף marketplace `anthropic-agent-skills` (anthropics/skills) דרך `claude plugin marketplace add`.
+- נשתלו 33 user-level skills דרך junctions ל-`~/.claude/skills/` (חיסכון דיסק, sync אוטומטי עם git pull עתידי):
+  - 8 anthropic: skill-creator, mcp-builder, webapp-testing, canvas-design, web-artifacts-builder, pdf, docx, xlsx
+  - 2 vercel-labs: vercel-composition-patterns, vercel-web-design-guidelines
+  - 5 mattpocock: diagnose, matt-tdd, triage, write-a-skill, handoff
+  - 1 extract-design-system (arvindrk)
+  - 4 leonxlnx/taste-skill: taste-skill, redesign-skill, image-to-code-skill, stitch-skill
+  - 3 google-labs-code/stitch: code-to-design, extract-design-md, extract-static-html
+  - 1 browser-use
+  - 9 coreyhaines31/marketing: onboarding, cold-email, copywriting, content-strategy, churn-prevention, pricing, launch, competitors, popups
+- שיבוטים נשמרו ב-`~/.claude/_staging/`. למחיקת skill: `Remove-Item junction` + delete מ-_staging.
+- כפילות: `frontend-design@claude-plugins-official` עדיין רשום ל-project D:\test (לא הצליח להסיר ע"י CLI — `--project-path` לא קיים). לא משפיע על Mechinet.
+- עודכן `.claude/skills/README.md` עם מפת 3 שכבות (Mechinet/User/Plugins) + תוכנית public release.
+- **תוכנית פומבית עתידית**: לבנות 3-5 skills שאין בשוק (HR/RTL/forms-jsonb/realtime-feed/screen-audit) ולשחרר ב-skills.sh. שוק חסר תוכן ל-Hebrew/RTL ול-ATS — הזדמנות.
+
+### 2026-05-21 — Realtime על candidate_events
+
+- migration enable_realtime_candidate_events: ALTER PUBLICATION supabase_realtime ADD TABLE candidate_events.
+- LiveActivity הומר ל-client component, מאזין INSERT filter=organization_id, מוסיף לראש הרשימה (limit 6). refresh timeAgo כל דקה.
+- ActivityTimeline הומר ל-client component, מאזין INSERT filter=candidate_id.
+- שני ה-components מקבלים initialEvents מ-server + מתעדכנים live ללא רענון.
+- RLS על candidate_events חוסם בין מכינות — realtime לא דולף.
+
+### 2026-05-21 — שדרוג מודאל "מועמד חדש"
+
+- migration add_candidate_national_id_and_gender: נוספו national_id (text) ו-gender (text check male/female/other) ל-candidates.
+- types/database.ts עודכן.
+- NewCandidateButton שודרג: שם, ת"ז (9 ספרות), תאריך לידה + גיל מחושב, מגדר (כפתורי טוגל), אימייל, טלפון, עיר, בית ספר (היה ב-DB, חסר במודאל), שלב.
+- הופק רכיב פנימי Field + computeAge.
+
+### 2026-05-21 — Sidebar + Topbar + font: סינכרון main repo
+
+- בעיה: worktree ו-main repo בשני timelines. הרצתי deploy מ-main repo (עם Topbar + LiveActivity + dashboard greeting אבל בלי שינויי font/sidebar שלי), אח"כ מ-worktree (להפך). שני deploys שברו אחד את השני.
+- פתרון: עריכת main repo ישירות — globals.css (font-mono→Rubik), layout.tsx (שליפת org name + logo_url), Sidebar.tsx (קבלת orgName + orgLogoUrl כ-props, הצגת לוגו אם קיים, תווית MECHINET · ACADEMY במקום ADMIN, אימייל אמיתי בתחתית). deploy מ-main repo → הכל ביחד.
+- כלל: vercel CLI לוקח קבצים מקומיים, לא git. עבודה תמיד בתיקייה שממנה עושים deploy.
+
+### 2026-05-21 — איפוס נתונים: מכינה יחידה + 20 מועמדים
+
+- נמחקו "מכינת נחשון" (27 מועמדים + forms + events + interviews) ו"מכינת רעות - שלוחת אורנים" הריקה הישנה.
+- נוצרה מכינה יחידה: "מכינת רעות שלוחת אורנים", id=11111111-1111-1111-1111-111111111111, slug=reut-oranim.
+- רן הומר ל-admin של המכינה החדשה.
+- trigger יצר 3 stages אוטומטית (טופס הוגש default / ראיון / מיון פרונטלי).
+- נוספו 20 מועמדים מגוונים בעברית, פרוסים על 20 ימים. 10/5/5 בשלבים.
+- מעכשיו עובדים על מכינה אחת בלבד.
+
+### 2026-05-21 — Sidebar תווית + אבחון לוגו
+
+- Sidebar של מכינה קיבל תווית "MECHINET · ACADEMY" (uppercase tracking, ב-Rubik אחרי שינוי font-mono). דומה ל-CouncilSidebar בסגנון.
+- אבחון "לוגו לא נשמר": בדיקה ישירה ב-DB הראתה שהלוגו **כן נשמר** (logos/00000000-0000-0000-0000-000000000001.png, owner=רן, 2026-05-21 10:03). bucket attachments=public, policies INSERT/SELECT עובדים. עדכון לטבלת organizations עובד (RLS users_update_own_org).
+- רן הציג screenshot של CouncilSidebar — שם אין לוגו כי זה צד מועצה, לא מכינה. צריך להיות במצב admin (Account Switcher) כדי לראות את לוגו המכינה ב-Sidebar.
+- commit c6e6077. deploy mechinet-kud32y61v.
+
+### 2026-05-21 — פונט גלובלי + Sidebar דינמי
+
+- הוסר JetBrains Mono. `--font-mono` ב-globals.css הפנה אליו ושיבש קריאת עברית בכותרות טבלה, badges, pagination. תוקן ל-Rubik (זהה ל-sans). שינוי שורה אחת — מטפל בכל ה-call sites.
+- Sidebar brand היה קשיח: "מכינת ראות" + אות "מ" + "mechinet · admin" + admin@mechinet.app. תוקן: layout שולף org (name, logo_url) + user email מ-DB ומעביר כ-props. לוגו מוצג אם logo_url קיים (העלאה דרך /settings — כבר היה תשתית), אחרת אות ראשונה. תווית "חשבון מכינה". אימייל אמיתי בתחתית.
+- commit 7934b10. deploy dpl_6jwnBethNsiigR4L644Y77BhJBXq.
+
+### 2026-05-21 — deploy
+
+- vercel --prod רץ מהסביבה של Claude בהצלחה (42s). dpl_AbBcF15T7EVYq5ByUNqj2DG76axT. אומת ב-mechinet-new.vercel.app.
+- HEAD == origin/main, לא נדרש push. ניסיון push ל-main נחסם ע"י classifier (דורש הרשאה מפורשת).
+
+### 2026-05-21 — כלל חדש: Claude מריץ פקודות בטרמינל
+
+- רן הורה: מעכשיו Claude מריץ בעצמו את כל הפקודות (deploy, git push, vercel --prod, npm, migrations). רן לא מריץ ידנית.
+- נוסף סעיף "הרצת פקודות בטרמינל" ל-CLAUDE.md. חריגים: פעולות הרסניות (rm -rf, git reset --hard, --force, drop table) דורשים אישור.
+- ניסיון לעדכן את mechinet-deploy SKILL.md נחסם חלקית ע"י Auto-Mode classifier (self-modification). רק סעיף "כללים" עודכן; שלב 2 עדיין אומר את הנוסח הישן. צריך תיקון ידני של רן או permission rule ב-settings.
 
 ### 2026-05-15 — צ'אט: בניית Skills ייעודיים לפרויקט
 

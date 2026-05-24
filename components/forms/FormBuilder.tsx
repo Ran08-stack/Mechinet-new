@@ -1,719 +1,752 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { FormField, Form } from "@/types/database"
+import {
+  ArrowRight,
+  Check,
+  Eye,
+  ListTree,
+  Share2,
+  Plus,
+  Users,
+  AlertCircle,
+  X,
+  Copy,
+  ExternalLink,
+} from "lucide-react"
+import {
+  DndContext,
+  type DragEndEvent,
+  type DragStartEvent,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  closestCenter,
+  DragOverlay,
+} from "@dnd-kit/core"
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable"
+import { FormField, FormFieldType, Json } from "@/types/database"
+import { newField, uid, getTypeMeta } from "./fieldTypes"
+import { LibraryPanel, BUNDLES, BundleId } from "./LibraryPanel"
+import { CanvasField } from "./CanvasField"
+import { PropertiesPanel } from "./PropertiesPanel"
+import { PreviewMode } from "./PreviewMode"
 
-const FIELD_TYPES = [
-  { value: "text", label: "טקסט קצר" },
-  { value: "textarea", label: "טקסט ארוך" },
-  { value: "select", label: "בחירה יחידה" },
-  { value: "multiselect", label: "בחירה מרובה" },
-  { value: "autocomplete", label: "רשימה עם חיפוש" },
-  { value: "date", label: "תאריך" },
-  { value: "number", label: "מספר" },
-  { value: "file", label: "העלאת קובץ" },
-  { value: "video", label: "העלאת וידאו" },
-] as const
-
-const ISRAEL_CITIES_DEFAULT = [
-  "אבו גוש", "אור יהודה", "אור עקיבא", "אילת", "אלעד", "אריאל", "אשדוד", "אשקלון",
-  "באקה אל-גרביה", "באר שבע", "בית שאן", "בית שמש", "ביתר עילית", "בני ברק", "בני עי\"ש",
-  "בת ים", "גבעת שמואל", "גבעתיים", "גדרה", "דימונה", "הוד השרון", "הרצליה", "חדרה",
-  "חולון", "חיפה", "טבריה", "טייבה", "טירה", "טירת כרמל", "טמרה", "יבנה", "יהוד-מונוסון",
-  "יקנעם עילית", "ירושלים", "כפר יונה", "כפר סבא", "כפר קאסם", "כרמיאל", "לוד", "מגדל העמק",
-  "מודיעין-מכבים-רעות", "מודיעין עילית", "מעלה אדומים", "מעלות-תרשיחא", "נהריה", "נס ציונה",
-  "נצרת", "נצרת עילית", "נשר", "נתיבות", "נתניה", "עכו", "עפולה", "ערד", "פתח תקווה",
-  "צפת", "קלנסווה", "קריית אונו", "קריית אתא", "קריית ביאליק", "קריית גת", "קריית מוצקין",
-  "קריית מלאכי", "קריית שמונה", "ראש העין", "ראשון לציון", "רהט", "רחובות", "רמלה",
-  "רמת גן", "רמת השרון", "רעננה", "שדרות", "תל אביב-יפו", "תל מונד",
-]
-
-const ISRAEL_SCHOOLS_DEFAULT = [
-  // צפון
-  "אורט השומרון | אזור השומרון",
-  "אורט אמירים | בית שאן",
-  "גימנסיה | חדרה",
-  "עמל למדעים ואמנויות | חדרה",
-  "תיכון חדרה | חדרה",
-  "תיכון חדרה בית אליעזר | חדרה",
-  "הריאלי העברי | חיפה",
-  "ליאו באק | חיפה",
-  "עירוני א | חיפה",
-  "עירוני ג | חיפה",
-  "עירוני ד | חיפה",
-  "עירוני ה | חיפה",
-  "רעות לאמנויות | חיפה",
-  "מקיף ק. חיים | חיפה",
-  "אורט טבריה | טבריה",
-  "ברנקו וייס | טבריה",
-  "עמל נופרים | טבריה",
-  "יגאל אלון | יקנעם עילית",
-  "אורט בראודה | כרמיאל",
-  "אורט כרמים | כרמיאל",
-  "אורט פסגות | כרמיאל",
-  "מדעים ואמנויות | נהריה",
-  "עמל פסגות | נהריה",
-  "שחקים | נהריה",
-  "אורט שרת | נצרת עילית",
-  "יגאל אלון | נצרת עילית",
-  "קשת | נצרת עילית",
-  "מקיף נשר | נשר",
-  "אורט מרום | עכו",
-  "כ\"ג יורדי הסירה | עכו",
-  "אורט אלון | עפולה",
-  "אורט עפולה | עפולה",
-  "מקיף משגב | עצמון",
-  "בגין | פרדס חנה-כרכור",
-  "נופי גולן | קצרין",
-  "אורט | קרית ביאליק",
-  "אנקורי | קרית ביאליק",
-  "אורט | קרית מוצקין",
-  "גימנסיה | קרית מוצקין",
-  "ברנקו וייס | קרית שמונה",
-  "דנציגר | קרית שמונה",
-  "אורט שלומי | שלומי",
-  // מרכז — תל אביב
-  "גימנסיה הרצליה | תל אביב",
-  "אורט גאולה | תל אביב",
-  "אורט סינגלובסקי | תל אביב",
-  "עירוני א לאמנויות | תל אביב",
-  "עירוני ד | תל אביב",
-  "עירוני ה | תל אביב",
-  "עירוני ו | תל אביב",
-  "עירוני ט | תל אביב",
-  "עירוני יא | תל אביב",
-  "שבח מופת | תל אביב",
-  "תיכון טכנולוגי נעמ\"ת | תל אביב",
-  // מרכז — שאר
-  "אורט מיטרני | חולון",
-  "אורט למדע וטכנולוגיה | חולון",
-  "הרצוג | חולון",
-  "יצחק נבון | חולון",
-  "קציר | חולון",
-  "אורט מלטון | בת ים",
-  "עירוני א חשמונאים | בת ים",
-  "רמת יוסף | בת ים",
-  "שזר | בת ים",
-  "אהל שם | רמת גן",
-  "אורט אבין | רמת גן",
-  "בליך | רמת גן",
-  "גימנסיה מודיעים | רמת גן",
-  "זומר | רמת גן",
-  "אורט טכניקום | גבעתיים",
-  "תלמה ילין | גבעתיים",
-  "שמעון בן צבי | גבעתיים",
-  "קלעי | גבעתיים",
-  "יגאל אלון | רמת השרון",
-  "הכפר הירוק | רמת השרון",
-  "רוטברג | רמת השרון",
-  "מרום | רמת השרון",
-  "אוסטרובסקי | רעננה",
-  "אנקורי | רעננה",
-  "מיתרים | רעננה",
-  "תיכון אביב | רעננה",
-  "גלילי | כפר סבא",
-  "כצנלסון | כפר סבא",
-  "אורט שפירא | כפר סבא",
-  "חיים הרצוג | כפר סבא",
-  "יצחק רבין | כפר סבא",
-  "הדרים | הוד השרון",
-  "מוסינזון | הוד השרון",
-  "אילן רמון | הוד השרון",
-  "מקיף אריאל | אריאל",
-  "אחד העם | פתח תקווה",
-  "בן גוריון | פתח תקווה",
-  "ברנר | פתח תקווה",
-  "יצחק שמיר | פתח תקווה",
-  "הגימנסיה העברית | ירושלים",
-  "אורט רמות | ירושלים",
-  "מקיף גילה | ירושלים",
-  "בויאר | ירושלים",
-  "עמית טכנולוגי | ירושלים",
-  "רעות | ירושלים",
-  "גימנסיה | נתניה",
-  "אורט גוטמן | נתניה",
-  "טשרנחובסקי | נתניה",
-  "משה שרת | נתניה",
-  "הדרים | באר יעקב",
-  "ז'בוטינסקי | באר יעקב",
-  "מקיף יהוד | יהוד",
-  "תיכון מכבים רעות | מודיעין",
-  "עירוני א | מודיעין",
-  "ברנקו וייס | מודיעין",
-  "אורט מקס שיין | רחובות",
-  "דה שליט | רחובות",
-  "עמל זיו | רחובות",
-  "קציר | רחובות",
-  "גימנסיה לילינטל | רמלה",
-  "יגאל אלון | רמלה",
-  "עמל רמלה | רמלה",
-  "בגין | ראש העין",
-  "מקיף א | ראשון לציון",
-  "גימנסיה ריאלית | ראשון לציון",
-  "יגאל אלון | ראשון לציון",
-  "אורט לוד | לוד",
-  "תיכון טכנולוגי עמל | לוד",
-  "הראל | מבשרת ציון",
-  "תיכון אזורי | מודיעין עילית",
-  "בגין | גדרה",
-  "רבין | גן יבנה",
-  "תיכון גני תקווה | גני תקווה",
-  "הדרים | נס ציונה",
-  "אורט למינהל טכני | ראשון לציון",
-  // דרום
-  "גימנסיה | באר שבע",
-  "טוביהו | באר שבע",
-  "מקיף א | באר שבע",
-  "מקיף ג | באר שבע",
-  "מקיף ו | באר שבע",
-  "רבין | באר שבע",
-  "עמל הנדסה | באר שבע",
-  "עמל רמות | באר שבע",
-  "רגר | באר שבע",
-  "מקיף א | אשדוד",
-  "מקיף ג | אשדוד",
-  "מקיף ד | אשדוד",
-  "מקיף ה | אשדוד",
-  "אורט ימי | אשדוד",
-  "אנקורי | אשדוד",
-  "אורט אדיבי | אשקלון",
-  "אורט אפרידר | אשקלון",
-  "מקיף א | אשקלון",
-  "מקיף ד | אשקלון",
-  "אפלמן | דימונה",
-  "זילמן | דימונה",
-  "עמל אחווה | דימונה",
-  "אורט ספיר | ירוחם",
-  "אורט טכנולוגי | קרית גת",
-  "גרוס | קרית גת",
-  "רבין | קרית גת",
-  "זאב בוים | קרית גת",
-  "גימנסיה דרכא | קרית מלאכי",
-  "גוטוירט | שדרות",
-  "בגין | אילת",
-  "רבין | אילת",
-  "גולדווטר | אילת",
-  "עתיד | אופקים",
-  "דרכא | נתיבות",
-  // חינוך מיוחד
-  "בית ספר לחינוך מיוחד | כללי",
-  "מרכז חינוכי טיפולי | כללי",
-  "בית ספר לאוטיזם | כללי",
-  "מסגרת לחינוך מיוחד | כללי",
-  // ייחודיים
-  "בית ספר דמוקרטי | כללי",
-  "בית ספר ניסויי | כללי",
-  "בית ספר בינלאומי | כללי",
-  "ולדורף | כללי",
-  "חינוך ביתי | כללי",
-]
-
-function generateId() {
-  return Math.random().toString(36).slice(2, 9)
+type FormRow = {
+  id: string
+  name: string
+  description: string | null
+  fields: unknown
+  organization_id: string
+  is_active: boolean
 }
 
-function FieldTypeIcon({ type }: { type: FormField["type"] }) {
-  const icons: Record<FormField["type"], string> = {
-    text: "Aa",
-    textarea: "¶",
-    select: "◉",
-    multiselect: "☑",
-    date: "📅",
-    number: "#",
-    file: "📎",
-    video: "▶",
-    autocomplete: "🔎",
-  }
-  return (
-    <span className="w-6 text-center font-mono text-xs text-fg-subtle">
-      {icons[type]}
-    </span>
-  )
-}
-
-function AutocompleteFieldEditor({
-  field,
-  onUpdate,
-}: {
-  field: FormField
-  onUpdate: (id: string, updates: Partial<FormField>) => void
-}) {
-  const [newItem, setNewItem] = useState("")
-  const [showAll, setShowAll] = useState(false)
-
-  const baseList =
-    field.autocomplete_list === "cities"
-      ? ISRAEL_CITIES_DEFAULT
-      : field.autocomplete_list === "schools"
-      ? ISRAEL_SCHOOLS_DEFAULT
-      : []
-
-  // options = תוספות של המשתמש מעבר לרשימה הבסיסית
-  const extras = field.options ?? []
-  const fullList = [...baseList, ...extras]
-  const displayList = showAll ? fullList : fullList.slice(0, 10)
-
-  function addItem() {
-    const val = newItem.trim()
-    if (!val || fullList.includes(val)) return
-    onUpdate(field.id, { options: [...extras, val] })
-    setNewItem("")
-  }
-
-  function removeExtra(item: string) {
-    onUpdate(field.id, { options: extras.filter((e) => e !== item) })
-  }
-
-  return (
-    <div className="mt-2 space-y-3">
-      {/* בחירת רשימה בסיסית */}
-      <div className="flex gap-2 flex-wrap">
-        {[
-          { value: "cities", label: "ערים בישראל" },
-          { value: "schools", label: "בתי ספר" },
-          { value: "custom", label: "רשימה מותאמת" },
-        ].map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() =>
-              onUpdate(field.id, {
-                autocomplete_list: opt.value as FormField["autocomplete_list"],
-                options: [],
-              })
-            }
-            className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
-              field.autocomplete_list === opt.value
-                ? "border-accent bg-[var(--accent-soft)] font-medium text-[var(--accent-hover)]"
-                : "border-line text-fg-muted hover:bg-[var(--bg-subtle)]"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
-      {/* הרשימה */}
-      {field.autocomplete_list && (
-        <div className="space-y-2 rounded-md bg-[var(--bg-subtle)] p-3">
-          <div className="flex flex-wrap gap-1.5">
-            {displayList.map((item) => {
-              const isExtra = extras.includes(item)
-              return (
-                <span
-                  key={item}
-                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs ${
-                    isExtra
-                      ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--accent-hover)]"
-                      : "border-line bg-surface text-fg-muted"
-                  }`}
-                >
-                  {item}
-                  {isExtra && (
-                    <button
-                      type="button"
-                      onClick={() => removeExtra(item)}
-                      className="leading-none text-[var(--accent-hover)] hover:text-[var(--danger)]"
-                    >
-                      ×
-                    </button>
-                  )}
-                </span>
-              )
-            })}
-            {fullList.length > 10 && !showAll && (
-              <button
-                type="button"
-                onClick={() => setShowAll(true)}
-                className="px-2 py-1 text-xs text-fg-subtle hover:text-accent"
-              >
-                +{fullList.length - 10} נוספות...
-              </button>
-            )}
-          </div>
-
-          {/* הוספת פריט */}
-          <div className="mt-2 flex gap-2">
-            <input
-              value={newItem}
-              onChange={(e) => setNewItem(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addItem())}
-              placeholder={
-                field.autocomplete_list === "cities"
-                  ? "הוסף עיר שחסרה..."
-                  : field.autocomplete_list === "schools"
-                  ? "הוסף בית ספר שחסר..."
-                  : "הוסף פריט..."
-              }
-              className="flex-1 rounded-md border border-line bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
-            />
-            <button
-              type="button"
-              onClick={addItem}
-              className="rounded-md bg-accent px-3 py-1.5 text-sm text-white hover:bg-accent-hover"
-            >
-              הוסף
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* תצוגה מקדימה */}
-      <div className="flex items-center justify-between rounded-md border border-line bg-surface px-3 py-2 text-sm text-[var(--fg-faint)]">
-        <span>הקלד לחיפוש...</span>
-        <span>▾</span>
-      </div>
-    </div>
-  )
-}
-
-function FieldCard({
-  field,
-  index,
-  total,
-  onUpdate,
-  onRemove,
-  onMove,
-}: {
-  field: FormField
-  index: number
-  total: number
-  onUpdate: (id: string, updates: Partial<FormField>) => void
-  onRemove: (id: string) => void
-  onMove: (id: string, dir: "up" | "down") => void
-}) {
-  const [focused, setFocused] = useState(false)
-
-  return (
-    <div
-      className={`rounded-lg border bg-surface transition-all duration-150 ${
-        focused
-          ? "border-accent shadow-[var(--shadow-md)]"
-          : "border-line shadow-[var(--shadow-xs)]"
-      }`}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-    >
-      {/* סרגל צד */}
-      <div className="flex overflow-hidden rounded-lg">
-        <div
-          className={`w-1 flex-shrink-0 transition-colors ${
-            focused ? "bg-accent" : "bg-transparent"
-          }`}
-        />
-
-        <div className="flex-1 p-6">
-          {/* שורה עליונה: שאלה + סוג */}
-          <div className="mb-4 flex items-center gap-4">
-            <input
-              value={field.label}
-              onChange={(e) => onUpdate(field.id, { label: e.target.value })}
-              placeholder="שאלה"
-              className="flex-1 border-b-2 border-transparent bg-transparent pb-1 text-base font-medium text-fg outline-none placeholder:font-normal placeholder:text-[var(--fg-faint)] focus:border-accent"
-            />
-            <select
-              value={field.type}
-              onChange={(e) =>
-                onUpdate(field.id, {
-                  type: e.target.value as FormField["type"],
-                  options: undefined,
-                })
-              }
-              className="rounded-md border border-line bg-[var(--bg-subtle)] px-3 py-1.5 text-sm text-fg-muted outline-none focus:border-accent focus:shadow-[var(--shadow-focus)]"
-            >
-              {FIELD_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* תצוגה מקדימה של השדה */}
-          <div className="mb-4">
-            {field.type === "text" && (
-              <div className="border-b border-[var(--line-strong)] py-2 text-sm text-[var(--fg-faint)]">
-                תשובה קצרה
-              </div>
-            )}
-            {field.type === "textarea" && (
-              <div className="border-b border-[var(--line-strong)] py-2 text-sm text-[var(--fg-faint)]">
-                תשובה ארוכה
-              </div>
-            )}
-            {field.type === "number" && (
-              <div className="border-b border-[var(--line-strong)] py-2 text-sm text-[var(--fg-faint)]">
-                0
-              </div>
-            )}
-            {field.type === "date" && (
-              <div className="border-b border-[var(--line-strong)] py-2 text-sm text-[var(--fg-faint)]">
-                יי/מ/שש
-              </div>
-            )}
-            {(field.type === "file" || field.type === "video") && (
-              <div className="rounded-md border border-dashed border-[var(--line-strong)] py-4 text-center text-sm text-[var(--fg-faint)]">
-                {field.type === "video" ? "העלה וידאו" : "העלה קובץ"}
-              </div>
-            )}
-            {(field.type === "select" || field.type === "multiselect") && (
-              <div className="mt-2 space-y-2">
-                {(field.options ?? []).map((opt, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div
-                      className={`h-4 w-4 flex-shrink-0 border-2 border-[var(--line-strong)] ${
-                        field.type === "select" ? "rounded-full" : "rounded"
-                      }`}
-                    />
-                    <input
-                      value={opt}
-                      onChange={(e) => {
-                        const newOpts = [...(field.options ?? [])]
-                        newOpts[i] = e.target.value
-                        onUpdate(field.id, { options: newOpts })
-                      }}
-                      className="flex-1 border-b border-transparent bg-transparent text-sm text-fg outline-none focus:border-[var(--line-strong)]"
-                    />
-                    <button
-                      onClick={() => {
-                        const newOpts = (field.options ?? []).filter((_, j) => j !== i)
-                        onUpdate(field.id, { options: newOpts })
-                      }}
-                      className="text-lg leading-none text-[var(--fg-faint)] hover:text-[var(--danger)]"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={() =>
-                    onUpdate(field.id, {
-                      options: [...(field.options ?? []), ""],
-                    })
-                  }
-                  className="mt-1 flex items-center gap-3 text-sm text-accent hover:text-accent-hover"
-                >
-                  <div
-                    className={`h-4 w-4 flex-shrink-0 border-2 border-[var(--line-strong)] ${
-                      field.type === "select" ? "rounded-full" : "rounded"
-                    }`}
-                  />
-                  הוסף אפשרות
-                </button>
-              </div>
-            )}
-
-            {field.type === "autocomplete" && (
-              <AutocompleteFieldEditor field={field} onUpdate={onUpdate} />
-            )}
-          </div>
-
-          {/* סרגל תחתון: חובה + סדר + מחיקה */}
-          <div className="flex items-center justify-between border-t border-[var(--line-faint)] pt-3">
-            <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-fg-muted">
-              <div
-                onClick={() => onUpdate(field.id, { required: !field.required })}
-                className={`relative h-5 w-10 cursor-pointer rounded-full transition-colors ${
-                  field.required ? "bg-accent" : "bg-[var(--line-strong)]"
-                }`}
-              >
-                <div
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    field.required ? "-translate-x-5" : "-translate-x-1"
-                  }`}
-                />
-              </div>
-              חובה
-            </label>
-
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => onMove(field.id, "up")}
-                disabled={index === 0}
-                className="rounded p-1.5 text-xs text-fg-subtle hover:bg-[var(--bg-subtle)] hover:text-fg disabled:cursor-not-allowed disabled:opacity-20"
-              >
-                ▲
-              </button>
-              <button
-                onClick={() => onMove(field.id, "down")}
-                disabled={index === total - 1}
-                className="rounded p-1.5 text-xs text-fg-subtle hover:bg-[var(--bg-subtle)] hover:text-fg disabled:cursor-not-allowed disabled:opacity-20"
-              >
-                ▼
-              </button>
-              <div className="mx-1 h-4 w-px bg-line" />
-              <button
-                onClick={() => onRemove(field.id)}
-                className="rounded p-1.5 text-sm text-fg-subtle hover:bg-[var(--stage-rejected-bg)] hover:text-[var(--danger)]"
-              >
-                🗑
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+type Mode = "builder" | "preview"
 
 export default function FormBuilder({
   form,
   organizationId,
+  submissionCount = 0,
 }: {
-  form: Form | null
+  form: FormRow | null
   organizationId: string
+  submissionCount?: number
 }) {
   const router = useRouter()
   const supabase = createClient()
 
-  const [name, setName] = useState(form?.name ?? "")
-  const DEFAULT_FIELDS: FormField[] = [
-    { id: generateId(), type: "text", label: "שם מלא", required: true },
-    { id: generateId(), type: "text", label: "אימייל", required: true },
-    { id: generateId(), type: "text", label: "טלפון", required: false },
-    { id: generateId(), type: "date", label: "תאריך לידה", required: false },
-    { id: generateId(), type: "autocomplete", label: "עיר מגורים", required: false, autocomplete_list: "cities" },
-    { id: generateId(), type: "autocomplete", label: "בית ספר", required: false, autocomplete_list: "schools" },
-  ]
+  const initialFields: FormField[] = useMemo(() => {
+    if (!form?.fields || !Array.isArray(form.fields)) return defaultFields()
+    return form.fields as FormField[]
+  }, [form])
 
-  const [fields, setFields] = useState<FormField[]>(
-    form ? ((form.fields as FormField[]) ?? []) : DEFAULT_FIELDS
+  const [title, setTitle] = useState<string>(form?.name ?? "טופס מועמדות חדש")
+  const [description, setDescription] = useState<string>(
+    form?.description ?? "מילוי הטופס לוקח כ-7 דקות."
   )
+  const [fields, setFields] = useState<FormField[]>(initialFields)
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialFields.find((f) => f.type !== "section")?.id ?? null
+  )
+  const [mode, setMode] = useState<Mode>("builder")
   const [saving, setSaving] = useState(false)
-  const [savedLink, setSavedLink] = useState("")
+  const [savedAt, setSavedAt] = useState<Date | null>(null)
+  const [dirty, setDirty] = useState<boolean>(false)
+  const [isActive, setIsActive] = useState<boolean>(form?.is_active ?? false)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    new Set()
+  )
+  const [shareOpen, setShareOpen] = useState(false)
+  const [firstRender, setFirstRender] = useState(true)
 
-  function addField() {
-    setFields((prev) => [
-      ...prev,
-      { id: generateId(), type: "text", label: "", required: false },
-    ])
+  // autosave debounce — 800ms after changes.
+  // טופס פעיל לא נשמר אוטומטית — מונע פרסום ביניים של עריכה חצי-גמורה.
+  // אדמין חייב ללחוץ "עדכן טופס" במפורש כדי לפרסם את השינויים.
+  useEffect(() => {
+    if (firstRender) {
+      setFirstRender(false)
+      return
+    }
+    setDirty(true)
+    if (!form?.id) return
+    if (isActive) return // טופס פעיל — מחכה לפרסום ידני
+    const t = setTimeout(() => {
+      void doSave()
+    }, 800)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, fields, isActive])
+
+  async function doSave(opts?: { publish?: boolean }) {
+    setSaving(true)
+    const payload = {
+      name: title,
+      description: description || null,
+      fields: fields as unknown as Json,
+      organization_id: organizationId,
+      ...(opts?.publish ? { is_active: true } : {}),
+    }
+    if (!form?.id) {
+      const { data, error } = await supabase
+        .from("forms")
+        .insert(payload)
+        .select("id")
+        .single()
+      if (!error && data) {
+        router.replace(`/forms/${data.id}/builder`)
+      }
+    } else {
+      const { error } = await supabase
+        .from("forms")
+        .update(payload)
+        .eq("id", form.id)
+      if (!error) {
+        setSavedAt(new Date())
+        setDirty(false)
+      }
+    }
+    if (opts?.publish) setIsActive(true)
+    setSaving(false)
   }
 
-  function updateField(id: string, updates: Partial<FormField>) {
-    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...updates } : f)))
-  }
+  const selected = fields.find((f) => f.id === selectedId) ?? null
 
-  function removeField(id: string) {
-    setFields((prev) => prev.filter((f) => f.id !== id))
+  function addField(t: FormFieldType) {
+    const f = newField(t)
+    setFields((prev) => [...prev, f])
+    setSelectedId(f.id)
   }
-
-  function moveField(id: string, direction: "up" | "down") {
+  function addBundle(id: BundleId) {
+    const bundle = BUNDLES.find((b) => b.id === id)
+    if (!bundle) return
+    const newOnes = bundle.build()
+    setFields((prev) => [...prev, ...newOnes])
+    setSelectedId(newOnes[1]?.id ?? newOnes[0]?.id ?? null)
+  }
+  function addFieldBefore(beforeId: string, t: FormFieldType) {
+    const f = newField(t)
+    setFields((prev) => {
+      const idx = prev.findIndex((x) => x.id === beforeId)
+      const next = [...prev]
+      next.splice(idx, 0, f)
+      return next
+    })
+    setSelectedId(f.id)
+  }
+  function duplicateField(id: string) {
     setFields((prev) => {
       const idx = prev.findIndex((f) => f.id === id)
-      if (direction === "up" && idx === 0) return prev
-      if (direction === "down" && idx === prev.length - 1) return prev
+      if (idx < 0) return prev
+      const copy: FormField = { ...prev[idx], id: uid() }
+      if (copy.options) copy.options = [...copy.options]
       const next = [...prev]
-      const swap = direction === "up" ? idx - 1 : idx + 1
-      ;[next[idx], next[swap]] = [next[swap], next[idx]]
+      next.splice(idx + 1, 0, copy)
+      setSelectedId(copy.id)
+      return next
+    })
+  }
+  function deleteField(id: string) {
+    setFields((prev) => {
+      const next = prev.filter((f) => f.id !== id)
+      if (selectedId === id) {
+        setSelectedId(next[0]?.id ?? null)
+      }
+      return next
+    })
+  }
+  function moveField(fromId: string, toId: string) {
+    if (fromId === toId) return
+    setFields((prev) => {
+      const fromIdx = prev.findIndex((f) => f.id === fromId)
+      const toIdx = prev.findIndex((f) => f.id === toId)
+      if (fromIdx < 0 || toIdx < 0) return prev
+      const next = [...prev]
+      const [item] = next.splice(fromIdx, 1)
+      next.splice(toIdx, 0, item)
+      return next
+    })
+  }
+  function updateField(id: string, updates: Partial<FormField>) {
+    setFields((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
+    )
+  }
+  function toggleSection(id: string) {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
 
-  async function handleSave() {
-    if (!name.trim()) {
-      alert("חובה להכניס שם לטופס")
+  // ===== DnD =====
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 150, tolerance: 5 },
+    })
+  )
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
+
+  function handleDragStart(e: DragStartEvent) {
+    setActiveDragId(String(e.active.id))
+  }
+  function handleDragEnd(e: DragEndEvent) {
+    setActiveDragId(null)
+    const activeId = String(e.active.id)
+    const overId = e.over ? String(e.over.id) : null
+    if (!overId) return
+
+    // ספרייה — שדה חדש
+    if (activeId.startsWith("lib:")) {
+      const t = activeId.slice(4) as FormFieldType
+      if (overId === "canvas-end") {
+        addField(t)
+      } else {
+        addFieldBefore(overId, t)
+      }
       return
     }
-    setSaving(true)
-
-    if (form) {
-      const { error } = await supabase
-        .from("forms")
-        .update({ name, fields })
-        .eq("id", form.id)
-      if (error) { alert("שגיאה בשמירה"); setSaving(false); return }
-      router.push("/forms")
-    } else {
-      const { data, error } = await supabase
-        .from("forms")
-        .insert({ name, fields, organization_id: organizationId })
-        .select()
-        .single()
-      if (error || !data) { alert("שגיאה ביצירת הטופס"); setSaving(false); return }
-      setSavedLink(`${window.location.origin}/apply/${data.id}`)
+    // ספרייה — bundle
+    if (activeId.startsWith("bundle:")) {
+      const id = activeId.slice(7) as BundleId
+      addBundle(id)
+      return
     }
-    setSaving(false)
+    // canvas — מיון
+    if (activeId === overId) return
+    setFields((prev) => {
+      const fromIdx = prev.findIndex((f) => f.id === activeId)
+      const toIdx = prev.findIndex((f) => f.id === overId)
+      if (fromIdx < 0 || toIdx < 0) return prev
+      return arrayMove(prev, fromIdx, toIdx)
+    })
   }
 
+  const activeDragMeta = (() => {
+    if (!activeDragId) return null
+    if (activeDragId.startsWith("lib:")) {
+      const meta = getTypeMeta(activeDragId.slice(4))
+      return { kind: "lib" as const, label: meta.label, icon: meta.icon }
+    }
+    if (activeDragId.startsWith("bundle:")) {
+      const b = BUNDLES.find((x) => x.id === (activeDragId.slice(7) as BundleId))
+      return { kind: "bundle" as const, label: b?.label ?? "ערכה" }
+    }
+    const f = fields.find((x) => x.id === activeDragId)
+    if (!f) return null
+    return { kind: "field" as const, label: f.label, type: f.type }
+  })()
+
+  // חישוב נראות: שדה שמתחת ל-section מקופל = מוסתר
+  const visibility = useMemo(() => {
+    const vis = new Map<string, boolean>()
+    let underCollapsed = false
+    for (const f of fields) {
+      if (f.type === "section") {
+        underCollapsed = collapsedSections.has(f.id)
+        vis.set(f.id, true)
+      } else {
+        vis.set(f.id, !underCollapsed)
+      }
+    }
+    return vis
+  }, [fields, collapsedSections])
+
   return (
-    <div className="min-h-screen bg-bg font-sans" dir="rtl">
-      {/* Header */}
-      <div className="sticky top-0 z-10 border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
+    <div className="flex h-screen flex-col bg-bg" dir="rtl">
+      {/* TOPBAR */}
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3.5 border-b border-line bg-surface px-[18px]">
+        <button
+          onClick={() => router.push("/forms")}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-[13px] text-fg-muted hover:bg-[var(--bg-subtle)] hover:text-fg"
+        >
+          <ArrowRight className="h-3.5 w-3.5" />
+          טפסים
+        </button>
+
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="truncate max-w-[280px] text-[15px] font-semibold text-primary">
+            {title || "ללא שם"}
+          </span>
+          <SaveBadge saving={saving} dirty={dirty} savedAt={savedAt} />
+          <StatusPill isActive={isActive} />
+          {submissionCount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-line bg-[var(--bg-subtle)] px-2.5 py-px text-[11.5px] text-fg-muted">
+              <Users className="h-3 w-3" />
+              {submissionCount} הוגשו
+            </span>
+          )}
+        </div>
+
+        <div className="flex-1" />
+
+        <div className="inline-flex rounded-md border border-line bg-[var(--bg-muted)] p-[3px]">
+          {(["builder", "preview"] as const).map((m) => (
             <button
-              onClick={() => router.push("/forms")}
-              className="text-xl leading-none text-fg-subtle hover:text-fg"
+              key={m}
+              onClick={() => setMode(m)}
+              className={`inline-flex h-[26px] items-center gap-1.5 rounded-[5px] px-3 text-[13px] font-medium transition-colors ${
+                mode === m
+                  ? "bg-surface text-fg shadow-[var(--shadow-xs)]"
+                  : "text-fg-muted hover:bg-surface/50"
+              }`}
             >
-              ←
+              {m === "builder" ? (
+                <ListTree className="h-3 w-3" />
+              ) : (
+                <Eye className="h-3 w-3" />
+              )}
+              {m === "builder" ? "עורך" : "תצוגה מקדימה"}
             </button>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="שם הטופס"
-              className="min-w-[200px] border-b-2 border-transparent bg-transparent pb-0.5 text-lg font-semibold text-fg outline-none focus:border-accent"
-            />
-          </div>
+          ))}
+        </div>
+
+        <button
+          onClick={() => setShareOpen(true)}
+          title="שתף קישור"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-transparent px-3 text-[13px] font-medium text-fg hover:bg-[var(--bg-subtle)]"
+        >
+          <Share2 className="h-3 w-3" />
+          שתף
+        </button>
+        <button
+          onClick={() => doSave({ publish: true })}
+          disabled={saving}
+          className="inline-flex h-8 items-center rounded-md bg-[var(--accent)] px-3.5 text-[13px] font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-60"
+        >
+          {isActive ? "עדכן טופס" : "פרסם טופס"}
+        </button>
+      </header>
+
+      {mode === "builder" ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveDragId(null)}
+        >
+        <main
+          className="grid flex-1 overflow-hidden"
+          style={{ gridTemplateColumns: "320px 1fr 264px" }}
+        >
+          <PropertiesPanel
+            field={selected}
+            onChange={(updates) =>
+              selected && updateField(selected.id, updates)
+            }
+            onDelete={() => selected && deleteField(selected.id)}
+          />
+
+          <section className="overflow-y-auto bg-bg px-10 pb-20 pt-8">
+            <div className="mx-auto max-w-[720px] overflow-hidden rounded-lg border border-line bg-surface shadow-[0_1px_0_rgba(3,22,49,.03),0_12px_32px_-16px_rgba(3,22,49,.12)]">
+              <div
+                className="relative border-b border-[var(--line-faint)] px-8 pb-[22px] pt-7"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 600px 200px at 80% -20%, rgba(254,111,66,.06), transparent 60%), var(--surface)",
+                }}
+              >
+                <div
+                  className="absolute inset-y-0 start-0 w-1"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, var(--accent) 0%, var(--primary) 100%)",
+                  }}
+                />
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="-mx-2 -mb-[6px] block w-[calc(100%+1rem)] rounded border border-transparent px-2 py-1 text-[24px] font-semibold tracking-[-0.01em] text-primary outline-none hover:bg-[var(--bg-subtle)] focus:border-[var(--accent-line)] focus:bg-surface focus:shadow-[var(--shadow-focus)]"
+                />
+                <input
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="הסבר קצר למועמדים…"
+                  className="-mx-2 mt-2 block w-[calc(100%+1rem)] rounded border border-transparent px-2 py-1 text-[15px] text-fg-muted outline-none hover:bg-[var(--bg-subtle)] focus:border-[var(--accent-line)] focus:bg-surface focus:shadow-[var(--shadow-focus)]"
+                />
+              </div>
+
+              <div className="px-4 pb-6 pt-3">
+                {fields.length === 0 && (
+                  <div className="py-16 text-center text-[13px] text-fg-subtle">
+                    גרור שדה מהרשימה מימין או לחץ עליו כדי להוסיף
+                  </div>
+                )}
+                <SortableContext
+                  items={fields.map((f) => f.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {fields.map((f) => {
+                    const visible = visibility.get(f.id) ?? true
+                    if (!visible) return null
+                    return (
+                      <CanvasField
+                        key={f.id}
+                        field={f}
+                        selected={selectedId === f.id}
+                        collapsed={collapsedSections.has(f.id)}
+                        onSelect={() => setSelectedId(f.id)}
+                        onDuplicate={() => duplicateField(f.id)}
+                        onDelete={() => deleteField(f.id)}
+                        onToggleCollapse={
+                          f.type === "section"
+                            ? () => toggleSection(f.id)
+                            : undefined
+                        }
+                      />
+                    )
+                  })}
+                </SortableContext>
+                <CanvasEndDroppable onAdd={() => addField("short_text")} />
+              </div>
+
+              <div className="flex items-center gap-2 border-t border-[var(--line-faint)] bg-[var(--bg-subtle)] px-8 pb-7 pt-5">
+                <button className="rounded-md bg-[var(--accent)] px-5 py-2.5 text-[13px] font-semibold text-white">
+                  שליחת הטופס
+                </button>
+                <span className="text-[11px] text-fg-subtle">
+                  ·  הטופס מאובטח · נתונים מוצפנים
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <LibraryPanel onAdd={addField} onAddBundle={addBundle} />
+        </main>
+        <DragOverlay>
+          {activeDragMeta ? (
+            <div className="pointer-events-none rounded-md border border-[var(--accent-line)] bg-[var(--accent-soft)] px-3 py-2 text-[13px] font-medium text-[var(--accent-hover)] shadow-[var(--shadow-lg)]">
+              {activeDragMeta.kind === "lib" && "+ "}
+              {activeDragMeta.kind === "bundle" && "⊕ "}
+              {activeDragMeta.label}
+            </div>
+          ) : null}
+        </DragOverlay>
+        </DndContext>
+      ) : (
+        <main className="flex-1 overflow-hidden">
+          <PreviewMode
+            title={title}
+            description={description}
+            fields={fields}
+          />
+        </main>
+      )}
+
+      {shareOpen && (
+        <ShareModal
+          formId={form?.id ?? null}
+          isActive={isActive}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+function DropLine() {
+  return (
+    <div className="my-1 h-[2px] rounded bg-[var(--accent)]" />
+  )
+}
+
+function CanvasEndDroppable({ onAdd }: { onAdd: () => void }) {
+  const { setNodeRef, isOver } = useDroppable({ id: "canvas-end" })
+  return (
+    <button
+      ref={setNodeRef}
+      type="button"
+      onClick={onAdd}
+      className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-md border-[1.5px] border-dashed py-3.5 text-[13px] transition-colors ${
+        isOver
+          ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+          : "border-[var(--line-strong)] text-fg-muted hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+      }`}
+    >
+      <Plus className="h-3.5 w-3.5" />
+      הוסף שדה
+    </button>
+  )
+}
+
+function SaveBadge({
+  saving,
+  dirty,
+  savedAt,
+}: {
+  saving: boolean
+  dirty: boolean
+  savedAt: Date | null
+}) {
+  if (saving) return <span className="text-[11px] text-fg-subtle">שומר…</span>
+  if (dirty)
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] text-fg-subtle">
+        <AlertCircle className="h-3 w-3" />
+        שינויים לא שמורים
+      </span>
+    )
+  if (savedAt)
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] text-[var(--stage-accepted-fg)]">
+        <Check className="h-3 w-3" />
+        נשמר {timeAgo(savedAt)}
+      </span>
+    )
+  return null
+}
+
+function StatusPill({ isActive }: { isActive: boolean }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-px text-[11.5px] font-medium"
+      style={{
+        background: isActive
+          ? "var(--stage-accepted-bg)"
+          : "var(--stage-review-bg)",
+        color: isActive
+          ? "var(--stage-accepted-fg)"
+          : "var(--stage-review-fg)",
+        borderColor: isActive
+          ? "var(--stage-accepted-line)"
+          : "var(--stage-review-line)",
+      }}
+    >
+      <span
+        className="h-1.5 w-1.5 rounded-full"
+        style={{
+          background: isActive
+            ? "var(--stage-accepted-dot)"
+            : "var(--stage-review-dot)",
+        }}
+      />
+      {isActive ? "פעיל" : "טיוטה"}
+    </span>
+  )
+}
+
+function ShareModal({
+  formId,
+  isActive,
+  onClose,
+}: {
+  formId: string | null
+  isActive: boolean
+  onClose: () => void
+}) {
+  const [copied, setCopied] = useState<"link" | "embed" | null>(null)
+
+  if (!formId) {
+    return (
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        style={{ background: "var(--overlay)" }}
+        onClick={onClose}
+      >
+        <div
+          className="w-full max-w-sm rounded-lg border border-line bg-surface p-5 shadow-[var(--shadow-lg)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="m-0 text-[15px] font-semibold text-primary">
+            שמור קודם
+          </h3>
+          <p className="mt-1.5 text-[13px] text-fg-muted">
+            לפני שאפשר לשתף — שמור את הטופס.
+          </p>
           <button
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-md bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            onClick={onClose}
+            className="mt-4 w-full rounded-md bg-primary py-2 text-[13px] font-medium text-white"
           >
-            {saving ? "שומר..." : "שמור טופס"}
+            סגור
           </button>
         </div>
       </div>
+    )
+  }
 
-      <div className="mx-auto max-w-3xl space-y-4 px-6 py-8">
-        {/* קישור לאחר שמירה */}
-        {savedLink && (
-          <div className="rounded-lg border border-[var(--stage-accepted-line)] bg-[var(--stage-accepted-bg)] p-5">
-            <p className="mb-3 font-semibold text-[var(--stage-accepted-fg)]">
-              הטופס נשמר בהצלחה
-            </p>
-            <div className="flex items-center gap-2">
+  const url = `${window.location.origin}/apply/${formId}`
+  const embed = `<iframe src="${url}" width="100%" height="800" frameborder="0"></iframe>`
+
+  async function copy(t: "link" | "embed") {
+    await navigator.clipboard.writeText(t === "link" ? url : embed)
+    setCopied(t)
+    setTimeout(() => setCopied(null), 1500)
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      style={{ background: "var(--overlay)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-lg border border-line bg-surface shadow-[var(--shadow-lg)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-[var(--line-faint)] px-5 py-4">
+          <h2 className="m-0 text-[15px] font-semibold text-primary">
+            שתף את הטופס
+          </h2>
+          <button
+            onClick={onClose}
+            className="inline-grid h-7 w-7 place-items-center rounded text-fg-subtle hover:bg-[var(--bg-subtle)] hover:text-fg"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="space-y-4 p-5">
+          {!isActive && (
+            <div className="rounded-md border-s-[3px] border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-2.5 text-[12.5px] text-fg-muted">
+              הטופס במצב טיוטה. מועמדים לא יוכלו להגיש עד שפורסם.
+            </div>
+          )}
+
+          <div>
+            <label className="mb-1.5 block text-[12px] font-medium text-fg-muted">
+              קישור ציבורי
+            </label>
+            <div className="flex gap-2">
               <input
                 readOnly
-                value={savedLink}
+                value={url}
                 dir="ltr"
-                className="flex-1 rounded-md border border-[var(--stage-accepted-line)] bg-surface px-3 py-2 text-sm text-fg"
+                className="h-9 flex-1 rounded-md border border-line bg-[var(--bg-subtle)] px-3 text-[12.5px] outline-none"
               />
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(savedLink)
-                  router.push("/forms")
-                }}
-                className="whitespace-nowrap rounded-md bg-[var(--stage-accepted-dot)] px-4 py-2 text-sm text-white hover:brightness-95"
+                onClick={() => copy("link")}
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[12.5px] hover:bg-[var(--bg-subtle)]"
               >
-                העתק וסגור
+                {copied === "link" ? (
+                  <Check className="h-3.5 w-3.5 text-[var(--stage-accepted-fg)]" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+                העתק
+              </button>
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[12.5px] hover:bg-[var(--bg-subtle)]"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                פתח
+              </a>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[12px] font-medium text-fg-muted">
+              קוד הטמעה (iframe)
+            </label>
+            <div className="flex gap-2">
+              <input
+                readOnly
+                value={embed}
+                dir="ltr"
+                className="h-9 flex-1 rounded-md border border-line bg-[var(--bg-subtle)] px-3 text-[11.5px] outline-none"
+              />
+              <button
+                onClick={() => copy("embed")}
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[12.5px] hover:bg-[var(--bg-subtle)]"
+              >
+                {copied === "embed" ? (
+                  <Check className="h-3.5 w-3.5 text-[var(--stage-accepted-fg)]" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+                העתק
               </button>
             </div>
           </div>
-        )}
-
-        {/* שאלות מותאמות */}
-        {fields.map((field, idx) => (
-          <FieldCard
-            key={field.id}
-            field={field}
-            index={idx}
-            total={fields.length}
-            onUpdate={updateField}
-            onRemove={removeField}
-            onMove={moveField}
-          />
-        ))}
-
-        {/* הוסף שאלה */}
-        <button
-          onClick={addField}
-          className="w-full rounded-lg border-2 border-dashed border-line bg-surface py-5 text-sm font-medium text-fg-subtle shadow-[var(--shadow-xs)] transition-all hover:border-accent hover:bg-[var(--accent-soft)] hover:text-accent"
-        >
-          + הוסף שאלה
-        </button>
+        </div>
       </div>
     </div>
   )
+}
+
+function timeAgo(d: Date): string {
+  const diff = Math.floor((Date.now() - d.getTime()) / 1000)
+  if (diff < 5) return "כרגע"
+  if (diff < 60) return `לפני ${diff} שנ׳`
+  const m = Math.floor(diff / 60)
+  return `לפני ${m} דק׳`
+}
+
+function defaultFields(): FormField[] {
+  return [
+    {
+      id: uid(),
+      type: "section",
+      label: "פרטים אישיים",
+      required: false,
+    },
+    {
+      id: uid(),
+      type: "short_text",
+      label: "שם מלא",
+      help: "שם פרטי + משפחה כפי שמופיע בת.ז",
+      required: true,
+      placeholder: "ישראל ישראלי",
+    },
+    {
+      id: uid(),
+      type: "id_number",
+      label: 'ת"ז',
+      help: "9 ספרות כולל ספרת ביקורת",
+      required: true,
+    },
+    {
+      id: uid(),
+      type: "email",
+      label: "אימייל",
+      required: true,
+      placeholder: "name@example.com",
+    },
+    {
+      id: uid(),
+      type: "phone",
+      label: "טלפון נייד",
+      required: true,
+      placeholder: "0500000000",
+    },
+    {
+      id: uid(),
+      type: "date",
+      label: "תאריך לידה",
+      required: true,
+    },
+  ]
 }

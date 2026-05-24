@@ -2,9 +2,16 @@ import { createClient } from "@/lib/supabase/server"
 import { Topbar } from "@/app/(dashboard)/_components/Topbar"
 import CandidatesTable from "@/components/candidates/CandidatesTable"
 import NewCandidateButton from "@/components/candidates/NewCandidateButton"
+import { getStages } from "@/lib/stages"
+import { PipelineStage } from "@/types/database"
 
-export default async function CandidatesPage() {
+export default async function CandidatesPage({
+  searchParams,
+}: {
+  searchParams: { stage?: string }
+}) {
   const supabase = await createClient()
+  const initialStage = searchParams?.stage ?? "all"
 
   const {
     data: { user },
@@ -21,16 +28,31 @@ export default async function CandidatesPage() {
     .select("*")
     .order("created_at", { ascending: false })
 
+  const { data: forms } = await supabase
+    .from("forms")
+    .select("id, name")
+    .eq("organization_id", userData?.organization_id ?? "")
+    .order("created_at", { ascending: false })
+
   const list = candidates ?? []
 
-  // סטטיסטיקות לכותרת
-  const inInterview = list.filter((c) => c.stage === "interview").length
-  const accepted = list.filter((c) => c.stage === "accepted").length
+  // טעינת שלבי הצנרת של המכינה
+  let stages: PipelineStage[] = []
+  if (userData?.organization_id) {
+    stages = await getStages(userData.organization_id)
+  }
+
+  // סטטיסטיקות לכותרת — לפי שלב ברירת מחדל וסופי דינמיים
+  const totalStages = stages.length
+  const midStage = stages[Math.floor(totalStages / 2)]
+  const lastStage = stages[totalStages - 1]
+  const inMid = midStage ? list.filter((c) => c.stage === midStage.name).length : 0
+  const inLast = lastStage ? list.filter((c) => c.stage === lastStage.name).length : 0
 
   const stats = [
     { v: list.length, k: "סך מועמדים" },
-    { v: inInterview, k: "בשלב ראיון" },
-    { v: accepted, k: "התקבלו" },
+    { v: inMid, k: midStage?.name ?? "—" },
+    { v: inLast, k: lastStage?.name ?? "—" },
   ]
 
   return (
@@ -39,7 +61,11 @@ export default async function CandidatesPage() {
         crumb="מועמדים"
         action={
           userData?.organization_id ? (
-            <NewCandidateButton organizationId={userData.organization_id} />
+            <NewCandidateButton
+              organizationId={userData.organization_id}
+              stages={stages}
+              forms={forms ?? []}
+            />
           ) : null
         }
       />
@@ -74,7 +100,7 @@ export default async function CandidatesPage() {
           </div>
         </div>
 
-        <CandidatesTable candidates={list} />
+        <CandidatesTable candidates={list} stages={stages} initialStage={initialStage} />
       </div>
     </>
   )

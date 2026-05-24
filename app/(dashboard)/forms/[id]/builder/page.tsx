@@ -9,6 +9,7 @@ export default async function BuilderPage({
   const supabase = await createClient()
 
   let form = null
+  let submissionCount = 0
 
   if (params.id !== "new") {
     const { data } = await supabase
@@ -17,10 +18,17 @@ export default async function BuilderPage({
       .eq("id", params.id)
       .single()
     form = data
+
+    const { count } = await supabase
+      .from("candidates")
+      .select("id", { count: "exact", head: true })
+      .eq("form_id", params.id)
+    submissionCount = count ?? 0
   }
 
-  // שולף את ה-organization_id של המשתמש
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   const { data: userData } = await supabase
     .from("users")
     .select("organization_id")
@@ -31,6 +39,7 @@ export default async function BuilderPage({
     <FormBuilder
       form={form}
       organizationId={userData?.organization_id ?? ""}
+      submissionCount={submissionCount}
     />
   )
 }

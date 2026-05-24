@@ -3,27 +3,19 @@
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { STAGE_LABELS } from "@/lib/utils"
 import { logCandidateEvent } from "@/lib/events"
-
-const ALL_STAGES = ["new", "review", "interview", "accepted", "rejected"]
-
-const STAGE_DOT: Record<string, string> = {
-  new: "var(--stage-new-dot)",
-  review: "var(--stage-review-dot)",
-  interview: "var(--stage-interview-dot)",
-  accepted: "var(--stage-accepted-dot)",
-  rejected: "var(--stage-rejected-dot)",
-}
+import { PipelineStage } from "@/types/database"
 
 export default function StageSelector({
   candidateId,
   organizationId,
   currentStage,
+  stages,
 }: {
   candidateId: string
   organizationId: string
   currentStage: string
+  stages: PipelineStage[]
 }) {
   const [stage, setStage] = useState(currentStage)
   const [loading, setLoading] = useState(false)
@@ -41,11 +33,19 @@ export default function StageSelector({
       candidateId,
       organizationId,
       type: "stage_changed",
-      description: `השלב שונה ל"${STAGE_LABELS[newStage] ?? newStage}"`,
+      description: `השלב שונה ל"${newStage}"`,
     })
     setStage(newStage)
     setLoading(false)
     router.refresh()
+  }
+
+  if (stages.length === 0) {
+    return (
+      <div className="text-[12px] text-fg-subtle">
+        לא הוגדרו שלבי קבלה. ניתן להגדיר ב<a href="/settings" className="text-accent">הגדרות</a>.
+      </div>
+    )
   }
 
   return (
@@ -54,12 +54,12 @@ export default function StageSelector({
         שלב
       </span>
       <div className="flex max-w-[720px] flex-1 items-center gap-0.5 rounded-full border border-line bg-[var(--bg-subtle)] p-[3px]">
-        {ALL_STAGES.map((s) => {
-          const active = stage === s
+        {stages.map((s) => {
+          const active = stage === s.name
           return (
             <button
-              key={s}
-              onClick={() => handleChange(s)}
+              key={s.id}
+              onClick={() => handleChange(s.name)}
               disabled={loading}
               className={`flex h-[30px] flex-1 items-center justify-center gap-[7px] rounded-full text-[13px] transition-all ${
                 active
@@ -67,11 +67,8 @@ export default function StageSelector({
                   : "font-medium text-fg-muted hover:text-fg"
               } ${loading ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
             >
-              <span
-                className="h-[7px] w-[7px] rounded-full"
-                style={{ background: STAGE_DOT[s] }}
-              />
-              {STAGE_LABELS[s]}
+              <span className="h-[7px] w-[7px] rounded-full bg-current opacity-60" />
+              {s.name}
             </button>
           )
         })}

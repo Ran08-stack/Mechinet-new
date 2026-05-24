@@ -14,6 +14,8 @@ type Result = {
   email: string
   city: string | null
   stage: string
+  national_id: string | null
+  phone: string | null
 }
 
 export function QuickSearch() {
@@ -30,7 +32,9 @@ export function QuickSearch() {
       const supabase = createClient()
       supabase
         .from("candidates")
-        .select("id, full_name, email, city, stage")
+        .select("id, full_name, email, city, stage, national_id, phone")
+        .order("created_at", { ascending: false })
+        .limit(500)
         .then(({ data }) => {
           setCandidates((data as Result[]) ?? [])
           setLoaded(true)
@@ -60,7 +64,9 @@ export function QuickSearch() {
         (c) =>
           c.full_name.toLowerCase().includes(q) ||
           c.email.toLowerCase().includes(q) ||
-          (c.city ?? "").toLowerCase().includes(q)
+          (c.city ?? "").toLowerCase().includes(q) ||
+          (c.national_id ?? "").includes(q) ||
+          (c.phone ?? "").includes(q)
       )
     : candidates.slice(0, 8)
 

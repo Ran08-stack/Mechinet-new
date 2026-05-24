@@ -50,9 +50,35 @@ export default function PipelineStagesEditor({
   }
 
   async function deleteStage(id: string) {
+    const stage = items.find((s) => s.id === id)
+    if (stage?.is_default) {
+      alert("לא ניתן למחוק את שלב ברירת המחדל — מועמדים מהטופס הציבורי נכנסים אליו אוטומטית.")
+      return
+    }
     const supabase = createClient()
     await supabase.from("pipeline_stages").delete().eq("id", id)
     setItems((prev) => prev.filter((s) => s.id !== id))
+    router.refresh()
+  }
+
+  async function setAsDefault(id: string) {
+    const supabase = createClient()
+    // אטומי: קודם מאפס את הקיים, אח"כ קובע חדש
+    const current = items.find((s) => s.is_default)
+    if (current && current.id === id) return
+    if (current) {
+      await supabase
+        .from("pipeline_stages")
+        .update({ is_default: false })
+        .eq("id", current.id)
+    }
+    await supabase
+      .from("pipeline_stages")
+      .update({ is_default: true })
+      .eq("id", id)
+    setItems((prev) =>
+      prev.map((s) => ({ ...s, is_default: s.id === id }))
+    )
     router.refresh()
   }
 
@@ -84,9 +110,24 @@ export default function PipelineStagesEditor({
       <div className="space-y-2 mb-5">
         {items.map((stage, idx) => (
           <div key={stage.id} className="flex items-center gap-2">
-            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${stage.color ?? ""} flex-1`}>
+            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${stage.color ?? ""} flex-1`}>
               {stage.name}
+              {stage.is_default && (
+                <span className="font-mono text-[9px] uppercase opacity-70">קבוע</span>
+              )}
             </span>
+            <button
+              onClick={() => setAsDefault(stage.id)}
+              disabled={stage.is_default}
+              title={
+                stage.is_default
+                  ? "שלב ברירת מחדל — מועמדים חדשים נכנסים כאן"
+                  : "קבע כברירת מחדל"
+              }
+              className="px-1 text-sm text-fg-subtle hover:text-[var(--accent)] disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {stage.is_default ? "★" : "☆"}
+            </button>
             <button
               onClick={() => moveStage(stage.id, "up")}
               disabled={idx === 0}
@@ -103,7 +144,9 @@ export default function PipelineStagesEditor({
             </button>
             <button
               onClick={() => deleteStage(stage.id)}
-              className="px-1 text-sm text-[var(--fg-faint)] hover:text-[var(--danger)]"
+              disabled={stage.is_default}
+              title={stage.is_default ? "שלב ברירת מחדל — לא ניתן למחיקה" : "מחק"}
+              className="px-1 text-sm text-[var(--fg-faint)] hover:text-[var(--danger)] disabled:opacity-20 disabled:cursor-not-allowed"
             >
               ×
             </button>

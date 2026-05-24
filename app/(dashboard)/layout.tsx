@@ -16,19 +16,31 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
-  const { data: userRow } = await supabase
+  // נתוני המשתמש + המכינה לתצוגה בכותרת ה-sidebar
+  const { data: userData } = await supabase
     .from("users")
-    .select("organization_id, email")
+    .select("full_name, email, role, role_label, organization_id")
     .eq("id", user.id)
-    .maybeSingle()
+    .single()
 
-  const { data: org } = userRow?.organization_id
+  const { data: org } = userData?.organization_id
     ? await supabase
         .from("organizations")
-        .select("name, logo_url")
-        .eq("id", userRow.organization_id)
+        .select("name, branch_name, logo_url")
+        .eq("id", userData.organization_id)
         .maybeSingle()
     : { data: null }
+
+  const accountName =
+    userData?.full_name?.trim() ||
+    userData?.email?.split("@")[0] ||
+    ""
+
+  const baseRoleLabel =
+    userData?.role === "admin" || userData?.role === "org_admin"
+      ? "ראש שלוחה"
+      : "איש צוות"
+  const roleLabel = userData?.role_label?.trim() || baseRoleLabel
 
   return (
     <div
@@ -36,9 +48,11 @@ export default async function DashboardLayout({
       dir="rtl"
     >
       <Sidebar
-        orgName={org?.name ?? "מכינה"}
+        accountName={accountName}
+        roleLabel={roleLabel}
+        orgName={org?.name ?? null}
+        branchName={org?.branch_name ?? null}
         orgLogoUrl={org?.logo_url ?? null}
-        userEmail={userRow?.email ?? user.email ?? ""}
       />
       <main className="flex min-h-screen flex-col overflow-auto">
         {children}

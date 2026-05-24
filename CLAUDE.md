@@ -10,6 +10,9 @@ Deploy: https://mechinet-new.vercel.app
 2. `memory/context.md`
 3. `memory/memory.md`
 
+## בחירת Skill
+לפני פעולה לא טריוויאלית — סרוק `mechinet-skill-router` (טבלת מיפוי עברית→skill). בקשה בעברית עם הקשר Mechinet (מסך/טופס/RLS/HTML mockup) תמיד עוברת דרך הראוטר.
+
 ## עדכון זיכרון בזמן אמת
 - החלטות / מה נעשה → append ל-`memory/memory.md` (ללא אישור).
 - שינוי כיוון / פיצ'ר חדש → הצע עריכה ל-`memory/context.md` + המתן לאישור.
@@ -32,6 +35,17 @@ Deploy: https://mechinet-new.vercel.app
 ## גבולות CLAUDE.md
 - קובץ זה: עד 200 שורות. אם מוסיפים — מוחקים משהו פחות רלוונטי.
 - הוראות ספציפיות / נדירות → Skills נפרדים, לא כאן.
+
+## הרצת פקודות בטרמינל
+- כל פקודה שצריך להריץ — Claude מריץ דרך Bash/PowerShell. רן לא מריץ ידנית.
+- כולל: `vercel --prod`, `git add/commit/push`, `npm install`, `npm run build`, migrations, סקריפטים.
+- חריגים שדורשים אישור לפני הרצה: פעולות הרסניות (`rm -rf`, `git reset --hard`, `git push --force`, drop table), מחיקת קבצים/סניפים, פעולות על production DB מעבר ל-migration רגיל.
+- אם פקודה נכשלת — Claude מאבחן ומתקן, לא מבקש מרן להריץ.
+
+## Code Review
+- כשהמשתמש מבקש "review" / "סקירה" / "security review" / "בדיקת קוד" — הפעל skill `code-review-excellence` קודם.
+- לפני סיום פיצ'ר משמעותי / לפני deploy גדול / לפני commit שמשפיע על קוד — הצע להפעיל את ה-skill.
+- אחרי שינוי מסיבי (>5 קבצים או logic רגיש: auth/RLS/payments/AI) — הצע review כצעד אחרון.
 
 ## תקשורת
 - עברית בלבד.

@@ -12,11 +12,14 @@ export async function logCandidateEvent(params: {
 }) {
   try {
     const supabase = createClient()
+    // מי המבצע — המשתמש המחובר. אם אין — null.
+    const { data: { user } } = await supabase.auth.getUser()
     await supabase.from("candidate_events").insert({
       candidate_id: params.candidateId,
       organization_id: params.organizationId,
       type: params.type,
       description: params.description ?? null,
+      actor_id: user?.id ?? null,
     })
   } catch {
     // שקט — לא חוסם את הפעולה
