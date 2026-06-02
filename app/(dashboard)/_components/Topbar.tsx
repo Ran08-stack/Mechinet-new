@@ -21,7 +21,7 @@ export function Topbar({
   const [helpOpen, setHelpOpen] = useState(false)
 
   return (
-    <div className="relative flex h-[60px] flex-shrink-0 items-center gap-3.5 border-b border-line bg-[var(--surface-2)] px-7">
+    <div className="relative flex h-[60px] flex-shrink-0 items-center gap-2 border-b border-line bg-[var(--surface-2)] px-3 md:gap-3.5 md:px-7">
       {/* צד ימין */}
       {rightLabel ? (
         <div className="flex min-w-0 flex-col items-end text-end leading-tight">
@@ -35,7 +35,7 @@ export function Topbar({
           )}
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-[13px] text-fg-subtle">
+        <div className="hidden md:flex items-center gap-2 text-[13px] text-fg-subtle">
           <span>ניווט</span>
           <span className="text-[var(--fg-faint)]">/</span>
           <span className="font-medium text-fg">{crumb}</span>
@@ -43,12 +43,12 @@ export function Topbar({
       )}
 
       {/* אמצע — חיפוש מהיר */}
-      <div className="mx-auto">
+      <div className="mx-auto hidden md:block">
         <QuickSearch />
       </div>
 
       {/* צד שמאל */}
-      <div className="flex items-center gap-2">
+      <div className="ms-auto md:ms-0 flex items-center gap-2">
         {/* עזרה */}
         <div className="relative">
           <button
@@ -59,7 +59,7 @@ export function Topbar({
             <HelpCircle className="h-3.5 w-3.5" />
           </button>
           {helpOpen && (
-            <div className="absolute end-0 top-9 z-50 w-[280px] overflow-hidden rounded-lg border border-line bg-surface shadow-[var(--shadow-lg)]">
+            <div className="fixed end-3 top-14 z-50 max-w-[calc(100vw-1.5rem)] md:absolute md:end-0 md:top-9 w-[280px] overflow-hidden rounded-lg border border-line bg-surface shadow-[var(--shadow-lg)]">
               <div className="flex items-center justify-between border-b border-[var(--line-faint)] px-4 py-3">
                 <span className="text-[13px] font-semibold text-primary">
                   עזרה
@@ -94,7 +94,7 @@ export function Topbar({
           </button>
 
           {notifOpen && (
-            <div className="absolute end-0 top-9 z-50 w-[300px] overflow-hidden rounded-lg border border-line bg-surface shadow-[var(--shadow-lg)]">
+            <div className="fixed end-3 top-14 z-50 max-w-[calc(100vw-1.5rem)] md:absolute md:end-0 md:top-9 w-[300px] overflow-hidden rounded-lg border border-line bg-surface shadow-[var(--shadow-lg)]">
               <div className="flex items-center justify-between border-b border-[var(--line-faint)] px-4 py-3">
                 <span className="text-[13px] font-semibold text-primary">
                   התראות

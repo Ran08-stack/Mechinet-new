@@ -11,6 +11,7 @@ import {
   Calendar,
   CalendarX,
   FileText,
+  X,
 } from "lucide-react"
 
 // ציר זמן פעילות — מציג את האירועים של המועמד.
@@ -45,6 +46,11 @@ const EVENT_ICON: Record<
     bg: "var(--danger-soft)",
     fg: "var(--danger)",
   },
+  interview_updated: {
+    icon: Calendar,
+    bg: "var(--accent-soft)",
+    fg: "var(--accent-hover)",
+  },
   form_submitted: {
     icon: FileText,
     bg: "var(--bg-muted)",
@@ -70,6 +76,7 @@ export function ActivityTimeline({
   initialEvents: CandidateEvent[]
 }) {
   const [events, setEvents] = useState<CandidateEvent[]>(initialEvents)
+  const [detail, setDetail] = useState<CandidateEvent | null>(null)
 
   useEffect(() => {
     if (!candidateId) return
@@ -147,7 +154,18 @@ export function ActivityTimeline({
                 </span>
                 <div className="flex flex-col gap-0.5 pt-0.5">
                   <span className="text-[13px] leading-snug text-fg">
-                    {event.description ?? event.type}
+                    {(event.description ?? event.type).split("\n")[0]}
+                    {event.description && event.description.includes("\n") && (
+                      <>
+                        {" · "}
+                        <button
+                          onClick={() => setDetail(event)}
+                          className="text-[12px] text-accent-hover underline-offset-2 hover:underline"
+                        >
+                          ראה עוד
+                        </button>
+                      </>
+                    )}
                   </span>
                   <span className="text-[10.5px] text-fg-subtle">
                     {fmtWhen(event.created_at)}
@@ -156,6 +174,45 @@ export function ActivityTimeline({
               </div>
             )
           })}
+        </div>
+      )}
+
+      {detail && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4"
+          onClick={() => setDetail(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-lg border border-line bg-surface p-4 shadow-[var(--shadow-md)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="m-0 text-[14px] font-semibold text-primary">
+                {(detail.description ?? detail.type).split("\n")[0]}
+              </h3>
+              <button
+                onClick={() => setDetail(null)}
+                className="grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-[var(--bg-subtle)]"
+                aria-label="סגור"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ul className="m-0 flex flex-col gap-1.5 p-0 text-[12.5px] text-fg">
+              {detail.description
+                ?.split("\n")
+                .slice(1)
+                .filter(Boolean)
+                .map((line, i) => (
+                  <li key={i} className="list-none">
+                    {line}
+                  </li>
+                ))}
+            </ul>
+            <div className="mt-3 text-[10.5px] text-fg-subtle">
+              {fmtWhen(detail.created_at)}
+            </div>
+          </div>
         </div>
       )}
     </div>

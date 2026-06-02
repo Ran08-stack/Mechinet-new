@@ -85,7 +85,9 @@ export default function CalendarView({
 
   const [interviews, setInterviews] =
     useState<InterviewWithCandidate[]>(initialInterviews)
-  const [view, setView] = useState<View>("week")
+  const [view, setView] = useState<View>(
+    typeof window !== "undefined" && window.innerWidth < 768 ? "agenda" : "week"
+  )
   const [anchor, setAnchor] = useState<Date>(startOfWeek(new Date()))
   const [selected, setSelected] = useState<InterviewWithCandidate | null>(null)
   const [newModal, setNewModal] = useState<{
@@ -96,6 +98,7 @@ export default function CalendarView({
   }>({ open: false })
   const [autoOpen, setAutoOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<InterviewWithCandidate | null>(null)
+  const [editTarget, setEditTarget] = useState<InterviewWithCandidate | null>(null)
 
   // מסנן מראיינים — סט של ids פעילים. ריק = הצג הכול.
   const [activeInterviewers, setActiveInterviewers] = useState<Set<string>>(
@@ -177,6 +180,87 @@ export default function CalendarView({
     router.refresh()
   }
 
+  async function handleUpdate(
+    id: string,
+    input: {
+      candidateId: string
+      date: string
+      time: string
+      duration: number
+      location: string
+      meetingUrl: string
+      interviewerId: string
+    }
+  ) {
+    const scheduled_at = new Date(`${input.date}T${input.time}`).toISOString()
+    const oldIv = interviews.find((i) => i.id === id)
+    const { data, error } = await supabase
+      .from("interviews")
+      .update({
+        scheduled_at,
+        duration_minutes: input.duration || 55,
+        location: input.location || null,
+        meeting_url: input.meetingUrl || null,
+        interviewer_id: input.interviewerId || null,
+      })
+      .eq("id", id)
+      .select("*, candidates(full_name)")
+      .single()
+    if (error || !data) {
+      alert("שגיאה בעדכון ראיון")
+      return
+    }
+    const changes: string[] = []
+    if (oldIv) {
+      const fmtDT = (iso: string) =>
+        new Date(iso).toLocaleString("he-IL", {
+          day: "2-digit",
+          month: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      if (oldIv.scheduled_at !== scheduled_at) {
+        changes.push(`מועד: ${fmtDT(oldIv.scheduled_at)} → ${fmtDT(scheduled_at)}`)
+      }
+      const newDur = input.duration || 55
+      if ((oldIv.duration_minutes ?? 0) !== newDur) {
+        changes.push(`משך: ${oldIv.duration_minutes ?? 0} → ${newDur} דק׳`)
+      }
+      if ((oldIv.location ?? "") !== (input.location ?? "")) {
+        changes.push(`מיקום: ${oldIv.location || "—"} → ${input.location || "—"}`)
+      }
+      if ((oldIv.meeting_url ?? "") !== (input.meetingUrl ?? "")) {
+        changes.push(`קישור: ${oldIv.meeting_url || "—"} → ${input.meetingUrl || "—"}`)
+      }
+      if ((oldIv.interviewer_id ?? "") !== (input.interviewerId ?? "")) {
+        const find = (iid: string) => interviewers.find((iv) => iv.id === iid)
+        const nameOf = (iv: Interviewer | undefined) =>
+          iv?.full_name?.trim() || iv?.email?.split("@")[0] || "—"
+        const oldI = oldIv.interviewer_id ? find(oldIv.interviewer_id) : undefined
+        const newI = input.interviewerId ? find(input.interviewerId) : undefined
+        changes.push(`מראיין: ${nameOf(oldI)} → ${nameOf(newI)}`)
+      }
+    }
+    await logCandidateEvent({
+      candidateId: input.candidateId,
+      organizationId,
+      type: "interview_updated",
+      description: ["ראיון עודכן", ...changes].join("\n"),
+    })
+    setInterviews((prev) =>
+      prev
+        .map((i) => (i.id === id ? (data as InterviewWithCandidate) : i))
+        .sort(
+          (a, b) =>
+            new Date(a.scheduled_at).getTime() -
+            new Date(b.scheduled_at).getTime()
+        )
+    )
+    setEditTarget(null)
+    setSelected(null)
+    router.refresh()
+  }
+
   async function handleStatusChange(id: string, status: string) {
     await supabase.from("interviews").update({ status }).eq("id", id)
     setInterviews((prev) =>
@@ -211,7 +295,7 @@ export default function CalendarView({
   return (
     <div className="flex h-[calc(100vh-60px)] flex-col bg-surface">
       {/* TOOLBAR */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-line bg-surface px-7 py-3">
+      <div className="flex flex-wrap items-center gap-3 border-b border-line bg-surface px-3 md:px-7 py-3">
         <h1 className="m-0 text-[20px] font-semibold tracking-[-0.01em] text-primary">
           יומן
         </h1>
@@ -242,9 +326,6 @@ export default function CalendarView({
         </div>
         <span className="text-[15px] font-medium text-primary">
           {fmtRange(anchor)}
-          <em className="ms-2 not-italic text-[12.5px] font-normal text-fg-subtle">
-            {fmtHebrewMonth(anchor)}
-          </em>
         </span>
         <div className="flex-1" />
         <div className="inline-flex rounded-md bg-[var(--bg-subtle)] p-0.5">
@@ -289,7 +370,7 @@ export default function CalendarView({
       </div>
 
       {/* PENDING STRIP */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-line bg-bg px-7 py-2 text-[12.5px] text-fg-muted">
+      <div className="flex flex-wrap items-center gap-3 border-b border-line bg-bg px-3 md:px-7 py-2 text-[12.5px] text-fg-muted">
         <span className="inline-flex items-center gap-2">
           <span
             className="h-1.5 w-1.5 rounded-full"
@@ -384,6 +465,10 @@ export default function CalendarView({
           interviewers={interviewers}
           onClose={() => setSelected(null)}
           onDelete={() => setConfirmDelete(selected)}
+          onEdit={() => {
+            setEditTarget(selected)
+            setSelected(null)
+          }}
           onStatusChange={(s) => handleStatusChange(selected.id, s)}
         />
       )}
@@ -450,6 +535,40 @@ export default function CalendarView({
           onSubmit={handleCreate}
         />
       )}
+
+      {editTarget && (() => {
+        const d = new Date(editTarget.scheduled_at)
+        const pad = (n: number) => String(n).padStart(2, "0")
+        const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+        const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`
+        const editCandidates = candidates.some((c) => c.id === editTarget.candidate_id)
+          ? candidates
+          : editTarget.candidates
+            ? [
+                ...candidates,
+                {
+                  id: editTarget.candidate_id,
+                  full_name: editTarget.candidates.full_name,
+                } as Candidate,
+              ]
+            : candidates
+        return (
+          <NewEventModal
+            mode="edit"
+            candidates={editCandidates}
+            interviewers={interviewers}
+            prefillCandidateId={editTarget.candidate_id}
+            prefillDate={dateStr}
+            prefillTime={timeStr}
+            prefillDuration={editTarget.duration_minutes}
+            prefillInterviewerId={editTarget.interviewer_id ?? ""}
+            prefillLocation={editTarget.location ?? ""}
+            prefillMeetingUrl={editTarget.meeting_url ?? ""}
+            onClose={() => setEditTarget(null)}
+            onSubmit={(input) => handleUpdate(editTarget.id, input)}
+          />
+        )
+      })()}
     </div>
   )
 }

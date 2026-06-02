@@ -11,6 +11,11 @@ export function NewEventModal({
   prefillDate,
   prefillTime,
   prefillCandidateId,
+  prefillDuration,
+  prefillInterviewerId,
+  prefillLocation,
+  prefillMeetingUrl,
+  mode = "create",
   onClose,
   onSubmit,
 }: {
@@ -19,6 +24,11 @@ export function NewEventModal({
   prefillDate?: string
   prefillTime?: string
   prefillCandidateId?: string
+  prefillDuration?: number
+  prefillInterviewerId?: string
+  prefillLocation?: string
+  prefillMeetingUrl?: string
+  mode?: "create" | "edit"
   onClose: () => void
   onSubmit: (input: {
     candidateId: string
@@ -30,13 +40,16 @@ export function NewEventModal({
     interviewerId: string
   }) => Promise<void> | void
 }) {
+  const isEdit = mode === "edit"
   const [candidateId, setCandidateId] = useState(prefillCandidateId ?? "")
   const [date, setDate] = useState(prefillDate ?? "")
   const [time, setTime] = useState(prefillTime ?? "")
-  const [duration, setDuration] = useState("55")
-  const [interviewerId, setInterviewerId] = useState("")
-  const [location, setLocation] = useState("")
-  const [meetingUrl, setMeetingUrl] = useState("")
+  const [duration, setDuration] = useState(
+    prefillDuration ? String(prefillDuration) : "55"
+  )
+  const [interviewerId, setInterviewerId] = useState(prefillInterviewerId ?? "")
+  const [location, setLocation] = useState(prefillLocation ?? "")
+  const [meetingUrl, setMeetingUrl] = useState(prefillMeetingUrl ?? "")
   const [busy, setBusy] = useState(false)
 
   async function submit(e: React.FormEvent) {
@@ -67,7 +80,7 @@ export function NewEventModal({
       >
         <div className="flex items-center justify-between border-b border-[var(--line-faint)] px-5 py-4">
           <h2 className="m-0 text-[15px] font-semibold text-primary">
-            ראיון חדש
+            {isEdit ? "עריכת ראיון" : "ראיון חדש"}
           </h2>
           <button
             onClick={onClose}
@@ -80,9 +93,10 @@ export function NewEventModal({
           <Field label="מועמד" required>
             <select
               required
+              disabled={isEdit}
               value={candidateId}
               onChange={(e) => setCandidateId(e.target.value)}
-              className={inputCls}
+              className={inputCls + (isEdit ? " opacity-60" : "")}
             >
               <option value="">בחר מועמד…</option>
               {candidates.map((c) => (
@@ -175,7 +189,7 @@ export function NewEventModal({
               className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-[13px] font-medium text-white hover:bg-accent-hover disabled:opacity-60"
             >
               <Clock className="h-4 w-4" />
-              {busy ? "שומר…" : "קבע ראיון"}
+              {busy ? "שומר…" : isEdit ? "שמור שינויים" : "קבע ראיון"}
             </button>
           </div>
         </form>

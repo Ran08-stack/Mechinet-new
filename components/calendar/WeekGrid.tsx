@@ -236,7 +236,7 @@ export function WeekGrid({
                             : "var(--stage-interview-fg)",
                         }}
                       >
-                        {iv.candidates?.full_name ?? "מועמד"}
+                        {shortName(iv.candidates?.full_name ?? "מועמד")}
                       </div>
                       {(interviewer || iv.location) && (
                         <div className="truncate text-[10.5px] text-fg-subtle">
@@ -261,4 +261,12 @@ export function WeekGrid({
 
 function fmtHM(d: Date): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+}
+
+// מקצר שם מלא ל"ר. שטרן" כדי שיתאים לתאי שבוע צרים
+function shortName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return name
+  if (parts.length === 1) return parts[0]
+  return `${parts[0][0]}. ${parts.slice(1).join(" ")}`
 }

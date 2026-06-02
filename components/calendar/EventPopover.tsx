@@ -10,6 +10,7 @@ import {
   Trash2,
   ClipboardCheck,
   ExternalLink,
+  Pencil,
 } from "lucide-react"
 import { InterviewWithCandidate, Interviewer, avatarColor } from "./CalendarView"
 
@@ -38,12 +39,14 @@ export function EventPopover({
   interviewers,
   onClose,
   onDelete,
+  onEdit,
   onStatusChange,
 }: {
   interview: InterviewWithCandidate
   interviewers: Interviewer[]
   onClose: () => void
   onDelete: () => void
+  onEdit: () => void
   onStatusChange: (status: string) => void
 }) {
   const interviewer = interviewers.find((m) => m.id === interview.interviewer_id)
@@ -145,6 +148,13 @@ export function EventPopover({
           >
             <Trash2 className="h-3.5 w-3.5" />
             בטל ראיון
+          </button>
+          <button
+            onClick={onEdit}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[12.5px] text-fg hover:bg-surface"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            ערוך
           </button>
           <Link
             href={`/interviews/${interview.id}/evaluate`}

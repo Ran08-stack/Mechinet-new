@@ -47,7 +47,7 @@ export function CanvasField({
         ref={setNodeRef}
         style={sortableStyle}
         onClick={onSelect}
-        className={`group relative my-1 cursor-pointer rounded-md border px-3.5 py-3 transition-all ${
+        className={`group relative my-1 cursor-pointer rounded-md border ps-9 pe-3.5 py-3 transition-all ${
           selected
             ? "border-[var(--accent-line)] bg-surface shadow-[0_0_0_3px_var(--ring),0_1px_3px_rgba(3,22,49,0.04)]"
             : "border-transparent hover:bg-[var(--bg-subtle)]"
@@ -89,7 +89,7 @@ export function CanvasField({
         ref={setNodeRef}
         style={sortableStyle}
         onClick={onSelect}
-        className={`group relative my-1 cursor-pointer rounded-md border px-3.5 py-3 transition-all ${
+        className={`group relative my-1 cursor-pointer rounded-md border ps-9 pe-3.5 py-3 transition-all ${
           selected
             ? "border-[var(--accent-line)] bg-surface shadow-[0_0_0_3px_var(--ring),0_1px_3px_rgba(3,22,49,0.04)]"
             : "border-transparent hover:bg-[var(--bg-subtle)]"
@@ -113,7 +113,7 @@ export function CanvasField({
       ref={setNodeRef}
       style={sortableStyle}
       onClick={onSelect}
-      className={`group relative my-1 cursor-pointer rounded-md border px-3.5 py-3 transition-all ${
+      className={`group relative my-1 cursor-pointer rounded-md border ps-9 pe-3.5 py-3 transition-all ${
         selected
           ? "border-[var(--accent-line)] bg-surface shadow-[0_0_0_3px_var(--ring),0_1px_3px_rgba(3,22,49,0.04)]"
           : "border-transparent hover:bg-[var(--bg-subtle)]"
@@ -201,11 +201,15 @@ function Grip({
       {...(attributes ?? {})}
       {...(listeners ?? {})}
       onClick={(e) => e.stopPropagation()}
-      className={`absolute start-1 top-1/2 -translate-y-1/2 grid h-5 w-4 cursor-grab place-items-center text-[var(--fg-faint)] transition-opacity active:cursor-grabbing ${
-        selected ? "opacity-60" : "opacity-0 group-hover:opacity-60"
+      title="גרור כדי להזיז"
+      className={`absolute start-1 top-1/2 -translate-y-1/2 grid h-9 w-6 cursor-grab place-items-center rounded-md border border-[var(--line-faint)] bg-[var(--bg-subtle)] text-fg-muted touch-none select-none active:cursor-grabbing active:bg-[var(--accent-soft)] active:text-[var(--accent)] ${
+        selected
+          ? "opacity-100"
+          : "opacity-80 md:opacity-0 md:group-hover:opacity-80"
       }`}
+      style={{ touchAction: "none" }}
     >
-      <GripVertical className="h-3 w-3" />
+      <GripVertical className="h-4 w-4" />
     </div>
   )
 }

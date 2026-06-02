@@ -57,11 +57,11 @@ export default async function FormsPage() {
             "radial-gradient(ellipse 800px 320px at 85% -10%, rgba(254,111,66,.08), transparent 60%), radial-gradient(ellipse 600px 240px at 15% 110%, rgba(55,71,101,.06), transparent 65%), var(--surface)",
         }}
       >
-        <div className="mx-auto max-w-[1200px] px-7 py-10">
-          <div className="grid grid-cols-1 items-end gap-8 lg:grid-cols-[1.4fr_1fr]">
+        <div className="mx-auto max-w-[1200px] px-4 py-6 md:px-7 md:py-10">
+          <div className="grid grid-cols-1 items-end gap-6 lg:grid-cols-[1.4fr_1fr] md:gap-8">
             {/* כותרת + תיאור */}
             <div>
-              <h1 className="m-0 text-[40px] font-bold leading-[1.1] tracking-[-0.02em] text-primary">
+              <h1 className="m-0 text-[26px] md:text-[40px] font-bold leading-[1.1] tracking-[-0.02em] text-primary">
                 טפסי מועמדות
               </h1>
               <p className="mt-3 max-w-[52ch] text-[14px] leading-[1.55] text-fg-muted">
@@ -93,7 +93,7 @@ export default async function FormsPage() {
       </section>
 
       {/* GRID */}
-      <section className="mx-auto max-w-[1200px] px-7 py-8 pb-16">
+      <section className="mx-auto max-w-[1200px] px-4 py-6 pb-12 md:px-7 md:py-8 md:pb-16">
         {list.length === 0 ? (
           <EmptyState />
         ) : (
@@ -162,10 +162,10 @@ function StatTile({
     ai: "var(--ai-deep)",
   }
   return (
-    <div className="rounded-lg border border-line bg-surface px-4 py-3.5">
+    <div className="rounded-lg border border-line bg-surface px-2.5 py-3 md:px-4 md:py-3.5">
       <div className="flex items-baseline gap-1.5">
         <span
-          className="text-[32px] font-bold leading-none tracking-[-0.02em] [font-variant-numeric:tabular-nums]"
+          className="text-[22px] md:text-[32px] font-bold leading-none tracking-[-0.02em] [font-variant-numeric:tabular-nums]"
           style={{ color: colors[accent] }}
         >
           {value}

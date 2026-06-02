@@ -19,7 +19,7 @@ export default async function CalendarPage() {
 
   if (!userData?.organization_id) {
     return (
-      <div className="px-7 py-7">
+      <div className="px-3 py-4 md:px-7 md:py-7">
         <p className="text-[13px] text-fg-muted">
           לא נמצאה מכינה מחוברת לחשבון זה.
         </p>

@@ -2,12 +2,29 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Building2, ChevronsUpDown, MoreHorizontal } from "lucide-react"
+import {
+  LayoutDashboard,
+  Building2,
+  Network,
+  FileBarChart,
+  Megaphone,
+  FileText,
+  ScrollText,
+  Settings,
+  ChevronsUpDown,
+  MoreHorizontal,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const nav = [
-  { href: "/council", icon: LayoutDashboard, label: "סקירה ארצית" },
-  { href: "/council/academies", icon: Building2, label: "מכינות" },
+  { href: "/council",               icon: LayoutDashboard, label: "סקירה ארצית" },
+  { href: "/council/academies",     icon: Building2,       label: "מכינות" },
+  { href: "/council/movements",     icon: Network,         label: "תנועות" },
+  { href: "/council/reports",       icon: FileBarChart,    label: "דוחות" },
+  { href: "/council/announcements", icon: Megaphone,       label: "הודעות" },
+  { href: "/council/forms",         icon: FileText,        label: "טפסים" },
+  { href: "/council/audit",         icon: ScrollText,      label: "Audit" },
+  { href: "/council/settings",      icon: Settings,        label: "הגדרות" },
 ]
 
 export function CouncilSidebar() {

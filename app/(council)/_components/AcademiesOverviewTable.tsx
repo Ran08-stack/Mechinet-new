@@ -1,11 +1,11 @@
 "use client"
 
-// טבלת ניהול מכינות בסקירה הארצית — client עם סינון (סוג מגדרי / אזור / חיפוש שם) + ייצוא CSV.
-// הנתונים מחושבים בצד השרת (page.tsx) ומועברים כ-rows.
+// טבלת ניהול מכינות בסקירה הארצית — client עם סינון (סוג מגדרי / אזור / חיפוש שם),
+// בורר כמות שורות לעמוד + עימוד, וייצוא CSV. הנתונים מחושבים בשרת (page.tsx).
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Filter, MapPin, Download, Search } from "lucide-react"
+import { ChevronRight, ChevronLeft, Download, Search } from "lucide-react"
 import { ConnectionStatusPill } from "./ConnectionStatusPill"
 
 export type AcademyRow = {
@@ -34,8 +34,22 @@ const REGION_LABEL: Record<Region, string> = {
   unknown: "—",
 }
 
-const selectClass =
-  "inline-flex h-[30px] items-center rounded-md border border-line bg-surface px-2.5 text-[12px] text-fg-muted hover:bg-[var(--bg-subtle)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+const PAGE_SIZES = [12, 24, 32, 64, 100]
+
+const controlClass =
+  "h-[30px] rounded-md border border-line bg-surface px-2.5 text-[12px] text-fg-muted hover:bg-[var(--bg-subtle)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+
+function pageNumbers(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const out: (number | "…")[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  if (start > 2) out.push("…")
+  for (let i = start; i <= end; i++) out.push(i)
+  if (end < total - 1) out.push("…")
+  out.push(total)
+  return out
+}
 
 export function AcademiesOverviewTable({
   rows,
@@ -47,6 +61,8 @@ export function AcademiesOverviewTable({
   const [gender, setGender] = useState("")
   const [region, setRegion] = useState("")
   const [q, setQ] = useState("")
+  const [perPage, setPerPage] = useState(24)
+  const [page, setPage] = useState(1)
 
   const filtered = useMemo(
     () =>
@@ -58,6 +74,17 @@ export function AcademiesOverviewTable({
       }),
     [rows, gender, region, q]
   )
+
+  // איפוס לעמוד הראשון בכל שינוי סינון / כמות
+  useEffect(() => {
+    setPage(1)
+  }, [gender, region, q, perPage])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
+  const safePage = Math.min(page, totalPages)
+  const paged = filtered.slice((safePage - 1) * perPage, safePage * perPage)
+  const from = filtered.length === 0 ? 0 : (safePage - 1) * perPage + 1
+  const to = Math.min(safePage * perPage, filtered.length)
 
   function exportCsv() {
     const headers = ["שם המכינה", "סוג", "איש קשר", "טלפון", "מועמדים", "אזור"]
@@ -83,54 +110,69 @@ export function AcademiesOverviewTable({
 
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-surface">
+      {/* Toolbar: כותרת מימין, פקדים נדחפים שמאלה, ייצוא בסוף */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-4">
-        <h2 className="m-0 mr-auto text-[15px] font-semibold text-primary">ניהול מכינות</h2>
+        <h2 className="m-0 text-[15px] font-semibold text-primary">ניהול מכינות</h2>
 
-        <div className="relative">
-          <Search className="pointer-events-none absolute inset-y-0 start-2 my-auto h-3.5 w-3.5 text-fg-faint" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="חיפוש מכינה"
-            className="h-[30px] w-[150px] rounded-md border border-line bg-surface ps-7 pe-2.5 text-[12px] text-fg placeholder:text-fg-faint focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-          />
-        </div>
+        <div className="ms-auto flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute inset-y-0 start-2 my-auto h-3.5 w-3.5 text-fg-faint" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="חיפוש מכינה"
+              className="h-[30px] w-[160px] rounded-md border border-line bg-surface ps-7 pe-2.5 text-[12px] text-fg placeholder:text-fg-faint focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            />
+          </div>
 
-        <select value={gender} onChange={(e) => setGender(e.target.value)} className={selectClass}>
-          <option value="">כל סוגי המכינות</option>
-          <option value="mixed">מעורבת</option>
-          <option value="boys_only">רק בנים</option>
-          <option value="girls_only">רק בנות</option>
-        </select>
+          <select value={gender} onChange={(e) => setGender(e.target.value)} className={controlClass}>
+            <option value="">כל סוגי המכינות</option>
+            <option value="mixed">מעורבת</option>
+            <option value="boys_only">רק בנים</option>
+            <option value="girls_only">רק בנות</option>
+          </select>
 
-        <select value={region} onChange={(e) => setRegion(e.target.value)} className={selectClass}>
-          <option value="">כל המיקומים</option>
-          <option value="north">צפון</option>
-          <option value="center">מרכז · שפלה</option>
-          <option value="south">דרום</option>
-        </select>
+          <select value={region} onChange={(e) => setRegion(e.target.value)} className={controlClass}>
+            <option value="">כל המיקומים</option>
+            <option value="north">צפון</option>
+            <option value="center">מרכז · שפלה</option>
+            <option value="south">דרום</option>
+          </select>
 
-        {(gender || region || q) && (
-          <button
-            onClick={() => {
-              setGender("")
-              setRegion("")
-              setQ("")
-            }}
-            className="inline-flex h-[30px] items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[12px] text-fg-muted hover:bg-[var(--bg-subtle)]"
+          <select
+            value={perPage}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+            className={controlClass}
+            aria-label="כמות שורות בעמוד"
           >
-            <Filter className="h-3 w-3" />
-            נקה
-          </button>
-        )}
+            {PAGE_SIZES.map((n) => (
+              <option key={n} value={n}>
+                {n} בעמוד
+              </option>
+            ))}
+          </select>
 
-        <button
-          onClick={exportCsv}
-          className="inline-flex h-[30px] items-center gap-1.5 rounded-md border border-[var(--line-strong)] bg-surface px-3 text-[12px] text-primary hover:bg-[var(--primary-soft)]"
-        >
-          <Download className="h-3 w-3" />
-          ייצוא
-        </button>
+          {(gender || region || q) && (
+            <button
+              onClick={() => {
+                setGender("")
+                setRegion("")
+                setQ("")
+              }}
+              className="h-[30px] rounded-md border border-line bg-surface px-3 text-[12px] text-fg-muted hover:bg-[var(--bg-subtle)]"
+            >
+              נקה
+            </button>
+          )}
+
+          <button
+            onClick={exportCsv}
+            className="inline-flex h-[30px] items-center gap-1.5 rounded-md border border-[var(--line-strong)] bg-surface px-3 text-[12px] text-primary hover:bg-[var(--primary-soft)]"
+          >
+            <Download className="h-3 w-3" />
+            ייצוא
+          </button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -153,7 +195,7 @@ export function AcademiesOverviewTable({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((org) => {
+              {paged.map((org) => {
                 const initial = org.name?.[0] ?? "?"
                 return (
                   <tr
@@ -197,12 +239,51 @@ export function AcademiesOverviewTable({
         </div>
       )}
 
-      {rows.length > 0 && (
-        <div className="flex items-center justify-between border-t border-line bg-[var(--bg-subtle)] px-5 py-3.5">
-          <span className="flex items-center gap-1.5 font-mono text-[12px] text-fg-muted">
-            <MapPin className="h-3 w-3 text-fg-faint" />
-            מציג {filtered.length} מתוך {totalAcademies} מכינות
+      {filtered.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-[var(--bg-subtle)] px-5 py-3.5">
+          <span className="font-mono text-[12px] text-fg-muted">
+            מציג {from}–{to} מתוך {filtered.length}
+            {filtered.length !== totalAcademies ? ` (מסונן מתוך ${totalAcademies})` : " מכינות"}
           </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                className="inline-grid h-7 w-7 place-items-center rounded-md border border-line bg-surface text-fg-muted hover:bg-surface disabled:opacity-40"
+                aria-label="הקודם"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              {pageNumbers(safePage, totalPages).map((n, i) =>
+                n === "…" ? (
+                  <span key={`e${i}`} className="px-1 text-[12px] text-fg-subtle">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={n}
+                    onClick={() => setPage(n)}
+                    className={`h-7 min-w-7 rounded-md border px-2 font-mono text-[12px] ${
+                      n === safePage
+                        ? "border-primary bg-primary text-white"
+                        : "border-line bg-surface text-fg-muted hover:bg-surface"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                className="inline-grid h-7 w-7 place-items-center rounded-md border border-line bg-surface text-fg-muted hover:bg-surface disabled:opacity-40"
+                aria-label="הבא"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

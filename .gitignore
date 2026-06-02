@@ -2,7 +2,16 @@ node_modules/
 .next/
 .env.local
 .env*.local
+.env*
 .vercel
+graphify-out/
+.agents/
+council-map-prototype.html
+skills-lock.json
+deploy.log
+deploy.err
+tsc.log
+tsc.err
 .claude/*
 !.claude/skills/
 .claude/settings.local.json

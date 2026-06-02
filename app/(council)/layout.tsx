@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { CouncilSidebar } from "./_components/CouncilSidebar"
+import { CouncilTopbar } from "./_components/CouncilTopbar"
 
 export default async function CouncilLayout({
   children,
@@ -32,6 +33,7 @@ export default async function CouncilLayout({
     >
       <CouncilSidebar />
       <main className="flex min-h-screen flex-col overflow-auto">
+        <CouncilTopbar />
         {children}
       </main>
     </div>

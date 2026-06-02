@@ -24,10 +24,13 @@ export default function AISummaryButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ candidateId }),
       })
-      if (!res.ok) throw new Error("שגיאה בהפקת הסיכום")
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.error ?? "שגיאה בהפקת הסיכום")
+      }
       router.refresh()
-    } catch {
-      setError("לא הצליח להפיק סיכום. נסה שוב.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "לא הצליח להפיק סיכום. נסה שוב.")
     } finally {
       setLoading(false)
     }

@@ -24,7 +24,7 @@ export default async function SettingsPage() {
     return (
       <>
         <Topbar crumb="הגדרות" />
-        <div className="px-7 py-7">
+        <div className="px-3 py-4 md:px-7 md:py-7">
           <p className="text-[13px] text-fg-muted">
             לא נמצאה מכינה מחוברת לחשבון זה.
           </p>
@@ -60,7 +60,7 @@ export default async function SettingsPage() {
   return (
     <>
       <Topbar crumb="הגדרות" />
-      <div className="px-7 pb-14 pt-7">
+      <div className="px-3 pb-10 pt-4 md:px-7 md:pb-14 md:pt-7">
         <div className="mb-5">
           <h1 className="m-0 text-[28px] font-semibold leading-[1.15] tracking-[-0.01em] text-primary">
             הגדרות

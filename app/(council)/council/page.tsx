@@ -134,9 +134,10 @@ export default async function CouncilDashboardPage() {
   const orgRates = organizations
     .map((o) => (countByOrg[o.id] ? (acceptedByOrg[o.id] ?? 0) / countByOrg[o.id] : null))
     .filter((r): r is number => r !== null)
-  const avgProgress = orgRates.length
-    ? Math.round((orgRates.reduce((s, r) => s + r, 0) / orgRates.length) * 100)
-    : 0
+  // ממוצע התקדמות גיוס ארצי — משוקלל לפי כמות המתמיינים:
+  // סך המתקבלים בכל המכינות והשלוחות חלקי סך המתמיינים (ולא ממוצע פשוט של אחוזי שלוחות).
+  const totalAccepted = Object.values(acceptedByOrg).reduce((s, n) => s + n, 0)
+  const avgProgress = totalCandidates ? Math.round((totalAccepted / totalCandidates) * 100) : 0
 
   // breakdown
   const breakdown = {

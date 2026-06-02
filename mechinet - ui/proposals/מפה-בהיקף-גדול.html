@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>הצעה — מפת מכינות ארצית</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+  :root{
+    --bg:#f6f5f1; --surface:#ffffff; --surface-2:#fcfbf8; --bg-subtle:#efeee8;
+    --line:#d8d5cb; --line-faint:#e3e1d7;
+    --primary:#374765; --primary-soft:#e9edf5;
+    --accent:#fe6f42; --accent-hover:#ac3509; --accent-soft:#ffe9df;
+    --ai:#00a58e; --warning:#c98a16; --danger:#c1583d;
+    --fg:#1f2733; --fg-muted:#495264; --fg-subtle:#7a8294;
+    --radius:6px; --radius-lg:10px; --radius-full:999px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:"Rubik",system-ui,sans-serif;font-size:14px;line-height:1.55}
+  body{max-width:1200px;margin:0 auto;padding:24px 22px 60px}
+  header h1{margin:0 0 4px;font-size:22px;font-weight:600;color:var(--primary)}
+  header p{margin:0;font-size:13.5px;color:var(--fg-muted);max-width:78ch}
+  header p strong{color:var(--fg)}
+
+  .map-card{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line-faint)}
+  .toolbar .label{font-size:11px;color:var(--fg-subtle);font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:0.06em;margin-inline-end:4px}
+  .chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-full);font-size:12px;color:var(--fg);cursor:pointer;font-family:inherit;user-select:none}
+  .chip.active{background:var(--primary);color:white;border-color:var(--primary)}
+  .divider{width:1px;height:16px;background:var(--line);margin:0 4px}
+  .reset{margin-inline-start:auto;padding:5px 10px;font-size:12px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);color:var(--fg-muted);cursor:pointer;font-family:inherit}
+
+  .map-row{display:grid;grid-template-columns:1fr 240px;height:480px}
+  @media (max-width:880px){.map-row{grid-template-columns:1fr;height:auto}.side-pane{max-height:320px;border-inline-start:0;border-top:1px solid var(--line-faint)}#map{height:420px}}
+  #map{height:100%;width:100%;background:#dfe7f0;z-index:0}
+  .side-pane{border-inline-start:1px solid var(--line-faint);background:var(--surface-2);overflow-y:auto;padding:10px 14px}
+  .side-pane h3{margin:0 0 6px;font-size:11px;color:var(--fg-subtle);font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:0.06em}
+  .reg-h{margin:10px 0 4px;font-size:12.5px;font-weight:600;color:var(--primary)}
+  .reg-h .tag{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--fg-subtle);font-weight:400;margin-inline-start:6px}
+  .aca{padding:4px 8px;margin:1px 0;border-radius:4px;font-size:12px;cursor:pointer;display:flex;justify-content:space-between;gap:6px;align-items:baseline}
+  .aca:hover{background:var(--primary-soft);color:var(--primary)}
+  .aca .meta{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--fg-subtle);flex-shrink:0}
+
+  .stats{display:flex;gap:14px;padding:8px 14px;background:var(--surface);border-top:1px solid var(--line-faint);font-size:11.5px;color:var(--fg-muted);flex-wrap:wrap}
+  .stats b{color:var(--primary);font-family:ui-monospace,Menlo,monospace}
+
+  .leaflet-popup-content-wrapper{border-radius:var(--radius-lg)}
+  .leaflet-popup-content{margin:10px 12px;font-family:"Rubik",sans-serif;font-size:13px;line-height:1.5}
+  .leaflet-popup-content h4{margin:0 0 3px;font-size:13.5px;color:var(--primary);font-weight:600}
+  .leaflet-popup-content .meta{color:var(--fg-muted);font-size:12px}
+  .leaflet-popup-content .actions{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+  .leaflet-popup-content .actions button{padding:4px 10px;font-size:11.5px;border-radius:4px;border:1px solid var(--line);background:var(--surface);color:var(--primary);cursor:pointer;font-family:inherit}
+  .leaflet-popup-content .actions button.primary{background:var(--accent);color:white;border-color:var(--accent)}
+
+  .pin{width:18px;height:18px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.35)}
+  .pin.boys{background:#374765}
+  .pin.girls{background:#c1583d}
+  .pin.mixed{background:#fe6f42}
+  .marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(55,71,101,0.25)}
+  .marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:#374765;color:white;font-family:ui-monospace,Menlo,monospace;font-weight:700}
+
+  section.qs{margin-top:24px;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg)}
+  section.qs h2{margin:0 0 8px;font-size:15px;color:var(--primary);font-weight:600}
+  section.qs ol{margin:0;padding-inline-start:22px;font-size:13px;color:var(--fg-muted)}
+  section.qs ol li{margin:5px 0}
+  .legend{display:inline-flex;gap:10px;margin-top:8px;font-size:11.5px;color:var(--fg-muted);flex-wrap:wrap;align-items:center}
+  .legend .sw{width:10px;height:10px;border-radius:50%;display:inline-block;margin-inline-end:4px;vertical-align:middle;border:1.5px solid white;box-shadow:0 0 0 1px var(--line)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>מפת מכינות — אב-טיפוס</h1>
+  <p><strong>70 מכינות · 97 שלוחות אמיתיות</strong> שנמשכו מהדפים האישיים של כל מכינה ב-mechinot.org.il. הקואורדינטות מאומתות דרך OpenStreetMap. 8 שלוחות שהוגדרו רק כאזור כללי לא נמצאות במפה (אין מיקום מדויק).</p>
+  <div class="legend">
+    <span><span class="sw" style="background:#374765"></span>בנים</span>
+    <span><span class="sw" style="background:#c1583d"></span>בנות</span>
+    <span><span class="sw" style="background:#fe6f42"></span>מעורבת</span>
+    <span style="color:var(--fg-subtle)">· לחץ על נקודה לפרטים · לחץ על מכינה ברשימה לזום</span>
+  </div>
+</header>
+
+<div class="map-card">
+  <div class="toolbar">
+    <span class="label">סינון</span>
+    <span class="chip active" data-f="all">הכל</span>
+    <span class="divider"></span>
+    <span class="chip" data-f="gender" data-v="boys">בנים</span>
+    <span class="chip" data-f="gender" data-v="girls">בנות</span>
+    <span class="chip" data-f="gender" data-v="mixed">מעורבת</span>
+    <span class="divider"></span>
+    <span class="chip" data-f="rel" data-v="religious">דתי</span>
+    <span class="chip" data-f="rel" data-v="secular">חילוני</span>
+    <span class="chip" data-f="rel" data-v="mixed">מעורב</span>
+    <button class="reset" id="reset">נקה</button>
+  </div>
+
+  <div class="map-row">
+    <div id="map"></div>
+    <aside class="side-pane">
+      <h3>רשימת מכינות לפי אזור</h3>
+      <div id="tree"></div>
+    </aside>
+  </div>
+
+  <div class="stats" id="stats"></div>
+</div>
+
+<section class="qs">
+  <h2>שאלות לפני שמכניסים ל-Supabase</h2>
+  <ol>
+    <li>שלוחה = ארגון נפרד עם מנהל, או רק תיוג גיאוגרפי על מועמד?</li>
+    <li>קליק על נקודה — פופאפ כמו עכשיו, או קפיצה ישר לדשבורד המכינה?</li>
+    <li>איזה שדות לסינון להוסיף? (תנועה / שנתית-חצי שנתית / גודל)</li>
+    <li>8 השלוחות בלי קואורדינטות מדויקות — להשאיר כרשימה צידית, או לבקש מהמועצה כתובת מדויקת?</li>
+  </ol>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const RAW = [["מכינת כאייל","אופקים",31.3125831,34.6208537,"boys","religious",0],["מכינת ערבה","חצבה",30.7677164,35.2796246,"mixed","secular",1],["מכינת ערבה","פארן",30.3626131,35.1538972,"mixed","secular",1],["מכינת ערבה","עין יהב",30.6569021,35.2381753,"mixed","secular",1],["מכינת ערבה","צופר",30.5586234,35.1801426,"mixed","secular",1],["רוח השדה","קיבוץ בארות יצחק",32.0393656,34.9109112,"boys","religious",0],["מכינת חמדת יהודה","חמדת",32.9488949,35.4245296,"boys","religious",0],["מכינת מעמקים","קיבוץ מגן",31.2990681,34.4289248,"mixed","secular",0],["מכינת תבור","רמת השופט",32.6119762,35.0949392,"mixed","secular",1],["מכינת תבור","נוף הגליל",32.7023065,35.3183216,"mixed","secular",1],["מכינת תבור","קריית שמונה",33.2074733,35.5707828,"mixed","secular",1],["מכינת בני דוד","עלי",31.6558401,34.5761658,"boys","religious",1],["מכינת בני דוד","מעלה אפרים",32.3245869,34.8475908,"boys","religious",1],["מכינת שובו אחים","רחובות",31.8952532,34.8105616,"boys","religious",0],["מכינת דרך ארץ","ערד",31.2612199,35.214581,"mixed","secular",1],["מכינת דרך ארץ","אשקלון",31.6653191,34.565044,"mixed","secular",1],["מכינת עצם","מושב נווה",31.9252607,34.855977,"boys","religious",0],["מכינת אבנר - עכו","עכו",32.9281731,35.0756378,"boys","religious",0],["מכינת מדרשת השילוב נטור","נטור",32.8538055,35.7514617,"mixed","mixed",0],["מכינת רוח נכון","עין כרם, ירושלים",31.7676367,35.1639025,"mixed","mixed",1],["מכינת רוח נכון","רותם",31.2652918,35.2256532,"mixed","mixed",1],["מכינת חוסן","פדואל",32.0618402,35.0531672,"boys","religious",0],["מכינת אורות","טלמון",32.0513715,34.7891525,"boys","religious",0],["מכינת עמי-חי","קיבוץ כרמים",31.3356266,34.9190091,"mixed","mixed",1],["מכינת עמי-חי","באר שבע",31.2457442,34.7925181,"mixed","mixed",1],["מכינת יפתח","קיבוץ רביד",32.8515851,35.4634262,"mixed","secular",1],["מכינת יפתח","קיבוץ לוחמי הגטאות",32.9628515,35.097375,"mixed","secular",1],["מכינת דרך אבות","מושב בני ראם",31.7697849,34.79065,"boys","religious",0],["מכינת עז שלמה","קריית מלאכי",31.7469145,34.8225068,"boys","religious",0],["מכינת חברותא","ירושלים",31.7788472,35.2257856,"mixed","mixed",0],["מכינת גל","עכו",32.9281731,35.0756378,"mixed","secular",1],["מכינת גל","קריית ביאליק",32.8366858,35.0893343,"mixed","secular",1],["מכינת גל","חיפה",32.8191218,34.9983856,"mixed","secular",1],["מכינת גל","נטועה",33.0649415,35.3233116,"mixed","secular",1],["מכינת קשת יהודה","קשת",32.980733,35.8085857,"boys","religious",0],["מכינת ידידיה","בית שמש",31.746214,34.9886825,"boys","religious",0],["מכינת בית ישראל","ירושלים",31.7788472,35.2257856,"mixed","mixed",0],["מכינת בארי","בית ברל",32.2025325,34.9266038,"mixed","secular",1],["מכינת בארי","כפר הנוער כנות",31.8092328,34.7538808,"mixed","secular",1],["מכינת מעלה אפרים","מעלה אפרים",32.3245869,34.8475908,"boys","religious",0],["מכינת תלם","יפו",32.0443395,34.7509908,"mixed","secular",1],["מכינת תלם","חולון",32.0193121,34.7804076,"mixed","secular",1],["מכינת הירושלמית","קריית יובל, ירושלים",31.7665629,35.1746366,"mixed","secular",1],["מכינת הירושלמית","הגבעה הצרפתית, ירושלים",31.8040234,35.2382763,"mixed","secular",1],["מכינת מגן שאול - נוקדים","נוקדים",31.3049236,35.2742358,"boys","religious",0],["מכינת השומר החדש","חוות רון, ערד",31.2612199,35.214581,"mixed","mixed",0],["מכינת דרור","יד מרדכי",31.5886771,34.5589997,"mixed","secular",1],["מכינת דרור","מפלסים",31.5026787,34.5621232,"mixed","secular",1],["מכינת איתן","משמר אדומים",31.7705643,35.2987457,"boys","religious",0],["מכינת באר אורה","באר אורה",29.7101748,34.986604,"mixed","secular",0],["מכינת בנות המדבר","קיבוץ עין גדי",31.450696,35.380524,"girls","mixed",0],["מכינת מגדלור","בית ברל",32.2025325,34.9266038,"mixed","secular",1],["מכינת מגדלור","תל יצחק",32.2560031,34.8693388,"mixed","secular",1],["מכינת בית יתיר","בית יתיר",31.3376271,35.0341281,"boys","religious",0],["מכינת יסודות","יד השמונה",31.8094724,35.0901961,"mixed","secular",0],["מכינת מיתרים לכיש","בית גוברין",31.5979099,34.8976497,"mixed","mixed",1],["מכינת מיתרים לכיש","קיבוץ דורות",31.510739,34.648852,"mixed","mixed",1],["מכינת מיתרים לכיש","קיבוץ נחל עוז",31.4724074,34.4982114,"mixed","mixed",1],["מכינת אדרת","כפר הנוער עיינות",31.9159502,34.7677914,"mixed","mixed",1],["מכינת אדרת","בן שמן",31.9522788,34.921944,"mixed","mixed",1],["מכינת אדרת","הדסה נעורים",32.3733155,34.8621968,"mixed","mixed",1],["מכינת תמיר","קצרין",32.9920262,35.6877004,"boys","religious",0],["מכינת עין פרת","כפר אדומים",31.8276148,35.3369868,"mixed","mixed",0],["המכינה המדעית","אופקים",31.3125831,34.6208537,"mixed","secular",0],["מכינת עטרת ירושלים","העיר העתיקה, ירושלים",31.7782872,35.2319526,"boys","religious",0],["מכינת רבין","גשר הזיו",33.0394679,35.1109814,"mixed","secular",1],["מכינת רבין","חיפה",32.8191218,34.9983856,"mixed","secular",1],["מכינת רבין","מזרע",32.6509756,35.2861087,"mixed","secular",1],["מכינת רבין","ראש הנקרה",33.0933543,35.104439,"mixed","secular",1],["מכינת ימין אורד","חצור הגלילית",32.9791697,35.543327,"boys","secular",0],["מכינת גבריאל - מבואות יריחו","מבואות יריחו",31.9080303,35.4171007,"boys","religious",0],["מכינת הנגב","שדה בוקר",30.8737395,34.7925947,"mixed","secular",1],["מכינת הנגב","קיבוץ חולית",31.2318728,34.3265102,"mixed","secular",1],["מכינת הנגב","קיבוץ צאלים",31.2036632,34.5338387,"mixed","secular",1],["מכינת הנגב","קיבוץ משמר הנגב",31.368513,34.71246,"mixed","secular",1],["מכינת לפידות - אמונה","מצפה דני",31.8104216,35.0790545,"girls","religious",0],["המכינה החדשה בלוד","לוד",31.9489012,34.8884857,"boys","religious",0],["מכינת כרם אל","דלית אל כרמל",32.6922393,35.0482785,"mixed","mixed",0],["מכינת חביבה רייק","חדרה",32.440742,34.9401053,"mixed","secular",1],["מכינת חביבה רייק","חריש",32.45964,35.0510843,"mixed","secular",1],["מכינת חביבה רייק","פרדס חנה",32.4808605,34.9877222,"mixed","secular",1],["מכינת יונתן - עלומים וסעד","קיבוץ עלומים",31.4521295,34.5137154,"mixed","religious",1],["מכינת יונתן - עלומים וסעד","קיבוץ סעד",32.05078,34.77369,"mixed","religious",1],["מכינת לביא","אור יהודה",32.0270045,34.8629898,"boys","religious",0],["מכינת ניר עוז","קיבוץ ניר עוז",31.3095982,34.400815,"mixed","secular",0],["מכינת גליל עליון","קיבוץ אפיקים",32.093311,34.96999,"mixed","secular",1],["מכינת גליל עליון","קיבוץ כפר הנשיא",32.9748875,35.6038283,"mixed","secular",1],["מכינת גליל עליון","קיבוץ שדה נחמיה",33.1869061,35.6245075,"mixed","secular",1],["מכינת גליל עליון","קיבוץ עמיר",33.1795517,35.618242,"mixed","secular",1],["מכינת צהלי","קיבוץ עין צורים",31.6940539,34.7200879,"girls","religious",1],["מכינת צהלי","קיבוץ קבוצת יבנה",31.8138222,34.7190625,"girls","religious",1],["מכינת אלישע | נווה צוף","נווה צוף",32.0063136,35.1269219,"boys","religious",0],["מכינת מיצר","מיצר",32.7686851,35.7369807,"mixed","secular",0],["מכינת חנתון","קיבוץ חנתון",32.7826077,35.2458555,"mixed","mixed",0],["מכינת עורי","גבעת וושינגטון",31.8168499,34.7281236,"girls","religious",0],["מכינת ארזי הלבנון - חיבת ציון יפו","יפו",32.0443395,34.7509908,"boys","religious",0],["מכינת בינ\"ה","נהריה",33.006306,35.0945579,"mixed","secular",0]];
+const BRANCHES = RAW.map((r,i) => ({ id:"b"+i, name:r[0], city:r[1], lat:r[2], lng:r[3], gender:r[4], rel:r[5], multi:!!r[6] }));
+
+const filters = { gender:null, rel:null };
+const map = L.map("map", { zoomControl:true, scrollWheelZoom:true }).setView([31.7, 35.0], 7);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18, attribution:"© OpenStreetMap" }).addTo(map);
+
+const cluster = L.markerClusterGroup({ showCoverageOnHover:false, maxClusterRadius:35 });
+map.addLayer(cluster);
+
+const markers = {};
+function genLabel(g){ return g==="boys"?"בנים":g==="girls"?"בנות":"מעורבת" }
+function relLabel(r){ return r==="religious"?"דתי":r==="secular"?"חילוני":"מעורב" }
+function passes(b){
+  if (filters.gender && b.gender !== filters.gender) return false;
+  if (filters.rel && b.rel !== filters.rel) return false;
+  return true;
+}
+function buildIcon(b){
+  return L.divIcon({ html:`<div class="pin ${b.gender}"></div>`, className:"", iconSize:[18,18], iconAnchor:[9,9] });
+}
+function popupHtml(b){
+  return `<h4>${b.name}</h4>
+    <div class="meta">${b.city}${b.multi?" · שלוחה":""}<br/>${genLabel(b.gender)} · ${relLabel(b.rel)}</div>
+    <div class="actions">
+      <button class="primary">פתח דשבורד</button>
+      <button>צור קשר</button>
+    </div>`;
+}
+
+BRANCHES.forEach((b) => {
+  const m = L.marker([b.lat, b.lng], { icon: buildIcon(b) });
+  m.bindPopup(popupHtml(b));
+  markers[b.id] = m;
+});
+
+function refresh(){
+  cluster.clearLayers();
+  const visible = BRANCHES.filter(passes);
+  visible.forEach((b) => cluster.addLayer(markers[b.id]));
+  renderTree(visible);
+  renderStats(visible);
+}
+
+function renderStats(visible){
+  const academies = new Set(visible.map((b) => b.name)).size;
+  document.getElementById("stats").innerHTML =
+    `מציג <b>${academies}</b> מכינות · <b>${visible.length}</b> שלוחות`;
+}
+
+function renderTree(visible){
+  const tree = document.getElementById("tree");
+  const regOf = (lat) => lat>=32.5?"north":lat>=31.5?"center":"south";
+  const labels = { north:"צפון", center:"מרכז · שפלה", south:"דרום" };
+  const groups = { north:{}, center:{}, south:{} };
+  visible.forEach((b) => {
+    const r = regOf(b.lat);
+    if (!groups[r][b.name]) groups[r][b.name] = [];
+    groups[r][b.name].push(b);
+  });
+  let html = "";
+  ["north","center","south"].forEach((k) => {
+    const names = Object.keys(groups[k]);
+    if (!names.length) return;
+    html += `<div class="reg-h">${labels[k]} <span class="tag">${names.length} מכינות</span></div>`;
+    names.sort((x,y) => x.localeCompare(y,"he")).forEach((name) => {
+      const list = groups[k][name];
+      const meta = list.length === 1 ? list[0].city : list.length + " שלוחות";
+      html += `<div class="aca" data-id="${list[0].id}"><span>${name}</span><span class="meta">${meta}</span></div>`;
+    });
+  });
+  if (!visible.length) html = `<p style="color:var(--fg-subtle);font-size:12px">אין מכינות עם הסינון הזה.</p>`;
+  tree.innerHTML = html;
+}
+
+document.querySelector(".toolbar").addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  const f = chip.dataset.f, v = chip.dataset.v;
+  if (f === "all") {
+    filters.gender = null; filters.rel = null;
+    document.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+    chip.classList.add("active");
+  } else {
+    document.querySelector(".chip[data-f=all]").classList.remove("active");
+    if (filters[f] === v) { filters[f] = null; chip.classList.remove("active"); }
+    else {
+      filters[f] = v;
+      document.querySelectorAll(`.chip[data-f=${f}]`).forEach((c) => c.classList.toggle("active", c === chip));
+    }
+    if (!filters.gender && !filters.rel) document.querySelector(".chip[data-f=all]").classList.add("active");
+  }
+  refresh();
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  filters.gender = null; filters.rel = null;
+  document.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+  document.querySelector(".chip[data-f=all]").classList.add("active");
+  refresh();
+});
+
+document.getElementById("tree").addEventListener("click", (e) => {
+  const el = e.target.closest(".aca");
+  if (!el) return;
+  const b = BRANCHES.find((x) => x.id === el.dataset.id);
+  if (!b) return;
+  map.setView([b.lat, b.lng], 11, { animate: true });
+  setTimeout(() => markers[b.id].openPopup(), 400);
+});
+
+refresh();
+</script>
+
+</body>
+</html>

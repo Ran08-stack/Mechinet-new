@@ -24,7 +24,7 @@ export default async function EvaluatePage({
 
   if (!userData?.organization_id) {
     return (
-      <div className="px-7 py-7">
+      <div className="px-3 md:px-7 py-7">
         <p className="text-[13px] text-fg-muted">
           לא נמצאה מכינה מחוברת לחשבון זה.
         </p>
@@ -55,7 +55,7 @@ export default async function EvaluatePage({
   return (
     <div>
       {/* נתיב */}
-      <div className="flex h-[60px] items-center gap-3.5 border-b border-line bg-surface px-7">
+      <div className="flex h-[60px] items-center gap-3.5 border-b border-line bg-surface px-3 md:px-7">
         <div className="flex items-center gap-2 text-[13px] text-fg-subtle">
           <Link href="/calendar" className="hover:text-fg">
             יומן

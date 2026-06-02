@@ -381,5 +381,14 @@
 - בדיקת דאטה (SQL): 100 שלוחות — כולן lat/lng+מגדר+דת+status, אבל רק 1/100 עם contact_person/phone. הטבלה מציגה "—" כי הדאטה ריקה, לא באג. לא הומצאו נתונים.
 - מצב לפני: העמוד כבר היה עשיר (מפת Leaflet אמיתית, KPI, status, AI insight חי), אבל כפתורי toolbar (סוג/מיקום/סינון/ייצוא) + כפתורי AI insight (דוח/רענן/אשר) היו disabled/מתים.
 - נעשה: (1) AcademiesOverviewTable.tsx (client) — סינון מגדר + אזור (נגזר מ-lat: צפון≥32.5/מרכז≥31.5/דרום) + חיפוש שם + ייצוא CSV (BOM). הטבלה הוצאה מ-page.tsx לרכיב. (2) CouncilInsightActions.tsx (client) + council-actions.ts (server action refreshCouncilInsight=revalidateTag). דוח→ניווט ל-/council/reports (מסך דוחות קיים), רענן→action+router.refresh, אשר→אישור ויזואלי בסשן (ללא persistence). (3) CouncilInsight: נוסף tag "council-insight" ל-cache. (4) הוסר כפתור "לפי אזור" מת בכותרת המפה.
-- tsc נקי. build רץ. קבצים: page.tsx, CouncilInsight.tsx (שונו) + 3 חדשים.
+- tsc נקי. build exit 0. קבצים: page.tsx, CouncilInsight.tsx (שונו) + 3 חדשים.
+- deploy: vercel --prod (מקומי) הצליח — dpl_4tFQhVvc2i3EjK9LUU9gMnQvyyVP READY, חי ב-mechinet-new.vercel.app.
+- חוב טכני שהתגלה: git push ל-main נחסם (remote התפצל — 2 commits Sidebar/פונט שאין מקומית; --force היה מוחק אותם, לא בוצע). בנוסף קבצים untracked שהקוד תלוי בהם (ConnectionStatusPill, components/council/, council/reports/) לא ב-git → build מ-GitHub היה נכשל. vercel --prod עוקף כי מעלה קבצים מקומיים. לסדר git בסשן נפרד.
+
+### 2026-06-02 — סקירה ארצית: חיפוש טופבר + avgProgress משוקלל + רה-דיזיין טבלה
+- רן ביקש 3 דברים על /council (אותו מסך):
+- (1) חיפוש בטופבר כמו בצד מכינה: נוצר CouncilQuickSearch.tsx (client) — טוען organizations+academies פעם אחת, מסנן לפי שם/עיר/שם מכינה, dropdown תחת ה-input, ⌘K/Ctrl+K, קליק→/council/academies/[id]. לא מחפש מועמדים (RLS אוסר drill-down). הוחלף ה-input המת ב-CouncilTopbar.
+- (2) avgProgress: שונה מממוצע פשוט של אחוזי שלוחות ל-**משוקלל לפי כמות מתמיינים** — totalAccepted/totalCandidates ארצי. orgRates נשאר (לספירת "מעל היעד"/"מתחת לממוצע").
+- (3) רה-דיזיין toolbar בטבלה (AcademiesOverviewTable): כותרת "ניהול מכינות" מימין, פקדים ב-ms-auto נדחפים שמאלה, ייצוא אחרון. נוסף בורר כמות שורות PAGE_SIZES=[12,24,32,64,100] (ברירת מחדל 24) + עימוד מלא (pageNumbers helper, חצים ChevronRight/Left ל-RTL, מספרי עמוד). footer "מציג A–B מתוך N".
+- tsc נקי + build exit 0. deploy: vercel --prod (מקומי) READY — mechinet-baymf8fx4, חי ב-mechinet-new.vercel.app.
 - חוסך לעתיד: persistence לאישור תובנה + "דוח לדירקטוריון" אמיתי תלויים ב-RAN-15 (מסך דוחות). הזנת contact_person/phone לשלוחות = דאטה ידנית דרך דף השלוחה.

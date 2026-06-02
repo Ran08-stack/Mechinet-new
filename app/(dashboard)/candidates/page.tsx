@@ -8,10 +8,20 @@ import { PipelineStage } from "@/types/database"
 export default async function CandidatesPage({
   searchParams,
 }: {
-  searchParams: { stage?: string }
+  searchParams: {
+    stage?: string
+    search?: string
+    city?: string
+    sortBy?: string
+    page?: string
+  }
 }) {
   const supabase = await createClient()
   const initialStage = searchParams?.stage ?? "all"
+  const initialSearch = searchParams?.search ?? ""
+  const initialCity = searchParams?.city ?? ""
+  const initialSortBy = searchParams?.sortBy ?? "date"
+  const initialPage = Number(searchParams?.page ?? "0") || 0
 
   const {
     data: { user },
@@ -72,26 +82,26 @@ export default async function CandidatesPage({
 
       <div className="pb-14">
         {/* כותרת העמוד */}
-        <div className="flex flex-wrap items-end justify-between gap-6 px-7 pb-[18px] pt-7">
+        <div className="flex flex-wrap items-end justify-between gap-4 px-3 pb-3 pt-5 md:gap-6 md:px-7 md:pb-[18px] md:pt-7">
           <div>
-            <h1 className="m-0 text-[24px] font-semibold leading-[34px] tracking-[-0.015em] text-primary">
+            <h1 className="m-0 text-[20px] md:text-[24px] font-semibold leading-[1.2] tracking-[-0.015em] text-primary">
               מועמדים
             </h1>
-            <p className="mt-1.5 text-[13px] text-fg-muted">
+            <p className="mt-1.5 text-[12px] md:text-[13px] text-fg-muted">
               כל המועמדים בתהליך הגיוס של המכינה.
             </p>
           </div>
 
           {/* סטטיסטיקות */}
-          <div className="flex items-center gap-7">
+          <div className="flex items-center gap-4 md:gap-7">
             {stats.map((s, i) => (
-              <div key={s.k} className="flex items-center gap-7">
+              <div key={s.k} className="flex items-center gap-4 md:gap-7">
                 {i > 0 && <div className="h-7 w-px bg-line" />}
                 <div className="text-end">
-                  <div className="text-[20px] font-semibold tracking-[-0.01em] [font-variant-numeric:tabular-nums]">
+                  <div className="text-[16px] md:text-[20px] font-semibold tracking-[-0.01em] [font-variant-numeric:tabular-nums]">
                     {s.v}
                   </div>
-                  <div className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.06em] text-fg-subtle">
+                  <div className="mt-0.5 font-mono text-[10px] md:text-[11px] uppercase tracking-[0.06em] text-fg-subtle">
                     {s.k}
                   </div>
                 </div>
@@ -100,7 +110,16 @@ export default async function CandidatesPage({
           </div>
         </div>
 
-        <CandidatesTable candidates={list} stages={stages} initialStage={initialStage} />
+        <CandidatesTable
+          candidates={list}
+          stages={stages}
+          initialStage={initialStage}
+          initialSearch={initialSearch}
+          initialCity={initialCity}
+          initialSortBy={initialSortBy}
+          initialPage={initialPage}
+          organizationId={userData?.organization_id ?? ""}
+        />
       </div>
     </>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   ArrowDownWideNarrow,
   Download,
+  Upload,
   ArrowLeftRight,
   MessageSquarePlus,
   Trash2,
@@ -19,6 +20,9 @@ import {
 import { Candidate, PipelineStage } from "@/types/database"
 import { formatDate } from "@/lib/utils"
 import { StageBadge } from "@/components/ui/StageBadge"
+import { useToast } from "@/components/ui/Toaster"
+import SavedViewsMenu, { ViewFilters } from "./SavedViewsMenu"
+import ImportCSVModal from "./ImportCSVModal"
 
 const AV_GRADIENTS = [
   "linear-gradient(135deg,#b6c7ea,#374765)",
@@ -83,21 +87,55 @@ export default function CandidatesTable({
   candidates,
   stages,
   initialStage = "all",
+  initialSearch = "",
+  initialCity = "",
+  initialSortBy = "date",
+  initialPage = 0,
+  organizationId = "",
 }: {
   candidates: Candidate[]
   stages: PipelineStage[]
   initialStage?: string
+  initialSearch?: string
+  initialCity?: string
+  initialSortBy?: string
+  initialPage?: number
+  organizationId?: string
 }) {
   const router = useRouter()
-  const [search, setSearch] = useState("")
+  const { toast } = useToast()
+  const [search, setSearch] = useState(initialSearch)
   const [stageFilter, setStageFilter] = useState<string>(initialStage)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [sortKey, setSortKey] = useState<SortKey>("date")
+  const [sortKey, setSortKey] = useState<SortKey>(
+    initialSortBy === "name" ? "name" : "date"
+  )
   const [sortOpen, setSortOpen] = useState(false)
   const [pageSize, setPageSize] = useState(24)
-  const [page, setPage] = useState(0)
+  const [page, setPage] = useState(initialPage)
   const [filterOpen, setFilterOpen] = useState(false)
-  const [cityFilter, setCityFilter] = useState("")
+  const [cityFilter, setCityFilter] = useState(initialCity)
+  const [importOpen, setImportOpen] = useState(false)
+
+  // סנכרון פילטרים ל-URL (replace, לא push)
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (stageFilter !== "all") params.set("stage", stageFilter)
+    if (search) params.set("search", search)
+    if (cityFilter) params.set("city", cityFilter)
+    if (sortKey !== "date") params.set("sortBy", sortKey)
+    if (page > 0) params.set("page", String(page))
+    const qs = params.toString()
+    router.replace(qs ? `/candidates?${qs}` : "/candidates", { scroll: false })
+  }, [stageFilter, search, cityFilter, sortKey, page, router])
+
+  function applySavedView(f: ViewFilters) {
+    setStageFilter(f.stage || "all")
+    setSearch(f.search || "")
+    setCityFilter(f.city || "")
+    setSortKey(f.sortBy === "name" ? "name" : "date")
+    setPage(0)
+  }
 
   // מצבי ה-bulkbar
   const [stageMenuOpen, setStageMenuOpen] = useState(false)
@@ -185,21 +223,19 @@ export default function CandidatesTable({
   async function bulkChangeStage(stage: string) {
     setBusy(true)
     const supabase = createClient()
-    const ids = Array.from(selected)
-    await supabase
-      .from("candidates")
-      .update({ stage })
-      .in("id", ids)
+    const affected = candidates.filter((c) => selected.has(c.id))
+    // snapshot של שלב קודם לכל מועמד — מאפשר rollback
+    const snapshot = affected.map((c) => ({ id: c.id, stage: c.stage }))
+    const ids = snapshot.map((s) => s.id)
+    await supabase.from("candidates").update({ stage }).in("id", ids)
     const { data: { user } } = await supabase.auth.getUser()
-    const events = candidates
-      .filter((c) => selected.has(c.id))
-      .map((c) => ({
-        candidate_id: c.id,
-        organization_id: c.organization_id,
-        type: "stage_changed",
-        description: `השלב שונה ל"${stage}"`,
-        actor_id: user?.id ?? null,
-      }))
+    const events = affected.map((c) => ({
+      candidate_id: c.id,
+      organization_id: c.organization_id,
+      type: "stage_changed",
+      description: `השלב שונה ל"${stage}"`,
+      actor_id: user?.id ?? null,
+    }))
     if (events.length > 0) {
       await supabase.from("candidate_events").insert(events)
     }
@@ -207,11 +243,28 @@ export default function CandidatesTable({
     closeBulkMenus()
     setSelected(new Set())
     router.refresh()
+    toast({
+      message: `${snapshot.length} מועמדים הועברו ל"${stage}"`,
+      action: {
+        label: "בטל",
+        onClick: async () => {
+          const sb = createClient()
+          // החזרה לשלב המקורי per-row
+          await Promise.all(
+            snapshot.map((s) =>
+              sb.from("candidates").update({ stage: s.stage }).eq("id", s.id)
+            )
+          )
+          router.refresh()
+        },
+      },
+    })
   }
 
   async function bulkDelete() {
     setBusy(true)
-    const ids = Array.from(selected)
+    const affected = candidates.filter((c) => selected.has(c.id))
+    const ids = affected.map((c) => c.id)
     // API מטפל גם בניקוי קבצים מ-storage לפני מחיקת ה-rows
     await fetch("/api/candidates/delete", {
       method: "POST",
@@ -222,6 +275,34 @@ export default function CandidatesTable({
     closeBulkMenus()
     setSelected(new Set())
     router.refresh()
+    // snapshot מלא ל-undo (re-insert)
+    const snapshot = affected.map((c) => ({
+      id: c.id,
+      organization_id: c.organization_id,
+      full_name: c.full_name,
+      email: c.email,
+      phone: c.phone,
+      city: c.city,
+      national_id: c.national_id,
+      stage: c.stage,
+      notes: c.notes,
+      birth_date: c.birth_date,
+      school: c.school,
+      gender: c.gender,
+      form_id: c.form_id,
+      created_at: c.created_at,
+    }))
+    toast({
+      message: `${snapshot.length} מועמדים נמחקו`,
+      action: {
+        label: "בטל",
+        onClick: async () => {
+          const sb = createClient()
+          await sb.from("candidates").insert(snapshot)
+          router.refresh()
+        },
+      },
+    })
   }
 
   // שמירת הערה — רק כשמסומן מועמד אחד
@@ -229,6 +310,9 @@ export default function CandidatesTable({
     if (!singleSelected) return
     setBusy(true)
     const supabase = createClient()
+    const prevNotes = singleSelected.notes ?? null
+    const candId = singleSelected.id
+    const candName = singleSelected.full_name
     const trimmed = noteText.trim()
     await supabase
       .from("candidates")
@@ -249,12 +333,26 @@ export default function CandidatesTable({
     closeBulkMenus()
     setSelected(new Set())
     router.refresh()
+    toast({
+      message: `הערה נשמרה ל${candName}`,
+      action: {
+        label: "בטל",
+        onClick: async () => {
+          const sb = createClient()
+          await sb
+            .from("candidates")
+            .update({ notes: prevNotes })
+            .eq("id", candId)
+          router.refresh()
+        },
+      },
+    })
   }
 
   return (
     <div>
       {/* רצועת פילטר שלבים */}
-      <div className="flex items-center gap-1 overflow-x-auto border-b border-line bg-surface px-7">
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-line bg-surface px-3 md:px-7">
         <button
           onClick={() => {
             setStageFilter("all")
@@ -309,7 +407,7 @@ export default function CandidatesTable({
       </div>
 
       {/* סרגל כלים */}
-      <div className="flex flex-wrap items-center gap-2.5 px-7 py-3.5">
+      <div className="flex flex-wrap items-center gap-2.5 px-3 md:px-7 py-3.5">
         <div className="relative max-w-[380px] flex-1">
           <Search className="pointer-events-none absolute start-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fg-subtle" />
           <input
@@ -449,6 +547,19 @@ export default function CandidatesTable({
           ))}
         </select>
 
+        {organizationId && (
+          <SavedViewsMenu
+            orgId={organizationId}
+            currentFilters={{
+              stage: stageFilter,
+              search,
+              city: cityFilter,
+              sortBy: sortKey,
+            }}
+            onApply={applySavedView}
+          />
+        )}
+
         <button
           onClick={() => exportToExcel(filtered)}
           className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[13px] text-fg-muted transition-colors hover:bg-[var(--bg-subtle)] hover:text-fg"
@@ -456,7 +567,27 @@ export default function CandidatesTable({
           <Download className="h-3.5 w-3.5" />
           ייצוא
         </button>
+
+        {organizationId && (
+          <button
+            onClick={() => setImportOpen(true)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[13px] text-fg-muted transition-colors hover:bg-[var(--bg-subtle)] hover:text-fg"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            ייבוא CSV
+          </button>
+        )}
       </div>
+
+      {importOpen && organizationId && (
+        <ImportCSVModal
+          organizationId={organizationId}
+          defaultStage={
+            stages.find((s) => s.is_default)?.name ?? stages[0]?.name ?? ""
+          }
+          onClose={() => setImportOpen(false)}
+        />
+      )}
 
       {/* סרגל פעולות — מתחת לטולבר, מופיע כשמסמנים שורות */}
       {selected.size > 0 && (
@@ -596,7 +727,8 @@ export default function CandidatesTable({
       )}
 
       {/* טבלה */}
-      <div className="mx-7 overflow-hidden rounded-lg border border-line bg-surface">
+      <div className="mx-3 md:mx-7 overflow-hidden rounded-lg border border-line bg-surface">
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr>
@@ -723,6 +855,7 @@ export default function CandidatesTable({
             })}
           </tbody>
         </table>
+        </div>
 
         {filtered.length === 0 && (
           <div className="px-8 py-14 text-center text-[13px] text-fg-muted">

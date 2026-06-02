@@ -25,7 +25,20 @@ export default function PipelineStagesEditor({
   const [newName, setNewName] = useState("")
   const [newColor, setNewColor] = useState(COLORS[0].value)
   const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState("")
   const router = useRouter()
+
+  async function renameStage(id: string) {
+    const stage = items.find((s) => s.id === id)
+    const trimmed = editingName.trim()
+    setEditingId(null)
+    if (!stage || !trimmed || trimmed === stage.name) return
+    setItems((prev) => prev.map((s) => (s.id === id ? { ...s, name: trimmed } : s)))
+    const supabase = createClient()
+    await supabase.from("pipeline_stages").update({ name: trimmed }).eq("id", id)
+    router.refresh()
+  }
 
   async function addStage() {
     if (!newName.trim()) return
@@ -110,12 +123,34 @@ export default function PipelineStagesEditor({
       <div className="space-y-2 mb-5">
         {items.map((stage, idx) => (
           <div key={stage.id} className="flex items-center gap-2">
-            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${stage.color ?? ""} flex-1`}>
-              {stage.name}
-              {stage.is_default && (
-                <span className="font-mono text-[9px] uppercase opacity-70">קבוע</span>
-              )}
-            </span>
+            {editingId === stage.id ? (
+              <input
+                autoFocus
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                onBlur={() => renameStage(stage.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") renameStage(stage.id)
+                  if (e.key === "Escape") setEditingId(null)
+                }}
+                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${stage.color ?? ""} flex-1 outline-none ring-2 ring-[var(--accent)]`}
+                dir="rtl"
+              />
+            ) : (
+              <span
+                onClick={() => {
+                  setEditingId(stage.id)
+                  setEditingName(stage.name)
+                }}
+                title="לחץ לעריכת שם"
+                className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${stage.color ?? ""} flex-1 cursor-text`}
+              >
+                {stage.name}
+                {stage.is_default && (
+                  <span className="font-mono text-[9px] uppercase opacity-70">קבוע</span>
+                )}
+              </span>
+            )}
             <button
               onClick={() => setAsDefault(stage.id)}
               disabled={stage.is_default}

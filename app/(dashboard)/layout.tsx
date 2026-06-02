@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { Sidebar } from "./_components/Sidebar"
+import { Shell } from "./_components/Shell"
+import { Toaster } from "@/components/ui/Toaster"
 
 export default async function DashboardLayout({
   children,
@@ -43,20 +44,16 @@ export default async function DashboardLayout({
   const roleLabel = userData?.role_label?.trim() || baseRoleLabel
 
   return (
-    <div
-      className="grid min-h-screen grid-cols-[248px_1fr] bg-bg font-sans text-fg"
-      dir="rtl"
-    >
-      <Sidebar
+    <Toaster>
+      <Shell
         accountName={accountName}
         roleLabel={roleLabel}
         orgName={org?.name ?? null}
         branchName={org?.branch_name ?? null}
         orgLogoUrl={org?.logo_url ?? null}
-      />
-      <main className="flex min-h-screen flex-col overflow-auto">
+      >
         {children}
-      </main>
-    </div>
+      </Shell>
+    </Toaster>
   )
 }

@@ -15,6 +15,8 @@ import {
   X,
   Copy,
   ExternalLink,
+  Library,
+  SlidersHorizontal,
 } from "lucide-react"
 import {
   DndContext,
@@ -87,6 +89,7 @@ export default function FormBuilder({
   )
   const [shareOpen, setShareOpen] = useState(false)
   const [firstRender, setFirstRender] = useState(true)
+  const [mobilePanel, setMobilePanel] = useState<"library" | "props" | null>(null)
 
   // autosave debounce — 800ms after changes.
   // טופס פעיל לא נשמר אוטומטית — מונע פרסום ביניים של עריכה חצי-גמורה.
@@ -286,32 +289,53 @@ export default function FormBuilder({
   return (
     <div className="flex h-screen flex-col bg-bg" dir="rtl">
       {/* TOPBAR */}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-3.5 border-b border-line bg-surface px-[18px]">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line bg-surface px-3 md:gap-3.5 md:px-[18px]">
         <button
           onClick={() => router.push("/forms")}
           className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-[13px] text-fg-muted hover:bg-[var(--bg-subtle)] hover:text-fg"
         >
           <ArrowRight className="h-3.5 w-3.5" />
-          טפסים
+          <span className="hidden md:inline">טפסים</span>
         </button>
 
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="truncate max-w-[280px] text-[15px] font-semibold text-primary">
+          <span className="truncate max-w-[140px] md:max-w-[280px] text-[15px] font-semibold text-primary">
             {title || "ללא שם"}
           </span>
-          <SaveBadge saving={saving} dirty={dirty} savedAt={savedAt} />
-          <StatusPill isActive={isActive} />
-          {submissionCount > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-line bg-[var(--bg-subtle)] px-2.5 py-px text-[11.5px] text-fg-muted">
-              <Users className="h-3 w-3" />
-              {submissionCount} הוגשו
-            </span>
-          )}
+          <div className="hidden md:contents">
+            <SaveBadge saving={saving} dirty={dirty} savedAt={savedAt} />
+            <StatusPill isActive={isActive} />
+            {submissionCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-line bg-[var(--bg-subtle)] px-2.5 py-px text-[11.5px] text-fg-muted">
+                <Users className="h-3 w-3" />
+                {submissionCount} הוגשו
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex-1" />
 
-        <div className="inline-flex rounded-md border border-line bg-[var(--bg-muted)] p-[3px]">
+        {mode === "builder" && (
+          <div className="flex md:hidden items-center gap-1">
+            <button
+              onClick={() => setMobilePanel("library")}
+              title="ספריית שדות"
+              className="inline-grid h-8 w-8 place-items-center rounded-md border border-line text-fg-muted hover:bg-[var(--bg-subtle)] hover:text-fg"
+            >
+              <Library className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setMobilePanel("props")}
+              title="מאפיינים"
+              className="inline-grid h-8 w-8 place-items-center rounded-md border border-line text-fg-muted hover:bg-[var(--bg-subtle)] hover:text-fg"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        <div className="hidden md:inline-flex rounded-md border border-line bg-[var(--bg-muted)] p-[3px]">
           {(["builder", "preview"] as const).map((m) => (
             <button
               key={m}
@@ -335,17 +359,17 @@ export default function FormBuilder({
         <button
           onClick={() => setShareOpen(true)}
           title="שתף קישור"
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-transparent px-3 text-[13px] font-medium text-fg hover:bg-[var(--bg-subtle)]"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2 text-[13px] font-medium text-fg hover:bg-[var(--bg-subtle)] md:px-3"
         >
           <Share2 className="h-3 w-3" />
-          שתף
+          <span className="hidden md:inline">שתף</span>
         </button>
         <button
           onClick={() => doSave({ publish: true })}
           disabled={saving}
-          className="inline-flex h-8 items-center rounded-md bg-[var(--accent)] px-3.5 text-[13px] font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-60"
+          className="inline-flex h-8 items-center rounded-md bg-[var(--accent)] px-2.5 text-[12px] md:text-[13px] font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-60 md:px-3.5"
         >
-          {isActive ? "עדכן טופס" : "פרסם טופס"}
+          {isActive ? "עדכן" : "פרסם"}
         </button>
       </header>
 
@@ -358,18 +382,19 @@ export default function FormBuilder({
           onDragCancel={() => setActiveDragId(null)}
         >
         <main
-          className="grid flex-1 overflow-hidden"
-          style={{ gridTemplateColumns: "320px 1fr 264px" }}
+          className="grid flex-1 overflow-hidden grid-cols-1 md:grid-cols-[320px_1fr_264px]"
         >
-          <PropertiesPanel
-            field={selected}
-            onChange={(updates) =>
-              selected && updateField(selected.id, updates)
-            }
-            onDelete={() => selected && deleteField(selected.id)}
-          />
+          <div className="hidden md:block">
+            <PropertiesPanel
+              field={selected}
+              onChange={(updates) =>
+                selected && updateField(selected.id, updates)
+              }
+              onDelete={() => selected && deleteField(selected.id)}
+            />
+          </div>
 
-          <section className="overflow-y-auto bg-bg px-10 pb-20 pt-8">
+          <section className="overflow-y-auto bg-bg px-3 pb-20 pt-4 md:px-10 md:pt-8">
             <div className="mx-auto max-w-[720px] overflow-hidden rounded-lg border border-line bg-surface shadow-[0_1px_0_rgba(3,22,49,.03),0_12px_32px_-16px_rgba(3,22,49,.12)]">
               <div
                 className="relative border-b border-[var(--line-faint)] px-8 pb-[22px] pt-7"
@@ -443,8 +468,55 @@ export default function FormBuilder({
             </div>
           </section>
 
-          <LibraryPanel onAdd={addField} onAddBundle={addBundle} />
+          <div className="hidden md:block">
+            <LibraryPanel onAdd={addField} onAddBundle={addBundle} />
+          </div>
         </main>
+
+        {mobilePanel && (
+          <div
+            className="fixed inset-0 z-40 md:hidden"
+            onClick={() => setMobilePanel(null)}
+          >
+            <div className="absolute inset-0 bg-black/40" />
+            <div
+              className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-xl bg-surface shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-4 py-3">
+                <span className="text-[14px] font-semibold text-fg">
+                  {mobilePanel === "library" ? "ספריית שדות" : "מאפיינים"}
+                </span>
+                <button
+                  onClick={() => setMobilePanel(null)}
+                  className="inline-grid h-7 w-7 place-items-center rounded text-fg-muted hover:bg-[var(--bg-subtle)]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              {mobilePanel === "library" ? (
+                <LibraryPanel
+                  onAdd={(t) => {
+                    addField(t)
+                    setMobilePanel(null)
+                  }}
+                  onAddBundle={(b) => {
+                    addBundle(b)
+                    setMobilePanel(null)
+                  }}
+                />
+              ) : (
+                <PropertiesPanel
+                  field={selected}
+                  onChange={(updates) =>
+                    selected && updateField(selected.id, updates)
+                  }
+                  onDelete={() => selected && deleteField(selected.id)}
+                />
+              )}
+            </div>
+          </div>
+        )}
         <DragOverlay>
           {activeDragMeta ? (
             <div className="pointer-events-none rounded-md border border-[var(--accent-line)] bg-[var(--accent-soft)] px-3 py-2 text-[13px] font-medium text-[var(--accent-hover)] shadow-[var(--shadow-lg)]">

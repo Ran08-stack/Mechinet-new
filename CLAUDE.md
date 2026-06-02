@@ -56,3 +56,6 @@ Deploy: https://mechinet-new.vercel.app
 - **ראשי** — מוצר, אסטרטגיה, roadmap.
 - **פיתוח** — קוד, באגים, פיצ'רים.
 - פתיחת צ'אט חדש: העתק תוכן 3 קבצי memory + משפט נושא.
+
+
+graphify update ./src

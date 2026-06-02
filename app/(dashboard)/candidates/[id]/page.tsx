@@ -123,7 +123,7 @@ export default async function CandidatePage({
   return (
     <div>
       {/* כותרת עליונה — נתיב */}
-      <div className="flex h-[60px] items-center gap-3.5 border-b border-line bg-surface px-7">
+      <div className="flex h-[60px] items-center gap-3.5 border-b border-line bg-surface px-3 md:px-7">
         <div className="flex items-center gap-2 text-[13px] text-fg-subtle">
           <Link href="/candidates" className="hover:text-fg">
             מועמדים
@@ -134,7 +134,7 @@ export default async function CandidatePage({
       </div>
 
       {/* Hero */}
-      <div className="border-b border-line bg-surface px-7 pt-[22px]">
+      <div className="border-b border-line bg-surface px-3 md:px-7 pt-[22px]">
         <Link
           href="/candidates"
           className="mb-3.5 inline-flex items-center gap-1.5 text-[13px] text-fg-muted hover:text-fg"
@@ -143,12 +143,12 @@ export default async function CandidatePage({
           חזרה לרשימה
         </Link>
 
-        <div className="flex items-start gap-[18px] pb-[18px]">
-          <span className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#b6c7ea] to-[#374765] text-[24px] font-semibold tracking-[-0.02em] text-white shadow-[inset_0_0_0_2px_rgba(255,255,255,0.4)]">
+        <div className="flex flex-col md:flex-row items-start gap-3 md:gap-[18px] pb-[18px]">
+          <span className="grid h-12 w-12 md:h-[72px] md:w-[72px] shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#b6c7ea] to-[#374765] text-[16px] md:text-[24px] font-semibold tracking-[-0.02em] text-white shadow-[inset_0_0_0_2px_rgba(255,255,255,0.4)]">
             {initials(data.full_name)}
           </span>
           <div className="flex-1">
-            <h1 className="m-0 text-[30px] font-semibold leading-[1.1] tracking-[-0.015em] text-primary">
+            <h1 className="m-0 text-[20px] md:text-[30px] font-semibold leading-[1.1] tracking-[-0.015em] text-primary">
               {data.full_name}
             </h1>
             <div className="mt-2 flex flex-wrap items-center gap-x-[18px] gap-y-1.5 text-[12.5px] text-fg-muted">
@@ -203,7 +203,7 @@ export default async function CandidatePage({
       </div>
 
       {/* גוף — מבנה דו-טורי */}
-      <div className="grid grid-cols-1 items-start gap-[22px] px-7 py-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 items-start gap-[22px] px-3 md:px-7 py-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         {/* טור ראשי */}
         <div className="flex flex-col gap-3.5">
           {/* פרטים אישיים */}

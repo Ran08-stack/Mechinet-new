@@ -11,6 +11,7 @@ import {
   CalendarX,
   FileText,
   Check,
+  X,
 } from "lucide-react"
 
 // פעילות בזמן אמת — מוצג בלוח הבקרה לצד "מועמדים אחרונים".
@@ -31,6 +32,7 @@ const EVENT_STYLE: Record<
   ai_summary: { icon: Sparkles, tone: "teal" },
   interview_scheduled: { icon: Calendar, tone: "orange" },
   interview_cancelled: { icon: CalendarX, tone: "danger" },
+  interview_updated: { icon: Calendar, tone: "orange" },
   form_submitted: { icon: FileText, tone: "default" },
 }
 
@@ -117,6 +119,13 @@ function describe(ev: LiveEvent): React.ReactNode {
           <b className="font-semibold">{cand ?? "מועמד"}</b>
         </>
       )
+    case "interview_updated":
+      return (
+        <>
+          <b className="font-semibold">{actor}</b> עדכן ראיון של{" "}
+          <b className="font-semibold">{cand ?? "מועמד"}</b>
+        </>
+      )
     case "form_submitted":
       return (
         <>
@@ -142,6 +151,7 @@ export function LiveActivity({
   const [limit, setLimit] = useState(INITIAL_EVENTS)
   const [hasMore, setHasMore] = useState(initialEvents.length >= INITIAL_EVENTS)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [detail, setDetail] = useState<LiveEvent | null>(null)
   // refresh timeAgo כל דקה
   const [, setTick] = useState(0)
 
@@ -264,6 +274,17 @@ export function LiveActivity({
                 <div className="flex flex-col gap-0.5 pt-px">
                   <span className="text-[13px] leading-[1.45] text-fg">
                     {describe(event)}
+                    {event.description && event.description.includes("\n") && (
+                      <>
+                        {" · "}
+                        <button
+                          onClick={() => setDetail(event)}
+                          className="text-[12px] text-accent-hover underline-offset-2 hover:underline"
+                        >
+                          ראה עוד
+                        </button>
+                      </>
+                    )}
                   </span>
                   <span className="text-[10.5px] text-fg-subtle">
                     {timeAgo(event.created_at)}
@@ -283,6 +304,45 @@ export function LiveActivity({
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {detail && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4"
+          onClick={() => setDetail(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-lg border border-line bg-surface p-4 shadow-[var(--shadow-md)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="m-0 text-[14px] font-semibold text-primary">
+                {describe(detail)}
+              </h3>
+              <button
+                onClick={() => setDetail(null)}
+                className="grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-[var(--bg-subtle)]"
+                aria-label="סגור"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ul className="m-0 flex flex-col gap-1.5 p-0 text-[12.5px] text-fg">
+              {detail.description
+                ?.split("\n")
+                .slice(1)
+                .filter(Boolean)
+                .map((line, i) => (
+                  <li key={i} className="list-none">
+                    {line}
+                  </li>
+                ))}
+            </ul>
+            <div className="mt-3 text-[10.5px] text-fg-subtle">
+              {timeAgo(detail.created_at)}
+            </div>
+          </div>
         </div>
       )}
     </section>

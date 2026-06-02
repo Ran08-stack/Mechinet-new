@@ -248,34 +248,136 @@ export type Database = {
       }
       organizations: {
         Row: {
+          academy_id: string | null
           branch_name: string | null
+          city: string | null
+          contact_person: string | null
+          contact_phone: string | null
           created_at: string | null
+          lat: number | null
+          lng: number | null
           gender_policy: string
           id: string
           logo_url: string | null
+          movement_id: string | null
           name: string
+          region: string | null
           religious_policy: string
+          slug: string
+          status: string
+        }
+        Insert: {
+          academy_id?: string | null
+          branch_name?: string | null
+          city?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          gender_policy?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          logo_url?: string | null
+          movement_id?: string | null
+          name: string
+          region?: string | null
+          religious_policy?: string
+          slug: string
+          status?: string
+        }
+        Update: {
+          academy_id?: string | null
+          branch_name?: string | null
+          city?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          gender_policy?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          logo_url?: string | null
+          movement_id?: string | null
+          name?: string
+          region?: string | null
+          religious_policy?: string
+          slug?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      academies: {
+        Row: {
+          created_at: string | null
+          id: string
+          movement_id: string | null
+          name: string
+          program_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          movement_id?: string | null
+          name: string
+          program_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          movement_id?: string | null
+          name?: string
+          program_type?: string | null
+        }
+        Relationships: []
+      }
+      movements: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
           slug: string
         }
         Insert: {
-          branch_name?: string | null
-          created_at?: string | null
-          gender_policy?: string
+          created_at?: string
           id?: string
-          logo_url?: string | null
           name: string
-          religious_policy?: string
           slug: string
         }
         Update: {
-          branch_name?: string | null
-          created_at?: string | null
-          gender_policy?: string
+          created_at?: string
           id?: string
-          logo_url?: string | null
           name?: string
-          religious_policy?: string
           slug?: string
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          meta: Json
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json
+          target_id?: string | null
+          target_type?: string | null
         }
         Relationships: []
       }
@@ -315,6 +417,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          last_login_at: string | null
           organization_id: string | null
           phone: string | null
           role: string
@@ -325,6 +428,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          last_login_at?: string | null
           organization_id?: string | null
           phone?: string | null
           role?: string
@@ -335,10 +439,50 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          last_login_at?: string | null
           organization_id?: string | null
           phone?: string | null
           role?: string
           role_label?: string | null
+        }
+        Relationships: []
+      }
+      city_coords: {
+        Row: {
+          name: string
+          lat: number
+          lng: number
+          region: string
+        }
+        Insert: {
+          name: string
+          lat: number
+          lng: number
+          region: string
+        }
+        Update: {
+          name?: string
+          lat?: number
+          lng?: number
+          region?: string
+        }
+        Relationships: []
+      }
+      council_settings: {
+        Row: {
+          key: string
+          value: Json
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          value: Json
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          value?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -369,6 +513,7 @@ export type Database = {
     }
     Functions: {
       get_user_organization_id: { Args: Record<string, never>; Returns: string }
+      is_council_admin: { Args: Record<string, never>; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
@@ -401,6 +546,9 @@ export type Candidate = Tables<"candidates">
 export type CandidateEvent = Tables<"candidate_events">
 export type Interview = Tables<"interviews">
 export type InterviewEvaluation = Tables<"interview_evaluations">
+export type Movement = Tables<"movements">
+export type Academy = Tables<"academies">
+export type AuditLog = Tables<"audit_log">
 
 // CandidateStage עכשיו string חופשי — שם השלב הדינמי לפי pipeline_stages.
 // נשאר alias לסוג string לקריאות הקוד הקיים.
@@ -408,7 +556,9 @@ export type CandidateStage = string
 
 export type InterviewStatus = "scheduled" | "completed" | "cancelled" | "no_show"
 
-export type UserRole = "admin" | "staff"
+export type UserRole = "admin" | "staff" | "org_staff" | "council_admin"
+
+export type OrgStatus = "active" | "suspended" | "archived"
 
 // טיפוסי שדות —
 // legacy: text, textarea, select, multiselect, date, number, file, video, autocomplete

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { Users, FileText, CheckCircle2, ChevronLeft } from "lucide-react"
+import { Users, FileText, CheckCircle2, ChevronLeft, AlertCircle } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 import { StageBadge } from "@/components/ui/StageBadge"
 import { getStages, getStageColor } from "@/lib/stages"
@@ -93,6 +93,34 @@ export default async function DashboardPage() {
     if (countByStage[c.stage] !== undefined) countByStage[c.stage]++
   }
 
+  // מועמדים תקועים: אין אירוע stage_changed ב-14 ימים אחרונים
+  // המימוש: נשלוף את כל ה-stage_changed החדשים מ-14 ימים אחורה ונסנן.
+  const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+  let stuckCandidates: { id: string; full_name: string; stage: string; created_at: string | null }[] = []
+  if (userData?.organization_id && list.length > 0) {
+    const { data: recentChanges } = await supabase
+      .from("candidate_events")
+      .select("candidate_id")
+      .eq("organization_id", userData.organization_id)
+      .eq("type", "stage_changed")
+      .gte("created_at", cutoff)
+    const movedIds = new Set((recentChanges ?? []).map((r) => r.candidate_id))
+    stuckCandidates = list
+      .filter(
+        (c) =>
+          !movedIds.has(c.id) &&
+          c.created_at !== null &&
+          new Date(c.created_at).getTime() < Date.now() - 14 * 24 * 60 * 60 * 1000
+      )
+      .slice(0, 5)
+      .map((c) => ({
+        id: c.id,
+        full_name: c.full_name,
+        stage: c.stage,
+        created_at: c.created_at,
+      }))
+  }
+
   const total = list.length
   // משך/יעד: השלב האמצעי והשלב האחרון (היו: review, interview)
   const midStage = stages[Math.floor(stages.length / 2)]
@@ -139,18 +167,18 @@ export default async function DashboardPage() {
 
       <div className="pb-14">
         {/* ברכת בוקר */}
-        <div className="flex flex-wrap items-end justify-between gap-6 px-7 pb-2 pt-7">
+        <div className="flex flex-wrap items-end justify-between gap-6 px-3 pb-2 pt-5 md:px-7 md:pt-7">
           <div>
-            <h1 className="m-0 text-[30px] font-semibold leading-[1.15] tracking-[-0.01em] text-primary">
+            <h1 className="m-0 text-[22px] md:text-[30px] font-semibold leading-[1.15] tracking-[-0.01em] text-primary">
               {greeting()}{userDisplay ? `, ${userDisplay}` : ""}
             </h1>
-            <p className="mt-2 max-w-[60ch] text-[15px] text-fg-muted">
+            <p className="mt-2 max-w-[60ch] text-[13px] md:text-[15px] text-fg-muted">
               סקירה של מחזור הגיוס — {currentCycleLabel()} · {total} מועמדים פעילים בתהליך
             </p>
           </div>
         </div>
 
-      <div className="flex flex-col gap-[22px] px-7 pt-4">
+      <div className="flex flex-col gap-[22px] px-3 pt-4 md:px-7">
         {/* כרטיסי מדדים */}
         <section className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
           {kpis.map((kpi) => {
@@ -180,7 +208,7 @@ export default async function DashboardPage() {
         </section>
 
         {/* משפך שלבים — אינטראקטיבי, שורות אופקיות */}
-        <section className="rounded-lg border border-line bg-surface p-[22px]">
+        <section className="rounded-lg border border-line bg-surface p-3 md:p-[22px]">
           <div className="mb-[6px] flex items-baseline justify-between">
             <div>
               <h2 className="m-0 text-[15px] font-semibold text-primary">
@@ -201,15 +229,22 @@ export default async function DashboardPage() {
                 לא הוגדרו שלבי קבלה. ניתן להגדיר ב<Link href="/settings" className="text-accent hover:underline">הגדרות</Link>.
               </p>
             )}
-            {stages.map((stage) => {
+            {stages.map((stage, idx) => {
               const count = countByStage[stage.name] ?? 0
               const pct = total > 0 ? Math.round((count / total) * 100) : 0
+              const nextStage = stages[idx + 1]
+              const nextCount = nextStage ? countByStage[nextStage.name] ?? 0 : 0
+              // שיעור המרה לשלב הבא (אם קיים): מתוך הסה"כ שעבר את השלב הנוכחי, כמה הגיעו הלאה.
+              // אנחנו לא מתחקים אחרי מעברים — נתון מקורב לפי המצב הנוכחי.
+              const convPct =
+                nextStage && count + nextCount > 0
+                  ? Math.round((nextCount / (count + nextCount)) * 100)
+                  : null
               return (
                 <Link
                   key={stage.id}
                   href={`/candidates?stage=${encodeURIComponent(stage.name)}`}
-                  className={`group grid items-center gap-3.5 rounded-md border border-transparent px-3 py-2.5 transition-colors hover:border-line hover:bg-[var(--bg-subtle)] ${stage.color ?? ""}`}
-                  style={{ gridTemplateColumns: "180px 1fr 90px 28px" }}
+                  className={`group grid items-center gap-2 md:gap-3.5 rounded-md border border-transparent px-2 py-2.5 md:px-3 transition-colors hover:border-line hover:bg-[var(--bg-subtle)] grid-cols-[110px_1fr_50px_20px] md:grid-cols-[180px_1fr_90px_28px] ${stage.color ?? ""}`}
                 >
                   <span className="flex items-center gap-2.5 text-[13.5px] font-medium text-fg">
                     <span className="h-2 w-2 rounded-full bg-current opacity-70" />
@@ -222,6 +257,11 @@ export default async function DashboardPage() {
                     />
                     <span className="absolute inset-y-0 start-2.5 flex items-center font-mono text-[11px] font-medium text-fg">
                       {pct}%
+                      {convPct !== null && (
+                        <span className="ms-2 text-fg-subtle">
+                          · המרה לשלב הבא: {convPct}%
+                        </span>
+                      )}
                     </span>
                   </span>
                   <span className="text-end text-[22px] font-bold tracking-[-0.01em] text-primary [font-variant-numeric:tabular-nums]">
@@ -257,6 +297,7 @@ export default async function DashboardPage() {
                 אין מועמדים עדיין
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <table className="w-full border-collapse text-[13px]">
                 <thead>
                   <tr>
@@ -323,13 +364,56 @@ export default async function DashboardPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </section>
 
-          <LiveActivity
-            initialEvents={liveEvents}
-            organizationId={userData?.organization_id ?? ""}
-          />
+          <div className="flex flex-col gap-[22px]">
+            <LiveActivity
+              initialEvents={liveEvents}
+              organizationId={userData?.organization_id ?? ""}
+            />
+
+            {/* מועמדים תקועים — 14 ימים ללא שינוי שלב */}
+            <section className="overflow-hidden rounded-lg border border-line bg-surface">
+              <div className="flex items-center gap-2 border-b border-[var(--line-faint)] px-4 py-3">
+                <AlertCircle className="h-4 w-4 text-[var(--warning,#d97706)]" />
+                <h2 className="m-0 text-[14px] font-semibold text-primary">
+                  מועמדים תקועים
+                </h2>
+                <span className="ms-auto font-mono text-[11px] text-fg-subtle">
+                  14+ ימים
+                </span>
+              </div>
+              {stuckCandidates.length === 0 ? (
+                <p className="m-0 px-4 py-6 text-center text-[12px] text-fg-subtle">
+                  אין מועמדים תקועים
+                </p>
+              ) : (
+                <ul className="m-0 flex list-none flex-col p-0">
+                  {stuckCandidates.map((c) => (
+                    <li
+                      key={c.id}
+                      className="border-b border-[var(--line-faint)] last:border-b-0"
+                    >
+                      <Link
+                        href={`/candidates/${c.id}`}
+                        className="flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-[var(--bg-subtle)]"
+                      >
+                        <span className="truncate text-[13px] font-medium text-fg">
+                          {c.full_name}
+                        </span>
+                        <StageBadge
+                          stage={c.stage}
+                          colorClass={getStageColor(stages, c.stage)}
+                        />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
         </div>
         </div>
       </div>
