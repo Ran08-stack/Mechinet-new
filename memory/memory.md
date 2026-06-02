@@ -407,3 +407,10 @@
 - **skill mechinet-deploy עודכן** (אישור רן): ברירת מחדל מהיום = commit→push→GitHub בונה ומפרסם אוטומטית (~50ש'). לא vercel --prod מקומי (עוקף git וגרם לסחף). push נדחה→rebase לא --force. stage ממוקד, אסור add -A / commit ל-.env. push 271cf61.
 - תיקוני BranchMap.tsx (תלונת רן: המפה משכפלת את העולם אופקית): (1) TileLayer noWrap + maxBounds עולמי [[-90,-180],[90,180]] + maxBoundsViscosity=1 → עולם אחד. (2) minZoom=3. (3) כפתורי זום מותאמים — zoomControl=false + כפתורי Plus/Minus מעוצבים בטוקנים (leaflet-top-left). (4) attributionControl=false → הוסר קרדיט "Leaflet | OpenStreetMap". 
 - tsc נקי + build exit 0. push 95de197 (GitHub auto-build).
+
+## 2026-06-02 — תכנית הרשמת מכינות + Phase 0 (בייסליין RLS)
+- נכתבה תכנית מלאה ל-onboarding מכינות בסקייל (מסמך ב-~/.claude/plans/harmonic-booping-cook.md). החלטות שננעלו עם רן: טננט=שלוחה (org_admin ראש + org_staff צוות); הרשמה עצמית בטופס (מכינה + N שלוחות) → אישור מועצה; אימות = לינק הזמנה→קביעת סיסמה→כניסה רגילה (reuse); 100 השלוחות נשארות directory לתצוגה; חשבון נפרד לכל שלוחה (בלי multi-org בהשקה); מייל=Resend; יעד ספטמבר 2026, השקה דרך המועצה.
+- ממצא קריטי: 33 migrations ב-remote, 1 ב-git (drift). ה-RLS לבידוד שלוחות כבר תקין (candidates_org_access וכו') אבל לא מגורסן.
+- **Phase 0 בוצע:** חולצו verbatim מה-DB החי (jlliayuelzvmqxvwdihr) 3 פונקציות (get_user_organization_id, is_council_admin, handle_new_user STABLE/SECURITY DEFINER), trigger on_auth_user_created, ו-44 RLS policies. נכתב supabase/migrations/20260601000000_baseline_rls_and_helpers.sql עם guards IF NOT EXISTS (no-op על prod). הוחל דרך apply_migration — אומת: 44 policies לפני ואחרי (זהה), trigger=1. בייסליין האבטחה מגורסן עכשיו.
+- נדחה ל-המשך: רענון types/database.ts (חסר org_roles) — לא בוצע כדי לא לדרוס טיפוסים בעבודת יד; לעשות בזהירות.
+- חוסם Phase 1: צריך מ-רן חשבון Resend + RESEND_API_KEY + דומיין שליחה מאומת (SPF/DKIM).
