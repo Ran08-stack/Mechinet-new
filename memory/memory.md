@@ -413,4 +413,13 @@
 - ממצא קריטי: 33 migrations ב-remote, 1 ב-git (drift). ה-RLS לבידוד שלוחות כבר תקין (candidates_org_access וכו') אבל לא מגורסן.
 - **Phase 0 בוצע:** חולצו verbatim מה-DB החי (jlliayuelzvmqxvwdihr) 3 פונקציות (get_user_organization_id, is_council_admin, handle_new_user STABLE/SECURITY DEFINER), trigger on_auth_user_created, ו-44 RLS policies. נכתב supabase/migrations/20260601000000_baseline_rls_and_helpers.sql עם guards IF NOT EXISTS (no-op על prod). הוחל דרך apply_migration — אומת: 44 policies לפני ואחרי (זהה), trigger=1. בייסליין האבטחה מגורסן עכשיו.
 - נדחה ל-המשך: רענון types/database.ts (חסר org_roles) — לא בוצע כדי לא לדרוס טיפוסים בעבודת יד; לעשות בזהירות.
-- חוסם Phase 1: צריך מ-רן חשבון Resend + RESEND_API_KEY + דומיין שליחה מאומת (SPF/DKIM).
+- **החלטת מייל (מעדכנת — מבטלת את Resend):** רן אין דומיין ולא משלם. סוכם: (1) **הזמנות הצטרפות** (~100-300 סה"כ) → Supabase built-in `inviteUserByEmail` — חינם, בלי דומיין, בלי Resend. תבנית נערכת ב-Supabase Dashboard. להשקה אופציונלי SMTP של המועצה. (2) **מיילים למתמיינים** (18 אלף+) → **לא** נשלחים ע"י המערכת; mailto עם תבניות ממולאות-מראש, המכינה שולחת מהמייל שלה (אפס עלות). פיצ'ר נפרד אחרי onboarding. (3) לבנות שרת מייל עצמי = נפסל (deliverability). Phase 1 **לא חסום יותר** — אין תלות חיצונית. המסמך עודכן בהתאם.
+
+### 2026-06-02 — Phase 1 (תשתית הזמנה/auth) — קוד נכתב
+- migration invitations (20260602120000): טבלה + 3 אינדקסים + RLS (council read / org_admin read own). הוחל ב-apply_migration (success).
+- types/database.ts: נוסף טיפוס invitations ל-Database (ידני, לא regenerate), + export Invitation + InvitationStatus + OrgStatus הורחב ל-directory|pending|active|suspended|archived.
+- lib/provisioning/provisionOrgAdmin.ts: helper — inviteUserByEmail (יוצר user+שולח מייל) → upsert public.users (org+role) עם rollback deleteUser → פנקס invitations. SITE_URL מ-NEXT_PUBLIC_SITE_URL (fallback mechinet-new.vercel.app).
+- app/(auth)/welcome/page.tsx: client — getSession/onAuthStateChange, טופס קביעת סיסמה (min 8), updateUser → POST /api/invitations/accept → /candidates. מצב "הזמנה לא תקפה" אם אין session.
+- app/api/invitations/accept/route.ts: מסמן invitation accepted + org pending→active.
+- app/api/dev/invite/route.ts: route זמני council-only לבדיקת קצה-לקצה (יוחלף ב-Phase 2).
+- tsc נקי. build רץ. נשאר: רן עורך תבנית "Invite user" ב-Supabase Dashboard (Auth→Email Templates) — להחליף {{ .ConfirmationURL }} ונוסח עברית. ואז בדיקת קצה-לקצה.

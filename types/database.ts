@@ -507,6 +507,54 @@ export type Database = {
         }
         Relationships: []
       }
+      invitations: {
+        Row: {
+          id: string
+          user_id: string
+          organization_id: string
+          email: string
+          role: string
+          request_id: string | null
+          status: string
+          sent_at: string | null
+          accepted_at: string | null
+          expires_at: string | null
+          email_provider_id: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          organization_id: string
+          email: string
+          role: string
+          request_id?: string | null
+          status?: string
+          sent_at?: string | null
+          accepted_at?: string | null
+          expires_at?: string | null
+          email_provider_id?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          organization_id?: string
+          email?: string
+          role?: string
+          request_id?: string | null
+          status?: string
+          sent_at?: string | null
+          accepted_at?: string | null
+          expires_at?: string | null
+          email_provider_id?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -549,6 +597,7 @@ export type InterviewEvaluation = Tables<"interview_evaluations">
 export type Movement = Tables<"movements">
 export type Academy = Tables<"academies">
 export type AuditLog = Tables<"audit_log">
+export type Invitation = Tables<"invitations">
 
 // CandidateStage עכשיו string חופשי — שם השלב הדינמי לפי pipeline_stages.
 // נשאר alias לסוג string לקריאות הקוד הקיים.
@@ -558,7 +607,9 @@ export type InterviewStatus = "scheduled" | "completed" | "cancelled" | "no_show
 
 export type UserRole = "admin" | "staff" | "org_staff" | "council_admin"
 
-export type OrgStatus = "active" | "suspended" | "archived"
+export type OrgStatus = "directory" | "pending" | "active" | "suspended" | "archived"
+
+export type InvitationStatus = "sent" | "accepted" | "expired" | "failed"
 
 // טיפוסי שדות —
 // legacy: text, textarea, select, multiselect, date, number, file, video, autocomplete
