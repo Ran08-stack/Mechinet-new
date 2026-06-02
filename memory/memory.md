@@ -282,3 +282,104 @@
 - שלב 3 — יולי-אוגוסט: תקשורת, יומן, WhatsApp, AI מתקדם.
 - שלב 4 — ספטמבר+: מועצת המכינות, multi-tenant, scale.
 - הצ'אטים: ראשי (מוצר/אסטרטגיה) + פיתוח (קוד/טכני) + צ'אט עיצוב נפרד (Stitch).
+
+### 2026-05-27 — שלב 2 council dashboard: חיבור נתונים אמיתיים
+
+- migrations: `city_coords` (32 ערים seed), `council_settings` (key/value, seed infra_costs), `users.last_login_at` (היה חסר בפועל).
+- IsraelMap עודכן: מקבל lat/lng+region ישירות מ-cityPoints (במקום מילון hard-coded).
+- ConnectionStatusPill חדש תחת `app/(council)/_components/`: ירוק <7 ימים, כתום 7-30, אדום >30/null.
+- middleware: עדכון last_login_at fire-and-forget עם throttle in-memory (שעה לכל user).
+- CouncilInsight server component עם unstable_cache (revalidate 21600s), fallback מקומי אם OPENAI_API_KEY חסר.
+- ראוט POST `app/api/ai/council-insight/route.ts` (חלופה לקריאה client-side, לא בשימוש בלוח עכשיו).
+- טבלת המכינות בלוח: עמודות איש קשר + טלפון (read-only) + סטטוס חיבור אמיתי לפי last_login_at של admin המכינה.
+- עלויות תשתית: 4 כרטיסיות + סה"כ, נטענות מ-council_settings, fallback למספרים סטטיים.
+
+### 2026-05-28 — שכבת מכינה/שלוחה (שלב 1 מתוך 3) + brainstorming
+
+- הותקן skill superpowers:brainstorming. כלל חדש בזיכרון הכללי: מעכשיו תמיד מפעילים אותו לפני עבודה יצירתית/פיצ'ר.
+- בירור מפת המועצה התגלגל לשינוי מודל נתונים. הוחלט (אופציה 1): כל שלוחה = חשבון נפרד שמנהל מועמדים משלו; "מכינה" = קטגוריה מקבצת שהמועצה יוצרת. מבנה: תנועה → מכינה → שלוחה(organizations) → מועמדים.
+- הפיצ'ר פורק ל-3 תתי-פרויקטים: (1) מודל נתונים, (2) onboarding+מיקום+סינון, (3) מפה. spec: docs/superpowers/specs/2026-05-28-council-academies-model-design.md.
+- **שלב 1 בוצע** (migration create_academies_grouping_layer):
+  - טבלה חדשה academies (name, movement_id nullable→movements, program_type annual/half_year nullable, created_at). RLS: council_admin מלא + org member קריאה של המכינה שלו.
+  - organizations קיבלה academy_id (FK→academies, nullable) + index.
+  - seed: רעות→"מכינת רעות"(movement), נחשון→"מכינת נחשון". כל org קיים משויך.
+  - types/database.ts: נוסף academy_id ל-organizations + טבלת academies + export type Academy. tsc נקי.
+  - organizations.movement_id נשאר deprecated (התנועה נגזרת דרך המכינה), לא נמחק.
+- לא נעשה UI, לא deploy עדיין. הבא: שלב 2 (onboarding + מיקום: עיר מול קואורדינטות).
+
+### 2026-05-28 — שלב 2: onboarding שלוחה + עיר + סינון (גישה A)
+
+- migration add_organization_city: עמודת city (text, nullable) ל-organizations. types עודכן (city ב-Row/Insert/Update).
+- InviteAcademyButton שוכתב: "הזמן מכינה"→"הוסף שלוחה". מודאל: בחירת מכינה קיימת או יצירת מכינה חדשה inline + שם שלוחה + עיר (dropdown מ-city_coords, 32 ערים). יוצר academy אם צריך, ואז organization עם academy_id+city. slug "branch-".
+- דף council/academies: רכיב חדש AcademiesTable (client) עם סינון לפי מכינה (dropdown). עמודות: שלוחה|מכינה|עיר|מועמדים|טפסים|הצטרפה. כותרת "מכינות ושלוחות", subtitle "N שלוחות ב-M מכינות".
+- דף הפרטים [id]: AcademyActionsCard קיבל שדה עיר (dropdown city_coords) + prop cities. PATCH /api/council/organizations/[id]: city נוסף ל-TEXT_FIELDS + ל-before select (נשמר ב-audit_log כמו שאר השדות). כך אפשר להגדיר עיר גם לשלוחות קיימות (רעות/נחשון עדיין בלי עיר).
+- גישה A: רשימה שטוחה של שלוחות + סינון, לא restructure לשתי רמות. רק עיר בינתיים (לא קואורדינטות מדויקות).
+- tsc נקי. לא deploy עדיין. הבא: שלב 3 — המפה מציגה שלוחות אמיתיות לפי city→coords, לחיצה→drill.
+
+### 2026-05-29 — שלב 3: מפת שלוחות + deploy + allowlist
+
+- IsraelMap.tsx: CityPoint קיבל id (ייחודי) + href. ניווט בלחיצה (router.push), הבחנה גרירה/קליק (movedRef, סף 3px). תוויות שונו "ערים"→"שלוחות". hover/key לפי id.
+- council/page.tsx: מקור נתוני המפה הוחלף — במקום אגרגציית ערי-מועמדים, עכשיו branchPoints: כל org עם city שיש לו קואורדינטות ב-city_coords → נקודה. גודל לפי מס' מועמדים, צבע לפי % קבלה (per-org), href ל-/council/academies/{id}. כותרת המפה: "N שלוחות על המפה". (תיקון tsc: map((o): CityPoint | null).
+- seed דמו: רעות→חיפה, נחשון→מודיעין (כדי שהמפה לא ריקה; רן יכול לשנות דרך דף הפרטים).
+- tsc נקי. deploy הצליח: dpl_8GLG9u7k2JTcdtPJqCnLkpRNMzR4, חי ב-mechinet-new.vercel.app. כל 3 השלבים עלו ביחד.
+- תקלת תשתית במהלך הסשן: הקלסיפייר של auto-mode נפל לסירוגין וחסם Bash/MCP/Edit לפרקים. חולף לבד.
+- רן ביקש להריץ דברים בלי אישור ידני. עודכן .claude/settings.local.json allow: נוסף apply_migration, Bash(vercel *), Bash(git add/commit/push *), Bash(npm run build *). (execute_sql + npx tsc כבר היו.) כדי שהכללים יתפסו — להריץ פקודות בלי קידומת "cd ... &&".
+- מצב הפיצ'ר: 3/3 השלבים הושלמו ועלו. עתידי: צבע pin לפי מגדר (הצעת Leaflet), drill שמראה מקור מועמדים של השלוחה, שכבת תנועה במפה.
+
+### 2026-05-29 — מפת Leaflet אמיתית + איתור מקום חופשי
+
+- רן: מפת ה-SVG הלבנה לא ברורה. ביקש מפה אמיתית (כמו ב-HTML proposals/מפה-בהיקף-גדול.html) + שדה מקום חופשי (עיר/קיבוץ/יישוב) שמאותר אוטומטית. בחר באופציה החינמית (Leaflet+OSM, בלי מפתח/חיוב).
+- הותקן leaflet + react-leaflet@4 + @types/leaflet.
+- migration add_organization_latlng: lat/lng (double precision) ל-organizations. types עודכן.
+- ראוט חדש GET /api/council/geocode — Nominatim (countrycodes=il, accept-language=he), council_admin בלבד, User-Agent מותאם. מחזיר {lat,lng,display_name}.
+- components/council/BranchMap.tsx (react-leaflet): MapContainer + OSM tiles, maxBounds לישראל, CircleMarker צבוע לפי % קבלה, גודל לפי מס' מועמדים, Tooltip, לחיצה→router.push לדף השלוחה. + BranchMapClient.tsx (dynamic ssr:false, כי Leaflet לא תומך SSR).
+- council/page.tsx: הוסר IsraelMap + תלות city_coords. branchPoints נבנה מ-org.lat/lng. type BranchPoint.
+- InviteAcademyButton + AcademyActionsCard: dropdown העיר הוחלף בשדה טקסט חופשי "מיקום". בשמירה — קריאה ל-geocode, שמירת city(טקסט)+lat+lng. PATCH route מקבל lat/lng numeric.
+- IsraelMap.tsx הישן נשאר בקוד אך לא בשימוש (אפשר למחוק בעתיד).
+- seed: רעות→חיפה, נחשון→מודיעין, נתניה (שרן יצר) → קואורדינטות אמיתיות. 3 שלוחות על המפה.
+- tsc נקי + npm run build עבר (exit 0, /council heavy leaflet ב-chunk דינמי). deploy הצליח ל-prod.
+- הערה: Nominatim חינמי, מתאים לנפח נמוך; אם יגדל — לשקול geocoder בתשלום.
+
+### 2026-05-29 — מפה חתוכה לישראל בלבד (מסכת לבן)
+
+- רן: המפה נתקעת למעלה + רואים את שאר העולם. רצה רק ישראל חתוכה ולבן מסביב.
+- הורד גבול ישראל מ-Nominatim (polygon_geojson), פושט ב-Douglas-Peucker מ-9735→330 נק' (7.9KB), נשמר ב-components/council/israel-border.json בסדר [lat,lng] + bounds.
+- BranchMap.tsx: נוספה מסכת לבן (Polygon: טבעת עולם חיצונית + ישראל כחור, fillOpacity 1 לבן) → כל מה שמחוץ לישראל לבן. קו גבול ישראל דק. LockToIsrael (useMap): fitBounds לישראל + setMaxBounds(pad 0.08) + minZoom=getZoom → לא נתקע/לא בורח. maxBoundsViscosity 1.
+- tsc + build עברו. deploy dpl_9njghbDaH3KvjVj2WYMGDpzFuTVu (READY).
+
+### 2026-05-29 — port נאמן של מפת ה-HTML (proposals/מפה-בהיקף-גדול.html)
+
+- רן: המסכה הלבנה כעורה. אהב את ה-HTML המקורי — רוצה אותו as-is (מפה מלאה, עיגולי clustering, סינונים, רשימה לפי אזור, popup). אמר אולי לקחת את ה-HTML לכל המערכת (כיוון עתידי, לא בוצע).
+- הותקן react-leaflet-cluster@2.
+- BranchMap.tsx שוכתב כ-port מלא של ה-HTML: מפה מלאה (בלי מסכה, שכנים נראים), MarkerClusterGroup (iconCreateFunction = עיגול navy עם מספר), pins divIcon צבועים לפי מגדר (בנים navy / בנות אדום / מעורבת כתום). chips סינון (הכל/בנים/בנות/מעורבת + דתי/חילוני/מעורב + נקה). aside "רשימת מכינות לפי אזור" (צפון≥32.5/מרכז≥31.5/דרום, קיבוץ לפי שם מכינה, קליק→flyTo+openPopup). popup: שם מכינה | שלוחה, עיר, מגדר·דתי, כפתורי "פתח דשבורד"(→דף שלוחה)/"צור קשר"(tel אם יש). סטטיסטיקה "מציג X מכינות · Y שלוחות".
+- המסכה (israel-border.json) ננטשה (הקובץ נשאר, לא בשימוש).
+- page.tsx: branchPoints עשיר — academyName (מטבלת academies), branchName, gender_policy→gender, religious_policy→rel, multi (אם למכינה >1 שלוחה), contactPhone. נוסף fetch academies.
+- האזור נגזר אוטומטית מ-lat (כמו ב-HTML), אין שדה אזור נפרד. שלוחה חדשה מופיעה ברשימה+מפה אוטומטית.
+- tsc+build עברו. deploy dpl mechinet-9ol1b4rnh (READY).
+- TODO עתידי שרן העלה: לאמץ את שפת העיצוב של ה-HTML לכל המערכת.
+
+### 2026-05-29 — הזנת 97 שלוחות אמיתיות + תיקון מגדר/z-index
+
+- agent סרק את כל 70 הדפים האישיים ב-mechinot.org.il, חילץ כתובות ושלוחות, ו-geocode דרך Nominatim. תוצר: 105 שלוחות, מתוכן 97 עם קואורדינטות מדויקות (8 אזור-בלבד הושמטו). שמור ב-jobs/.../academies.json.
+- migration seed_council_academies_from_mechinot_list: 62 מכינות (academies) + 97 organizations (שלוחות) עם academy_id, city, lat, lng, gender_policy, religious_policy, branch_name, status=active. CTE בלי hardcoded ids. ה-3 הדמו (רעות/נחשון/נתניה) נשארו.
+- באג שהתגלה ותוקן: ה-DB דורש gender_policy ∈ {boys_only, girls_only, mixed} אבל BranchMap.tsx + page.tsx ציפו ל-{boys, girls, mixed}. תיקון: page.tsx ממפה boys_only→boys / girls_only→girls בבניית branchPoints, וגם ב-breakdown chart (שהיה שבור מאז ומתמיד). BranchMap נשאר.
+- באג z-index: המודאל "שלוחה חדשה" (InviteAcademyButton, z-50) הוסתר ע"י מפת Leaflet (controls z-1000). תוקן ל-z-[2000].
+- tsc נקי. deploy: mechinet-im6wnksv3 (READY), חי. המפה עכשיו מציגה ~100 שלוחות אמיתיות עם צבע לפי מגדר.
+- הערה: שלוחה שמתווספת ידנית דרך המודאל עדיין לא מגדירה gender_policy (תישאר אפורה) — שיפור עתידי אפשרי.
+
+## 2026-05-30 — חיבור Linear לניהול הפרויקט
+- Linear MCP חובר. ה-transport הישן (sse) חסם כתיבה — הוחלף ל-http מול https://mcp.linear.app/mcp (ב-~/.claude.json דרך `claude mcp add --transport http -s user`). דרש אתחול + re-auth.
+- נוצר project "Mechinet" בצוות Ran (workspace ran08). URL: https://linear.app/ran08/project/mechinet-7439c4777268
+- נוצרו 7 issues = מה שנותר לפי מעקב-מסכים.md (לא שוכפלו ה-Done; ה-tracker בrepo נשאר ההיסטוריה המלאה):
+  RAN-5 עיצוב מדויק פיקסל-בפיקסל (High), RAN-6 התאמה למובייל, RAN-7 ציטוטים על AI (Backlog),
+  RAN-8 פיד פעילות בלוח בקרה, RAN-9 אימייל בקביעת ראיון, RAN-10 החלפת empty states, RAN-11 פורטל מועמד חסום RLS (Backlog).
+- זרימת עבודה: issue → סטטוס (Todo→In Progress→Done) → branch (Linear נותן gitBranchName) → commit/PR. אני מנהל את ה-issues מהצ'אט.
+- צד המועצה נוסף ל-Linear (לפי תוכנית-מועצה.md, 6 שלבים): RAN-18 שלב0 יסודות (Done), RAN-12 מודל נתונים+מפת Leaflet (Done), RAN-13 שלב1 דף מכינה drill-down (In Progress), RAN-14 שלב2 נתונים אמיתיים בדשבורד (In Progress, נשאר AI insight חי), RAN-15 שלב3 דוחות PDF/CSV (Todo), RAN-16 שלב4 הודעות+Audit UI (Todo), RAN-17 שלב5 טפסים ארצי+הגדרות מועצה (Todo). סה"כ ב-project Mechinet: 14 issues (7 מכינה + 7 מועצה).
+
+## 2026-06-02 — סיום עמוד "סקירה ארצית" (/council) דרך /goal
+- רן הכיר את פקודת /goal (פיצ'ר Claude Code, v2.1.139+, Stop hook עם תנאי סיום שמוערך ע"י Haiku). הוחלט: לבנות ידנית, /goal רק להתכנסות מכנית. הופעל goal "finish the סקירה ארצית PAGE".
+- בדיקת דאטה (SQL): 100 שלוחות — כולן lat/lng+מגדר+דת+status, אבל רק 1/100 עם contact_person/phone. הטבלה מציגה "—" כי הדאטה ריקה, לא באג. לא הומצאו נתונים.
+- מצב לפני: העמוד כבר היה עשיר (מפת Leaflet אמיתית, KPI, status, AI insight חי), אבל כפתורי toolbar (סוג/מיקום/סינון/ייצוא) + כפתורי AI insight (דוח/רענן/אשר) היו disabled/מתים.
+- נעשה: (1) AcademiesOverviewTable.tsx (client) — סינון מגדר + אזור (נגזר מ-lat: צפון≥32.5/מרכז≥31.5/דרום) + חיפוש שם + ייצוא CSV (BOM). הטבלה הוצאה מ-page.tsx לרכיב. (2) CouncilInsightActions.tsx (client) + council-actions.ts (server action refreshCouncilInsight=revalidateTag). דוח→ניווט ל-/council/reports (מסך דוחות קיים), רענן→action+router.refresh, אשר→אישור ויזואלי בסשן (ללא persistence). (3) CouncilInsight: נוסף tag "council-insight" ל-cache. (4) הוסר כפתור "לפי אזור" מת בכותרת המפה.
+- tsc נקי. build רץ. קבצים: page.tsx, CouncilInsight.tsx (שונו) + 3 חדשים.
+- חוסך לעתיד: persistence לאישור תובנה + "דוח לדירקטוריון" אמיתי תלויים ב-RAN-15 (מסך דוחות). הזנת contact_person/phone לשלוחות = דאטה ידנית דרך דף השלוחה.
