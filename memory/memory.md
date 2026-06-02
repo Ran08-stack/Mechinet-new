@@ -432,3 +432,11 @@
 - ה-routes הרגישים נבדקו ידנית (register ציבורי, approve). tsc נקי + build exit 0 (כל הראוטים נבנו).
 - **חסם בדיקה (Phase 1+2):** רן צריך לערוך תבנית "Invite user" ב-Supabase Dashboard (Auth→Email Templates) לעברית + לוודא Site URL/redirect ל-/welcome. ואז בדיקת קצה-לקצה: /register → אישור בתור → מייל → /welcome → סיסמה → /candidates.
 - הערה: backfill של 99 שלוחות ל-status='directory' לא בוצע (נדחה — לוודא קודם שאין שאילתה שמסננת status). העמודה נשארת free-text (בלי CHECK).
+
+### 2026-06-02 — תיקון כיוון: המודל הוא המועצה-יוצרת-ומזמינה (לא self-service)
+- רן הבהיר: המודל הנכון (כפי שרשום ב-context.md + בכפתור "הוסף שלוחה") = **המועצה יוצרת מכינה/שלוחה מהמשתמש שלה ושולחת הזמנה. אין הרשמה עצמית ידנית.** ה-self-service של Phase 2 היה טעות בכיוון.
+- רן בחר: **למחוק לגמרי** את ה-self-service.
+- נמחק (git rm): app/(auth)/register/page.tsx, app/api/register/route.ts, app/(council)/council/registrations/page.tsx, RegistrationQueue.tsx, app/api/council/registrations/[id]/route.ts, app/api/dev/invite/route.ts (temp), types/registration.ts, migration registration_requests. הוסר הלינק "הירשמו כאן" מ-login + פריט "בקשות רישום" מ-CouncilSidebar + טיפוס registration_requests מ-database.ts. **DROP TABLE registration_requests** (היה ריק).
+- **נשמר (תשתית, רלוונטי לשני המודלים):** טבלת invitations, provisionOrgAdmin, /welcome, /api/invitations/accept, הגדרות Supabase email.
+- **המודל החדש מומש:** כפתור "הוסף שלוחה" (InviteAcademyButton) קיבל שדות "שם/מייל ראש השלוחה" — בשמירה, אם הוזן מייל, נקרא /api/council/invite-admin → provisionOrgAdmin שולח הזמנה + org status='pending'. route חדש app/api/council/invite-admin/route.ts (council guard).
+- רן עשה בלוח Supabase: Site URL + Redirect /welcome + תבנית Invite user בעברית. מוכן לבדיקה.

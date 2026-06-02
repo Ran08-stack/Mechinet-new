@@ -21,6 +21,8 @@ export function InviteAcademyButton() {
   const [newAcademyName, setNewAcademyName] = useState("")
   const [branchName, setBranchName] = useState("")
   const [location, setLocation] = useState("")
+  const [headName, setHeadName] = useState("")
+  const [headEmail, setHeadEmail] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
@@ -78,23 +80,61 @@ export function InviteAcademyButton() {
       lng = g.lng
     }
 
-    const { error: insertError } = await supabase.from("organizations").insert({
-      name: branchName.trim(),
-      slug: "branch-" + Date.now().toString(36),
-      academy_id: resolvedAcademyId || null,
-      city: loc || null,
-      lat,
-      lng,
-    })
-    if (insertError) {
-      console.error("InviteAcademyButton insert failed:", insertError.message)
-      setError(`שגיאה ביצירת השלוחה: ${insertError.message}`)
+    const { data: newOrg, error: insertError } = await supabase
+      .from("organizations")
+      .insert({
+        name: branchName.trim(),
+        slug: "branch-" + Date.now().toString(36),
+        academy_id: resolvedAcademyId || null,
+        city: loc || null,
+        lat,
+        lng,
+      })
+      .select("id")
+      .single()
+    if (insertError || !newOrg) {
+      console.error("InviteAcademyButton insert failed:", insertError?.message)
+      setError(`שגיאה ביצירת השלוחה: ${insertError?.message ?? ""}`)
       setSaving(false)
       return
     }
+
+    // הזמנת ראש השלוחה (אופציונלי) — נעשה רק אם הוזן מייל
+    const email = headEmail.trim()
+    if (email) {
+      try {
+        const res = await fetch("/api/council/invite-admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            organizationId: newOrg.id,
+            email,
+            fullName: headName.trim(),
+          }),
+        })
+        const j = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          // השלוחה נוצרה — נשאיר אותה, רק נדווח על כשל ההזמנה
+          setError(`השלוחה נוצרה, אך שליחת ההזמנה נכשלה: ${j.error ?? "שגיאה"}`)
+          setSaving(false)
+          return
+        }
+      } catch (err) {
+        setError(
+          `השלוחה נוצרה, אך שליחת ההזמנה נכשלה: ${
+            err instanceof Error ? err.message : "שגיאת רשת"
+          }`
+        )
+        setSaving(false)
+        return
+      }
+    }
+
     setBranchName("")
     setNewAcademyName("")
     setLocation("")
+    setHeadName("")
+    setHeadEmail("")
     setAcademyId("")
     setSaving(false)
     setOpen(false)
@@ -201,13 +241,38 @@ export function InviteAcademyButton() {
                 </span>
               </div>
 
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-medium text-fg">
+                  שם ראש השלוחה
+                </label>
+                <input
+                  type="text"
+                  value={headName}
+                  onChange={(e) => setHeadName(e.target.value)}
+                  placeholder="לדוגמה: ישראל ישראלי"
+                  className={inputCls}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-medium text-fg">
+                  מייל ראש השלוחה
+                </label>
+                <input
+                  type="email"
+                  value={headEmail}
+                  onChange={(e) => setHeadEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className={inputCls}
+                />
+              </div>
+
               {error && (
                 <p className="m-0 text-[12px] text-[var(--danger)]">{error}</p>
               )}
 
               <p className="m-0 rounded-md bg-[var(--bg-subtle)] px-3 py-2.5 text-[12px] leading-relaxed text-fg-muted">
-                השלוחה תיווצר במערכת. שליחת הזמנה במייל למנהל השלוחה תתאפשר
-                לאחר הגדרת שירות האימייל.
+                אם תזין מייל לראש השלוחה, תישלח אליו הזמנה להפעלת החשבון.
               </p>
 
               <div className="mt-1 flex items-center justify-end gap-2">
