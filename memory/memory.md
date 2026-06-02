@@ -392,3 +392,13 @@
 - (3) רה-דיזיין toolbar בטבלה (AcademiesOverviewTable): כותרת "ניהול מכינות" מימין, פקדים ב-ms-auto נדחפים שמאלה, ייצוא אחרון. נוסף בורר כמות שורות PAGE_SIZES=[12,24,32,64,100] (ברירת מחדל 24) + עימוד מלא (pageNumbers helper, חצים ChevronRight/Left ל-RTL, מספרי עמוד). footer "מציג A–B מתוך N".
 - tsc נקי + build exit 0. deploy: vercel --prod (מקומי) READY — mechinet-baymf8fx4, חי ב-mechinet-new.vercel.app.
 - חוסך לעתיד: persistence לאישור תובנה + "דוח לדירקטוריון" אמיתי תלויים ב-RAN-15 (מסך דוחות). הזנת contact_person/phone לשלוחות = דאטה ידנית דרך דף השלוחה.
+
+### 2026-06-02 — סנכרון git ל-GitHub (סגירת החוב הטכני)
+- בעיה: main מקומי ו-remote התפצלו (2 ahead / 2 behind), קבצי מועצה untracked שהקוד תלוי בהם לא ב-git, ו-.env.production/.env.vercel חשופים (gitignore חסם רק .env.local).
+- תיקון .gitignore: נוסף `.env*` (חוסם את שני קבצי הסוד שהיו חשופים) + graphify-out/, .agents/, deploy/tsc logs, council-map-prototype.html, skills-lock.json. אומת ב-git check-ignore.
+- subagent (Explore, read-only) גיווס את כל ה-untracked → TRACK/IGNORE/SECRET. junctions של .claude/skills/* זוהו ולא נכנסו ל-git.
+- staging כירורגי: `git add -u` + נתיבי TRACK מפורשים בלבד (לא `-A`), כדי שה-junctions והסודות לא ייכנסו. commit bce65f5.
+- rebase origin/main: קונפליקטים ב-Sidebar.tsx + layout.tsx (dashboard) — הגרסה המקומית (a642d6b: accountName/roleLabel/branchName + UserBlock עם logout + יישור Topbar) בולעת פונקציונלית את 2 commits ה-remote (7934b10 font+Sidebar דינמי, c6e6077 תווית). נלקח הצד המקומי, אין אובדן. שינוי הפונט ב-globals.css לא התנגש.
+- 2 commits ה-remote נשמרו בהיסטוריה (לא --force). tsc נקי + npm run build exit 0. push fast-forward רגיל (c6e6077..bce65f5).
+- אומת: Vercel הדליק deployment מבוסס-GitHub (dpl_9sb1MFTBZJsBNrDjZuB4b8zEymSu, ללא gitDirty — בניגוד לכל הקודמים) → "Build Completed [49s]" → "Deployment completed". 19 ראוטים כולל כל המועצה.
+- מעכשיו: working tree == origin/main == GitHub. אפשר לחזור ל-git push רגיל; vercel --prod כבר לא חובה לעקיפת git מזוהם.
