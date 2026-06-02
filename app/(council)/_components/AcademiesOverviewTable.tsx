@@ -225,7 +225,7 @@ export function AcademiesOverviewTable({
                     </td>
                     <td className="px-4 py-3.5">
                       <Link
-                        href={`/council/academies?org=${org.id}`}
+                        href={`/council/academies/${org.id}`}
                         className="inline-flex h-7 items-center rounded-sm border border-[var(--line-strong)] bg-surface px-2.5 text-[12px] text-primary hover:bg-[var(--primary-soft)]"
                       >
                         ניהול
