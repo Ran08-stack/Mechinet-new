@@ -46,6 +46,7 @@ export default async function AcademyDetailPage(
     { data: candidates },
     { data: stageEvents, count: stageEventsCount },
     { count: upcomingInterviewsCount },
+    { data: accounts },
   ] = await Promise.all([
     supabase.from("movements").select("id, name").order("name"),
     supabase
@@ -69,6 +70,11 @@ export default async function AcademyDetailPage(
       .select("id", { count: "exact", head: true })
       .eq("organization_id", id)
       .gte("scheduled_at", nowIso),
+    supabase
+      .from("users")
+      .select("full_name, email, role, last_login_at")
+      .eq("organization_id", id)
+      .order("created_at"),
   ])
 
   void stageEvents // נשתמש ב-count בלבד
@@ -140,7 +146,7 @@ export default async function AcademyDetailPage(
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px] text-fg-muted">
               <InfoChip icon={<Flag className="h-3.5 w-3.5" />} text={movement?.name ?? "ללא תנועה"} />
-              <InfoChip icon={<MapPin className="h-3.5 w-3.5" />} text={org.region ?? "—"} />
+              <InfoChip icon={<MapPin className="h-3.5 w-3.5" />} text={org.city ?? org.region ?? "—"} />
               <InfoChip icon={<User2 className="h-3.5 w-3.5" />} text={org.contact_person ?? "—"} />
               <InfoChip icon={<Phone className="h-3.5 w-3.5" />} text={org.contact_phone ?? "—"} />
             </div>
@@ -218,6 +224,31 @@ export default async function AcademyDetailPage(
             <div className="flex flex-col gap-3 p-5 text-[13px]">
               <Row label="שינויי שלב (30 ימים)" value={stageEventsCount ?? 0} />
               <Row label="ראיונות מתוכננים" value={upcomingInterviewsCount ?? 0} />
+            </div>
+          </div>
+
+          {/* חשבון השלוחה — ראש + צוות (שם, מייל, סטטוס הפעלה) */}
+          <div className="rounded-lg border border-line bg-surface">
+            <div className="border-b border-[var(--line-faint)] px-5 py-3">
+              <h3 className="m-0 text-[13px] font-semibold text-primary">חשבון השלוחה</h3>
+            </div>
+            <div className="flex flex-col gap-3.5 p-5 text-[13px]">
+              {(accounts ?? []).length === 0 ? (
+                <p className="m-0 text-fg-muted">טרם הוזמן ראש שלוחה.</p>
+              ) : (
+                (accounts ?? []).map((a) => (
+                  <div key={a.email} className="flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-fg">{a.full_name || "—"}</span>
+                      <span className={`shrink-0 text-[11.5px] ${a.last_login_at ? "text-[var(--success)]" : "text-[var(--warning)]"}`}>
+                        {a.last_login_at ? "פעיל" : "הוזמן · טרם הופעל"}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[12px] text-fg-subtle" dir="ltr">{a.email}</span>
+                    <span className="text-[11.5px] text-fg-muted">{a.role === "org_staff" ? "צוות" : "ראש השלוחה"}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

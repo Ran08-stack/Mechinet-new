@@ -57,11 +57,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 400 })
   }
 
-  // סימון השלוחה כ-pending (אם לא כבר active) — ההתחברות הראשונה תפעיל אותה
+  // סימון השלוחה כ-pending (אם לא כבר active) + שמירת שם הראש כאיש קשר על השלוחה
+  // (כדי שיוצג בדף המכינה — המייל מוצג מתוך חשבון המשתמש).
   const admin = createAdminClient()
+  const orgUpdate: { status: string; contact_person?: string } = { status: "pending" }
+  if (fullName) orgUpdate.contact_person = fullName
   await admin
     .from("organizations")
-    .update({ status: "pending" })
+    .update(orgUpdate)
     .eq("id", organizationId)
     .neq("status", "active")
 
