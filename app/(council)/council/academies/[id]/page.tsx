@@ -48,6 +48,7 @@ export default async function AcademyDetailPage(
     { data: stageEvents, count: stageEventsCount },
     { count: upcomingInterviewsCount },
     { data: accounts },
+    { data: orgInvites },
   ] = await Promise.all([
     supabase.from("movements").select("id, name").order("name"),
     supabase
@@ -76,9 +77,19 @@ export default async function AcademyDetailPage(
       .select("id, full_name, email, role, last_login_at")
       .eq("organization_id", id)
       .order("created_at"),
+    supabase
+      .from("invitations")
+      .select("user_id, status")
+      .eq("organization_id", id),
   ])
 
   void stageEvents // נשתמש ב-count בלבד
+
+  // חשבונות השלוחה: לא מציגים את חשבון המועצה. סטטוס "טרם הופעל" = יש הזמנה ממתינה (sent).
+  const pendingInviteUsers = new Set(
+    (orgInvites ?? []).filter((i) => i.status === "sent").map((i) => i.user_id)
+  )
+  const orgAccounts = (accounts ?? []).filter((a) => a.role !== "council_admin")
 
   const movement = org.movement_id
     ? (movements ?? []).find((m) => m.id === org.movement_id)
@@ -234,24 +245,27 @@ export default async function AcademyDetailPage(
               <h3 className="m-0 text-[13px] font-semibold text-primary">חשבון השלוחה</h3>
             </div>
             <div className="flex flex-col gap-3.5 p-5 text-[13px]">
-              {(accounts ?? []).length === 0 ? (
+              {orgAccounts.length === 0 ? (
                 <p className="m-0 text-fg-muted">טרם הוזמן ראש שלוחה.</p>
               ) : (
-                (accounts ?? []).map((a) => (
-                  <div key={a.email} className="flex flex-col gap-0.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-fg">{a.full_name || "—"}</span>
-                      <span className={`shrink-0 text-[11.5px] ${a.last_login_at ? "text-[var(--success)]" : "text-[var(--warning)]"}`}>
-                        {a.last_login_at ? "פעיל" : "הוזמן · טרם הופעל"}
-                      </span>
+                orgAccounts.map((a) => {
+                  const pending = pendingInviteUsers.has(a.id)
+                  return (
+                    <div key={a.email} className="flex flex-col gap-0.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-fg">{a.full_name || "—"}</span>
+                        <span className={`shrink-0 text-[11.5px] ${pending ? "text-[var(--warning)]" : "text-[var(--success)]"}`}>
+                          {pending ? "הוזמן · טרם הופעל" : "פעיל"}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[12px] text-fg-subtle" dir="ltr">{a.email}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11.5px] text-fg-muted">{a.role === "org_staff" ? "צוות" : "ראש השלוחה"}</span>
+                        {pending && <ResendInviteButton userId={a.id} />}
+                      </div>
                     </div>
-                    <span className="font-mono text-[12px] text-fg-subtle" dir="ltr">{a.email}</span>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[11.5px] text-fg-muted">{a.role === "org_staff" ? "צוות" : "ראש השלוחה"}</span>
-                      {!a.last_login_at && <ResendInviteButton userId={a.id} />}
-                    </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           </div>

@@ -37,15 +37,26 @@ export async function POST(req: Request) {
 
   const { data: target } = await admin
     .from("users")
-    .select("id, email, full_name, role, organization_id, last_login_at")
+    .select("id, email, full_name, role, organization_id")
     .eq("id", userId)
     .single()
   if (!target || !target.organization_id) {
     return NextResponse.json({ error: "not_found" }, { status: 404 })
   }
-  if (target.last_login_at) {
+  // בטיחות: לעולם לא נוגעים בחשבון מועצה
+  if (target.role === "council_admin") {
+    return NextResponse.json({ error: "לא ניתן לחשבון מועצה" }, { status: 403 })
+  }
+  // רק חשבון עם הזמנה ממתינה (sent) — מונע מחיקת חשבון פעיל או עם דאטה (FK)
+  const { data: pendingInv } = await admin
+    .from("invitations")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "sent")
+    .limit(1)
+  if (!pendingInv || pendingInv.length === 0) {
     return NextResponse.json(
-      { error: "המשתמש כבר הפעיל את החשבון" },
+      { error: "אין הזמנה ממתינה לחשבון זה" },
       { status: 409 }
     )
   }
