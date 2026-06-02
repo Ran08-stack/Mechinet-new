@@ -3,6 +3,7 @@
 import { useRef, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import L from "leaflet"
+import { Plus, Minus } from "lucide-react"
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
 import MarkerClusterGroup from "react-leaflet-cluster"
 import "leaflet/dist/leaflet.css"
@@ -131,18 +132,46 @@ export function BranchMap({ points }: { points: BranchPoint[] }) {
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_240px]">
         {/* מפה */}
-        <div className="overflow-hidden rounded-md border border-line">
+        <div className="relative overflow-hidden rounded-md border border-line">
           <MapContainer
             ref={mapRef}
             center={[31.7, 35.0]}
             zoom={7}
+            minZoom={3}
+            maxBounds={[
+              [-90, -180],
+              [90, 180],
+            ]}
+            maxBoundsViscosity={1.0}
             scrollWheelZoom
+            zoomControl={false}
+            attributionControl={false}
             style={{ height: 480, width: "100%", background: "#dfe7f0" }}
           >
             <TileLayer
+              noWrap
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
+
+            {/* בקרת זום מותאמת */}
+            <div className="leaflet-top leaflet-left">
+              <div className="leaflet-control pointer-events-auto m-3 flex flex-col overflow-hidden rounded-md border border-line bg-surface shadow-[var(--shadow-sm)]">
+                <button
+                  onClick={() => mapRef.current?.zoomIn()}
+                  aria-label="התקרב"
+                  className="grid h-8 w-8 place-items-center border-b border-line text-primary transition-colors hover:bg-[var(--bg-subtle)]"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => mapRef.current?.zoomOut()}
+                  aria-label="התרחק"
+                  className="grid h-8 w-8 place-items-center text-primary transition-colors hover:bg-[var(--bg-subtle)]"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
             <MarkerClusterGroup
               key={filterKey}
               showCoverageOnHover={false}
