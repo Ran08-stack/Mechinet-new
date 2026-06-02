@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Building2,
+  ClipboardList,
   Network,
   FileBarChart,
   Megaphone,
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils"
 const nav = [
   { href: "/council",               icon: LayoutDashboard, label: "סקירה ארצית" },
   { href: "/council/academies",     icon: Building2,       label: "מכינות" },
+  { href: "/council/registrations", icon: ClipboardList,   label: "בקשות רישום" },
   { href: "/council/movements",     icon: Network,         label: "תנועות" },
   { href: "/council/reports",       icon: FileBarChart,    label: "דוחות" },
   { href: "/council/announcements", icon: Megaphone,       label: "הודעות" },

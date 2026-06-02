@@ -422,4 +422,13 @@
 - app/(auth)/welcome/page.tsx: client — getSession/onAuthStateChange, טופס קביעת סיסמה (min 8), updateUser → POST /api/invitations/accept → /candidates. מצב "הזמנה לא תקפה" אם אין session.
 - app/api/invitations/accept/route.ts: מסמן invitation accepted + org pending→active.
 - app/api/dev/invite/route.ts: route זמני council-only לבדיקת קצה-לקצה (יוחלף ב-Phase 2).
-- tsc נקי. build רץ. נשאר: רן עורך תבנית "Invite user" ב-Supabase Dashboard (Auth→Email Templates) — להחליף {{ .ConfirmationURL }} ונוסח עברית. ואז בדיקת קצה-לקצה.
+- tsc נקי. build exit 0. push eedd80f.
+
+### 2026-06-02 — Phase 2 (הרשמה עצמית + תור אישור) — נבנה ב-2 subagents במקביל
+- migration registration_requests (20260603090000): טבלה (academy_name, movement_id, existing_academy_id, contact_*, branches jsonb, status pending/approved/rejected, reviewed_*) + index + RLS (council read+update; insert רק דרך service-role route). הוחל.
+- types: registration_requests ב-Database + types/registration.ts (RegistrationRequest, RequestedBranch, RegistrationStatus).
+- subagent A (הרשמה ציבורית): app/(auth)/register/page.tsx (טופס: מכינה+תנועה+קישור-לקיימת, שלוחות דינמיות, איש קשר) + app/api/register/route.ts (POST ציבורי, ולידציה, rate-limit שעה לפי email, insert service-role) + לינק "מכינה חדשה? הירשמו כאן" ב-login.
+- subagent B (תור מועצה): app/(council)/council/registrations/page.tsx (server, pending) + RegistrationQueue.tsx (אשר/דחה, מתרחב לשלוחות) + app/api/council/registrations/[id]/route.ts (PATCH: guard council, 409 idempotency, אישור=academy+orgs(pending)+provisionOrgAdmin על השלוחה הראשית+audit; דחייה=reason) + פריט "בקשות רישום" ב-CouncilSidebar.
+- ה-routes הרגישים נבדקו ידנית (register ציבורי, approve). tsc נקי + build exit 0 (כל הראוטים נבנו).
+- **חסם בדיקה (Phase 1+2):** רן צריך לערוך תבנית "Invite user" ב-Supabase Dashboard (Auth→Email Templates) לעברית + לוודא Site URL/redirect ל-/welcome. ואז בדיקת קצה-לקצה: /register → אישור בתור → מייל → /welcome → סיסמה → /candidates.
+- הערה: backfill של 99 שלוחות ל-status='directory' לא בוצע (נדחה — לוודא קודם שאין שאילתה שמסננת status). העמודה נשארת free-text (בלי CHECK).

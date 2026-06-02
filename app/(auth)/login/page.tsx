@@ -179,6 +179,13 @@ export default function LoginPage() {
               {loading ? "נכנס..." : "כניסה למערכת"}
               {!loading && <ChevronLeft className="h-4 w-4" />}
             </button>
+
+            <a
+              href="/register"
+              className="self-center text-[13px] text-fg-muted hover:text-fg hover:underline"
+            >
+              מכינה חדשה? הירשמו כאן
+            </a>
           </form>
         </div>
       </div>

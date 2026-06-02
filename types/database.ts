@@ -555,6 +555,57 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_requests: {
+        Row: {
+          id: string
+          academy_name: string
+          movement_id: string | null
+          existing_academy_id: string | null
+          contact_name: string
+          contact_email: string
+          contact_phone: string | null
+          branches: Json
+          notes: string | null
+          status: string
+          reviewed_by: string | null
+          reviewed_at: string | null
+          reject_reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          academy_name: string
+          movement_id?: string | null
+          existing_academy_id?: string | null
+          contact_name: string
+          contact_email: string
+          contact_phone?: string | null
+          branches?: Json
+          notes?: string | null
+          status?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          reject_reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          academy_name?: string
+          movement_id?: string | null
+          existing_academy_id?: string | null
+          contact_name?: string
+          contact_email?: string
+          contact_phone?: string | null
+          branches?: Json
+          notes?: string | null
+          status?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          reject_reason?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
