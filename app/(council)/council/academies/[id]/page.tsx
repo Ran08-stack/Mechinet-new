@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Building2, ChevronRight, MapPin, Phone, User2, Flag } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { AcademyActionsCard } from "../../../_components/AcademyActionsCard"
+import { ResendInviteButton } from "../../../_components/ResendInviteButton"
 
 // דף מכינה פרטני לצד המועצה — אגרגציה בלבד, אסור להציג שמות מועמדים.
 
@@ -72,7 +73,7 @@ export default async function AcademyDetailPage(
       .gte("scheduled_at", nowIso),
     supabase
       .from("users")
-      .select("full_name, email, role, last_login_at")
+      .select("id, full_name, email, role, last_login_at")
       .eq("organization_id", id)
       .order("created_at"),
   ])
@@ -245,7 +246,10 @@ export default async function AcademyDetailPage(
                       </span>
                     </div>
                     <span className="font-mono text-[12px] text-fg-subtle" dir="ltr">{a.email}</span>
-                    <span className="text-[11.5px] text-fg-muted">{a.role === "org_staff" ? "צוות" : "ראש השלוחה"}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11.5px] text-fg-muted">{a.role === "org_staff" ? "צוות" : "ראש השלוחה"}</span>
+                      {!a.last_login_at && <ResendInviteButton userId={a.id} />}
+                    </div>
                   </div>
                 ))
               )}
