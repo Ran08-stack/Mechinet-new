@@ -7,14 +7,6 @@ import { AcademiesOverviewTable, type AcademyRow } from "../_components/Academie
 import { BranchMapClient } from "@/components/council/BranchMapClient"
 import type { BranchPoint } from "@/components/council/BranchMap"
 
-// קבועים
-const ACCEPTED_STAGE_NAMES = ["accepted", "התקבל", "מתקבל", "אושר"]
-
-function isAcceptedStage(stage: string | null | undefined): boolean {
-  if (!stage) return false
-  return ACCEPTED_STAGE_NAMES.some((n) => stage.includes(n))
-}
-
 function currentHebrewSchoolYear(now: Date = new Date()): string {
   const m = now.getMonth()
   const y = now.getFullYear()
@@ -63,19 +55,28 @@ export default async function CouncilDashboardPage() {
   const [
     { data: orgs },
     { data: academiesData },
-    { data: candidates },
+    { data: stats },
     { data: adminUsers },
   ] = await Promise.all([
     supabase.from("organizations").select("*").order("created_at"),
     supabase.from("academies").select("id, name"),
-    supabase.from("candidates").select("organization_id, stage, city"),
+    supabase.rpc("council_dashboard_stats"),
     supabase.from("users").select("organization_id, last_login_at, role").eq("role", "admin"),
   ])
 
   const organizations = (orgs ?? []) as Org[]
-  const allCandidates = candidates ?? []
   const totalAcademies = organizations.length
-  const totalCandidates = allCandidates.length
+
+  // ספירות מועמדים מצטברות per-org (פונקציית DB — לא טוענים כל מועמד בארץ, לסקייל)
+  const countByOrg: Record<string, number> = {}
+  const acceptedByOrg: Record<string, number> = {}
+  let totalCandidates = 0
+  for (const s of stats ?? []) {
+    if (!s.organization_id) continue
+    countByOrg[s.organization_id] = s.total
+    acceptedByOrg[s.organization_id] = s.accepted
+    totalCandidates += s.total
+  }
 
   // אחרון התחברות לכל מכינה (max על admin users)
   const lastLoginByOrg: Record<string, string | null> = {}
@@ -85,15 +86,6 @@ export default async function CouncilDashboardPage() {
     if (!prev || (u.last_login_at && u.last_login_at > prev)) {
       lastLoginByOrg[u.organization_id] = u.last_login_at
     }
-  }
-
-  // ממוצע התקדמות
-  const countByOrg: Record<string, number> = {}
-  const acceptedByOrg: Record<string, number> = {}
-  for (const c of allCandidates) {
-    if (!c.organization_id) continue
-    countByOrg[c.organization_id] = (countByOrg[c.organization_id] ?? 0) + 1
-    if (isAcceptedStage(c.stage)) acceptedByOrg[c.organization_id] = (acceptedByOrg[c.organization_id] ?? 0) + 1
   }
 
   // שמות מכינות + ספירת שלוחות לכל מכינה (לקביעת multi)

@@ -562,6 +562,10 @@ export type Database = {
     Functions: {
       get_user_organization_id: { Args: Record<string, never>; Returns: string }
       is_council_admin: { Args: Record<string, never>; Returns: boolean }
+      council_dashboard_stats: {
+        Args: Record<string, never>
+        Returns: { organization_id: string; total: number; accepted: number }[]
+      }
     }
     Enums: {
       [_ in never]: never

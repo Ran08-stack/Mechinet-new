@@ -440,3 +440,10 @@
 - **נשמר (תשתית, רלוונטי לשני המודלים):** טבלת invitations, provisionOrgAdmin, /welcome, /api/invitations/accept, הגדרות Supabase email.
 - **המודל החדש מומש:** כפתור "הוסף שלוחה" (InviteAcademyButton) קיבל שדות "שם/מייל ראש השלוחה" — בשמירה, אם הוזן מייל, נקרא /api/council/invite-admin → provisionOrgAdmin שולח הזמנה + org status='pending'. route חדש app/api/council/invite-admin/route.ts (council guard).
 - רן עשה בלוח Supabase: Site URL + Redirect /welcome + תבנית Invite user בעברית. מוכן לבדיקה.
+
+### 2026-06-02 — בדיקה עברה + תיקוני דף מכינה + Phase 3 (תיחום דשבורד)
+- רן בדק קצה-לקצה: יצירת שלוחה→הזמנה→מייל→/welcome→סיסמה→כניסה. **עובד.**
+- תיקון דף מכינה (פרטי ראש/מיקום לא הופיעו): (1) invite-admin שומר שם הראש ל-org.contact_person. (2) hero מציג org.city (היה מציג org.region הריק). (3) כרטיס חדש "חשבון השלוחה" בדף [id] — שולף users של השלוחה (RLS council_read_all_users), מציג שם+מייל+סטטוס "פעיל"(last_login_at) / "הוזמן · טרם הופעל". push c613bd0. אומת בצילום מסך.
+- הערה: org.status נשאר 'active' (ברירת מחדל) גם כשהחשבון טרם הופעל — סטטוס שלוחה (ניהולי) וסטטוס חשבון (התחברות) נפרדים בכוונה. 'pending' לא מיוצג ב-UI הסטטוס.
+- **Phase 3 — תיחום דשבורד המועצה (סקייל):** migration council_dashboard_stats_and_indexes — פונקציה council_dashboard_stats() (plpgsql, SECURITY DEFINER, guard is_council_admin, מחזירה per-org total+accepted) + אינדקסים candidates(org,stage)/organizations(status)/organizations(academy_id). page.tsx: הוחלף supabase.from("candidates").select(כל המועמדים בארץ) ב-supabase.rpc("council_dashboard_stats") → countByOrg/acceptedByOrg/totalCandidates מהאגרגציה. הוסרו isAcceptedStage+ACCEPTED_STAGE_NAMES (עברו ל-SQL). פלט זהה, עומס מינימלי. type נוסף ל-Database Functions. אומת: האגרגציה הגולמית מחזירה רעות=20/accepted=0.
+- נשאר ב-Phase 3 (לא בוצע): מעקב/resend הזמנות במועצה, types regen ל-org_roles, backfill directory, load test.
