@@ -402,3 +402,8 @@
 - 2 commits ה-remote נשמרו בהיסטוריה (לא --force). tsc נקי + npm run build exit 0. push fast-forward רגיל (c6e6077..bce65f5).
 - אומת: Vercel הדליק deployment מבוסס-GitHub (dpl_9sb1MFTBZJsBNrDjZuB4b8zEymSu, ללא gitDirty — בניגוד לכל הקודמים) → "Build Completed [49s]" → "Deployment completed". 19 ראוטים כולל כל המועצה.
 - מעכשיו: working tree == origin/main == GitHub. אפשר לחזור ל-git push רגיל; vercel --prod כבר לא חובה לעקיפת git מזוהם.
+
+### 2026-06-02 — תהליך deploy חדש (skill) + תיקוני מפת מועצה
+- **skill mechinet-deploy עודכן** (אישור רן): ברירת מחדל מהיום = commit→push→GitHub בונה ומפרסם אוטומטית (~50ש'). לא vercel --prod מקומי (עוקף git וגרם לסחף). push נדחה→rebase לא --force. stage ממוקד, אסור add -A / commit ל-.env. push 271cf61.
+- תיקוני BranchMap.tsx (תלונת רן: המפה משכפלת את העולם אופקית): (1) TileLayer noWrap + maxBounds עולמי [[-90,-180],[90,180]] + maxBoundsViscosity=1 → עולם אחד. (2) minZoom=3. (3) כפתורי זום מותאמים — zoomControl=false + כפתורי Plus/Minus מעוצבים בטוקנים (leaflet-top-left). (4) attributionControl=false → הוסר קרדיט "Leaflet | OpenStreetMap". 
+- tsc נקי + build exit 0. push 95de197 (GitHub auto-build).
