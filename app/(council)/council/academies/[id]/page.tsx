@@ -13,6 +13,8 @@ const GENDER_LABEL: Record<string, string> = {
   female: "נקבה",
   boys: "בנים",
   girls: "בנות",
+  boys_only: "רק בנים",
+  girls_only: "רק בנות",
 }
 const RELIGIOUS_LABEL: Record<string, string> = {
   secular: "חילוני",
@@ -90,6 +92,10 @@ export default async function AcademyDetailPage(
     (orgInvites ?? []).filter((i) => i.status === "sent").map((i) => i.user_id)
   )
   const orgAccounts = (accounts ?? []).filter((a) => a.role !== "council_admin")
+  // ראש השלוחה (כל תפקיד שאינו org_staff) מוצג ראשון, אחריו הצוות.
+  const sortedAccounts = [...orgAccounts].sort(
+    (a, b) => (a.role === "org_staff" ? 1 : 0) - (b.role === "org_staff" ? 1 : 0)
+  )
 
   const movement = org.movement_id
     ? (movements ?? []).find((m) => m.id === org.movement_id)
@@ -239,29 +245,48 @@ export default async function AcademyDetailPage(
             </div>
           </div>
 
-          {/* חשבון השלוחה — ראש + צוות (שם, מייל, סטטוס הפעלה) */}
+          {/* חשבונות הכניסה של השלוחה — מי שיכול להיכנס ולנהל את המועמדים שלה */}
           <div className="rounded-lg border border-line bg-surface">
             <div className="border-b border-[var(--line-faint)] px-5 py-3">
-              <h3 className="m-0 text-[13px] font-semibold text-primary">חשבון השלוחה</h3>
+              <h3 className="m-0 text-[13px] font-semibold text-primary">חשבונות כניסה</h3>
+              <p className="m-0 mt-0.5 text-[11.5px] text-fg-muted">
+                מי שיכול להיכנס ולנהל את המועמדים של השלוחה
+              </p>
             </div>
-            <div className="flex flex-col gap-3.5 p-5 text-[13px]">
-              {orgAccounts.length === 0 ? (
-                <p className="m-0 text-fg-muted">טרם הוזמן ראש שלוחה.</p>
+            <div className="flex flex-col p-2">
+              {sortedAccounts.length === 0 ? (
+                <p className="m-0 px-3 py-4 text-[13px] text-fg-muted">
+                  טרם הוזמן ראש שלוחה.
+                </p>
               ) : (
-                orgAccounts.map((a) => {
+                sortedAccounts.map((a) => {
                   const pending = pendingInviteUsers.has(a.id)
+                  const isHead = a.role !== "org_staff"
+                  const initial = (a.full_name || a.email || "?").trim().charAt(0).toUpperCase()
                   return (
-                    <div key={a.email} className="flex flex-col gap-0.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-fg">{a.full_name || "—"}</span>
-                        <span className={`shrink-0 text-[11.5px] ${pending ? "text-[var(--warning)]" : "text-[var(--success)]"}`}>
-                          {pending ? "הוזמן · טרם הופעל" : "פעיל"}
+                    <div key={a.email} className="flex items-start gap-3 rounded-md px-3 py-2.5 hover:bg-[var(--bg-subtle)]">
+                      <span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full text-[13px] font-semibold ${isHead ? "bg-[var(--primary-soft)] text-primary" : "bg-[var(--bg-muted)] text-fg-muted"}`}>
+                        {initial}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-[13px] font-medium text-fg">
+                            {a.full_name || "ללא שם"}
+                          </span>
+                          <span className={`shrink-0 rounded-full px-1.5 py-px text-[10.5px] font-medium ${isHead ? "bg-[var(--primary-soft)] text-primary" : "bg-[var(--bg-muted)] text-fg-muted"}`}>
+                            {isHead ? "ראש השלוחה" : "צוות"}
+                          </span>
+                        </div>
+                        <span className="mt-0.5 block truncate font-mono text-[12px] text-fg-subtle" dir="ltr">
+                          {a.email}
                         </span>
-                      </div>
-                      <span className="font-mono text-[12px] text-fg-subtle" dir="ltr">{a.email}</span>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11.5px] text-fg-muted">{a.role === "org_staff" ? "צוות" : "ראש השלוחה"}</span>
-                        {pending && <ResendInviteButton userId={a.id} />}
+                        <div className="mt-1.5 flex items-center gap-2.5">
+                          <span className={`inline-flex items-center gap-1 text-[11px] ${pending ? "text-[var(--warning)]" : "text-[var(--success)]"}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${pending ? "bg-[var(--warning)]" : "bg-[var(--success)]"}`} />
+                            {pending ? "הוזמן · טרם הופעל" : "פעיל"}
+                          </span>
+                          {pending && <ResendInviteButton userId={a.id} />}
+                        </div>
                       </div>
                     </div>
                   )
@@ -283,8 +308,11 @@ export default async function AcademyDetailPage(
             city: org.city,
             status: org.status,
             movement_id: org.movement_id,
+            gender_policy: org.gender_policy,
+            religious_policy: org.religious_policy,
           }}
           movements={movements ?? []}
+          accounts={orgAccounts.map((a) => ({ full_name: a.full_name, email: a.email }))}
         />
       </div>
     </div>

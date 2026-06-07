@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Save, Loader2 } from "lucide-react"
 
 type Movement = { id: string; name: string }
+type Account = { full_name: string | null; email: string }
 type Status = "active" | "suspended" | "archived"
 
 type Props = {
@@ -16,8 +17,11 @@ type Props = {
     city: string | null
     status: string
     movement_id: string | null
+    gender_policy: string | null
+    religious_policy: string | null
   }
   movements: Movement[]
+  accounts: Account[]
 }
 
 const STATUS_OPTIONS: { value: Status; label: string }[] = [
@@ -25,8 +29,18 @@ const STATUS_OPTIONS: { value: Status; label: string }[] = [
   { value: "suspended", label: "מושעית" },
   { value: "archived", label: "בארכיון" },
 ]
+const GENDER_OPTIONS = [
+  { value: "mixed", label: "מעורבת" },
+  { value: "boys_only", label: "רק בנים" },
+  { value: "girls_only", label: "רק בנות" },
+]
+const RELIGIOUS_OPTIONS = [
+  { value: "religious", label: "דתי" },
+  { value: "secular", label: "חילוני" },
+  { value: "mixed", label: "מעורב" },
+]
 
-export function AcademyActionsCard({ orgId, initial, movements }: Props) {
+export function AcademyActionsCard({ orgId, initial, movements, accounts }: Props) {
   const router = useRouter()
   const [contactPerson, setContactPerson] = useState(initial.contact_person ?? "")
   const [contactPhone, setContactPhone] = useState(initial.contact_phone ?? "")
@@ -34,6 +48,8 @@ export function AcademyActionsCard({ orgId, initial, movements }: Props) {
   const [city, setCity] = useState(initial.city ?? "")
   const [status, setStatus] = useState<Status>((initial.status as Status) ?? "active")
   const [movementId, setMovementId] = useState(initial.movement_id ?? "")
+  const [genderPolicy, setGenderPolicy] = useState(initial.gender_policy ?? "")
+  const [religiousPolicy, setReligiousPolicy] = useState(initial.religious_policy ?? "")
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null)
 
@@ -52,6 +68,8 @@ export function AcademyActionsCard({ orgId, initial, movements }: Props) {
       city,
       status,
       movement_id: movementId || null,
+      gender_policy: genderPolicy || null,
+      religious_policy: religiousPolicy || null,
     }
 
     // אם המיקום השתנה — לאתר קואורדינטות מחדש
@@ -102,12 +120,25 @@ export function AcademyActionsCard({ orgId, initial, movements }: Props) {
 
       <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
         <Field label="איש קשר">
-          <input
+          <select
             className={inputCls}
             value={contactPerson}
             onChange={(e) => setContactPerson(e.target.value)}
-            placeholder="שם מנהל/ת"
-          />
+          >
+            <option value="">— בחר מתוך חשבונות השלוחה —</option>
+            {accounts.map((a) => {
+              const name = a.full_name || a.email
+              return (
+                <option key={a.email} value={name}>
+                  {a.full_name ? `${a.full_name} · ${a.email}` : a.email}
+                </option>
+              )
+            })}
+            {contactPerson &&
+              !accounts.some((a) => (a.full_name || a.email) === contactPerson) && (
+                <option value={contactPerson}>{contactPerson}</option>
+              )}
+          </select>
         </Field>
         <Field label="טלפון">
           <input
@@ -154,6 +185,30 @@ export function AcademyActionsCard({ orgId, initial, movements }: Props) {
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="הרכב מגדרי">
+          <select
+            className={inputCls}
+            value={genderPolicy}
+            onChange={(e) => setGenderPolicy(e.target.value)}
+          >
+            <option value="">— לא הוגדר —</option>
+            {GENDER_OPTIONS.map((g) => (
+              <option key={g.value} value={g.value}>{g.label}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="אופי דתי">
+          <select
+            className={inputCls}
+            value={religiousPolicy}
+            onChange={(e) => setReligiousPolicy(e.target.value)}
+          >
+            <option value="">— לא הוגדר —</option>
+            {RELIGIOUS_OPTIONS.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
             ))}
           </select>
         </Field>

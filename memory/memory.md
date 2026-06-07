@@ -453,3 +453,27 @@
 - הוסר פריט "תנועות" מ-CouncilSidebar. כפתור "ניהול" ב-AcademiesOverviewTable → /council/academies/[id] (היה רשימה מסוננת).
 - **באג מסוכן שתוקן:** rapran333 (council_admin) הופיע כ"ראש השלוחה" בדף מכינה (ה-organization_id שלו לא אופס בהמרה ל-council). לחיצת "שלח שוב" עליו הייתה מוחקת את חשבון המועצה. תוקן: (1) דף [id] מסנן role!=council_admin מהכרטיס. (2) סטטוס "טרם הופעל" + כפתור resend מבוססים עכשיו על טבלת invitations (status='sent'), לא על last_login_at הלא-אמין. (3) resend route מאובטח: דוחה council_admin + דורש הזמנה ממתינה (sent) — כך לא נמחק חשבון פעיל/עם דאטה (FK). הדאטה של rapran333 לא שונתה (Dev Switcher עשוי להסתמך עליה) — רק סינון בתצוגה.
 - הערה: last_login_at כנראה לא מתעדכן אמין — לכן עברנו לבסס פעיל/ממתין על invitations. לבדוק בעתיד אם middleware מעדכן last_login_at.
+
+### 2026-06-02 — תקרית: רן ננעל בחוץ (נפתר)
+- רן לא הצליח להיכנס עם אף משתמש. אבחון דרך auth logs: "400: Invalid login credentials" (סיסמה לא תואמת) — **לא** קריסה/מחיקה. כל החשבונות שלמים עם סיסמאות (אומת ב-SQL join של public.users↔auth.users).
+- סיבה: כנראה ניסיון כניסה עם חשבונות בדיקה שהוזמנו ולא הופעלו (אין סיסמה) או סיסמה שגויה ל-rapran333.
+- פתרון: אופסה סיסמת rapran333@gmail.com דרך SQL (extensions.crypt+gen_salt('bf') על auth.users) לערך זמני שנמסר לרן (לא נשמר כאן). רן נכנס בהצלחה. role=admin כרגע (org 11111111) → נוחת /dashboard, משתמש ב-Dev Account Switcher לצד מועצה.
+- TODO אם רן יבקש: להחזיר rapran333 ל-council_admin קבוע; שרן יחליף את הסיסמה הזמנית.
+- לקח: ה-resend הישן (לפני b47b51f) היה מסוכן — תוקן (מבוסס invitations + דוחה council). הבעיה הזו לא נגרמה מ-resend (החשבונות לא נמחקו), אלא מסיסמה.
+
+## 2026-06-07 — תיקון מצב צד מועצה (הזיכרון היה מיושן)
+- ביקורת קוד בפועל גילתה שצד המועצה מתקדם הרבה מעבר למתועד. עודכנו סטטוסי Linear בהתאם:
+- שלב 1 (RAN-13, drill-down /council/academies/[id]): כמעט גמור — Hero, KPIs, פילוח שלבים, יחס מגדר, פעילות אחרונה, חשבון שלוחה+resend, AcademyActionsCard (עריכה+השהיה+שינוי תנועה+עיר). נשאר רק: איפוס סיסמת admin + מחיקה רכה. (נשאר In Progress)
+- שלב 2 (RAN-14): הושלם → Done. CouncilInsight מחובר ל-OpenAI אמיתי (gpt-4o-mini, cache 6ש', fallback) ומוצג בדשבורד.
+- שלב 3 (RAN-15): הושלם → Done. /council/reports — 3 דוחות + טבלאות + גרפים + סינון + ייצוא CSV/PDF (ראוט export/[fmt]). נשאר ניקיון: להסיר כפתור "PDF בדיקה (זמני)".
+- לא נבנו עדיין: שלב 4 (RAN-16, הודעות ארציות + Audit log UI — אין announcements/ או audit/) ושלב 5 (RAN-17, /council/forms + /council/settings).
+- הצעד הבא לפי סדר ה-roadmap: שלב 4 (RAN-16).
+
+## 2026-06-07 — צד מועצה: איש קשר לבחירה + מדיניות מכינה
+- דף מכינה (AcademyActionsCard): "איש קשר" שונה משדה חופשי ל-dropdown מתוך חשבונות השלוחה (ראש/צוות). אם הערך הקיים לא תואם חשבון — נשמר כאופציה נוספת. טלפון נשאר ידני (אין טלפון ב-users).
+- נוספו בוררי "הרכב מגדרי" (מעורבת/רק בנים/רק בנות→mixed/boys_only/girls_only) ו"אופי דתי" (דתי/חילוני/מעורב→religious/secular/mixed) גם בכרטיס העריכה וגם במודאל "שלוחה חדשה" (InviteAcademyButton).
+- PATCH /api/council/organizations/[id]: נוסף ENUM_FIELDS עם ולידציה ל-gender_policy/religious_policy (רק ערך תקין נכתב, נרשם ב-audit_log).
+- הערה: types מגדירים את העמודות כ-string (non-null) → ביצירה שולחים undefined כשריק, "לא הוגדר" בעריכה לא מנקה ערך קיים.
+- תוקן: GENDER_LABEL בדף המכינה — נוספו boys_only/girls_only (קודם הציג ערך גולמי ב-KPI "מדיניות המכינה").
+- tsc נקי. טרם deploy. פתוח: "חשבון השלוחה" — רן אמר שנראה מוזר, ממתין להבהרה מה בדיוק.
+- פאנל "חשבון השלוחה" עוצב מחדש (רן: "לא מובן מה זה, נראה מוזר"): כותרת "חשבונות כניסה" + subtitle "מי שיכול להיכנס ולנהל את המועמדים של השלוחה". כל חשבון: אווטאר עם אות, שם + תווית תפקיד (ראש השלוחה/צוות), מייל, סטטוס עם נקודה (פעיל/הוזמן). מיון: ראש לפני צוות. קובץ: app/(council)/council/academies/[id]/page.tsx. tsc + build נקיים.

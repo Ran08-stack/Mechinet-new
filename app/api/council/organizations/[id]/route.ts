@@ -8,6 +8,10 @@ type OrgUpdate = Database["public"]["Tables"]["organizations"]["Update"]
 // כל שינוי מתועד ב-audit_log עם action תואם.
 const ALLOWED_STATUS = new Set(["active", "suspended", "archived"])
 const TEXT_FIELDS = ["contact_person", "contact_phone", "region", "city"] as const
+const ENUM_FIELDS = {
+  gender_policy: ["boys_only", "girls_only", "mixed"],
+  religious_policy: ["secular", "religious", "mixed"],
+} as const
 
 export async function PATCH(
   req: Request,
@@ -39,7 +43,7 @@ export async function PATCH(
 
   const { data: before, error: beforeErr } = await supabase
     .from("organizations")
-    .select("contact_person, contact_phone, region, city, status, movement_id")
+    .select("contact_person, contact_phone, region, city, status, movement_id, gender_policy, religious_policy")
     .eq("id", id)
     .single()
   if (beforeErr || !before) {
@@ -74,6 +78,16 @@ export async function PATCH(
     if (next !== before.movement_id) {
       updates.movement_id = next
       changes.movement_id = { from: before.movement_id, to: next }
+    }
+  }
+
+  for (const f of Object.keys(ENUM_FIELDS) as Array<keyof typeof ENUM_FIELDS>) {
+    if (f in body) {
+      const v = body[f]
+      if (typeof v === "string" && (ENUM_FIELDS[f] as readonly string[]).includes(v) && v !== before[f]) {
+        updates[f] = v
+        changes[f] = { from: before[f], to: v }
+      }
     }
   }
 

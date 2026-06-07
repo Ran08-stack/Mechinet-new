@@ -21,6 +21,8 @@ export function InviteAcademyButton() {
   const [newAcademyName, setNewAcademyName] = useState("")
   const [branchName, setBranchName] = useState("")
   const [location, setLocation] = useState("")
+  const [genderPolicy, setGenderPolicy] = useState("")
+  const [religiousPolicy, setReligiousPolicy] = useState("")
   const [headName, setHeadName] = useState("")
   const [headEmail, setHeadEmail] = useState("")
   const [saving, setSaving] = useState(false)
@@ -89,6 +91,8 @@ export function InviteAcademyButton() {
         city: loc || null,
         lat,
         lng,
+        gender_policy: genderPolicy || undefined,
+        religious_policy: religiousPolicy || undefined,
       })
       .select("id")
       .single()
@@ -133,6 +137,8 @@ export function InviteAcademyButton() {
     setBranchName("")
     setNewAcademyName("")
     setLocation("")
+    setGenderPolicy("")
+    setReligiousPolicy("")
     setHeadName("")
     setHeadEmail("")
     setAcademyId("")
@@ -239,6 +245,35 @@ export function InviteAcademyButton() {
                 <span className="text-[11px] text-fg-subtle">
                   המיקום יאותר אוטומטית על המפה. אפשר להשאיר ריק.
                 </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-medium text-fg">הרכב מגדרי</label>
+                  <select
+                    value={genderPolicy}
+                    onChange={(e) => setGenderPolicy(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">— לא הוגדר —</option>
+                    <option value="mixed">מעורבת</option>
+                    <option value="boys_only">רק בנים</option>
+                    <option value="girls_only">רק בנות</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-medium text-fg">אופי דתי</label>
+                  <select
+                    value={religiousPolicy}
+                    onChange={(e) => setReligiousPolicy(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">— לא הוגדר —</option>
+                    <option value="religious">דתי</option>
+                    <option value="secular">חילוני</option>
+                    <option value="mixed">מעורב</option>
+                  </select>
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
