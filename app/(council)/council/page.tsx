@@ -41,7 +41,7 @@ const BADGE_GRADIENTS = [
 ]
 
 function policyLabel(g?: string | null, r?: string | null) {
-  const genderMap: Record<string, string> = { mixed: "מעורבת", boys: "רק בנים", girls: "רק בנות" }
+  const genderMap: Record<string, string> = { mixed: "מעורבת", boys_only: "רק בנים", girls_only: "רק בנות", boys: "רק בנים", girls: "רק בנות" }
   const religMap: Record<string, string> = { secular: "חילוני", religious: "דתי", mixed: "מעורב" }
   const gl = g ? genderMap[g] ?? g : "—"
   const rl = r ? religMap[r] ?? r : ""

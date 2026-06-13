@@ -237,25 +237,24 @@ export function InviteAcademyButton() {
                 </label>
                 <input
                   type="text"
+                  required
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="לדוגמה: קיבוץ אורנים"
                   className={inputCls}
                 />
-                <span className="text-[11px] text-fg-subtle">
-                  המיקום יאותר אוטומטית על המפה. אפשר להשאיר ריק.
-                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[13px] font-medium text-fg">הרכב מגדרי</label>
                   <select
+                    required
                     value={genderPolicy}
                     onChange={(e) => setGenderPolicy(e.target.value)}
                     className={inputCls}
                   >
-                    <option value="">— לא הוגדר —</option>
+                    <option value="" disabled>בחר...</option>
                     <option value="mixed">מעורבת</option>
                     <option value="boys_only">רק בנים</option>
                     <option value="girls_only">רק בנות</option>
@@ -264,11 +263,12 @@ export function InviteAcademyButton() {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[13px] font-medium text-fg">אופי דתי</label>
                   <select
+                    required
                     value={religiousPolicy}
                     onChange={(e) => setReligiousPolicy(e.target.value)}
                     className={inputCls}
                   >
-                    <option value="">— לא הוגדר —</option>
+                    <option value="" disabled>בחר...</option>
                     <option value="religious">דתי</option>
                     <option value="secular">חילוני</option>
                     <option value="mixed">מעורב</option>
@@ -282,6 +282,7 @@ export function InviteAcademyButton() {
                 </label>
                 <input
                   type="text"
+                  required
                   value={headName}
                   onChange={(e) => setHeadName(e.target.value)}
                   placeholder="לדוגמה: ישראל ישראלי"
@@ -295,6 +296,7 @@ export function InviteAcademyButton() {
                 </label>
                 <input
                   type="email"
+                  required
                   value={headEmail}
                   onChange={(e) => setHeadEmail(e.target.value)}
                   placeholder="name@example.com"
@@ -307,7 +309,7 @@ export function InviteAcademyButton() {
               )}
 
               <p className="m-0 rounded-md bg-[var(--bg-subtle)] px-3 py-2.5 text-[12px] leading-relaxed text-fg-muted">
-                אם תזין מייל לראש השלוחה, תישלח אליו הזמנה להפעלת החשבון.
+                כל השדות חובה. עם יצירת השלוחה תישלח הזמנה לראש השלוחה במייל שהוזן, להפעלת החשבון.
               </p>
 
               <div className="mt-1 flex items-center justify-end gap-2">
