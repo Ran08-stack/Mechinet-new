@@ -555,6 +555,69 @@ export type Database = {
         }
         Relationships: []
       }
+      announcements: {
+        Row: {
+          id: string
+          title: string
+          body: string
+          target_type: string
+          target_movement_id: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          body: string
+          target_type?: string
+          target_movement_id?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          body?: string
+          target_type?: string
+          target_movement_id?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      announcement_targets: {
+        Row: {
+          announcement_id: string
+          organization_id: string
+        }
+        Insert: {
+          announcement_id: string
+          organization_id: string
+        }
+        Update: {
+          announcement_id?: string
+          organization_id?: string
+        }
+        Relationships: []
+      }
+      announcement_reads: {
+        Row: {
+          announcement_id: string
+          user_id: string
+          read_at: string
+        }
+        Insert: {
+          announcement_id: string
+          user_id: string
+          read_at?: string
+        }
+        Update: {
+          announcement_id?: string
+          user_id?: string
+          read_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -602,6 +665,9 @@ export type Movement = Tables<"movements">
 export type Academy = Tables<"academies">
 export type AuditLog = Tables<"audit_log">
 export type Invitation = Tables<"invitations">
+export type Announcement = Tables<"announcements">
+export type AnnouncementTarget = Tables<"announcement_targets">
+export type AnnouncementRead = Tables<"announcement_reads">
 
 // CandidateStage עכשיו string חופשי — שם השלב הדינמי לפי pipeline_stages.
 // נשאר alias לסוג string לקריאות הקוד הקיים.
@@ -614,6 +680,8 @@ export type UserRole = "admin" | "staff" | "org_staff" | "council_admin"
 export type OrgStatus = "directory" | "pending" | "active" | "suspended" | "archived"
 
 export type InvitationStatus = "sent" | "accepted" | "expired" | "failed"
+
+export type AnnouncementTargetType = "all" | "movement" | "selected"
 
 // טיפוסי שדות —
 // legacy: text, textarea, select, multiselect, date, number, file, video, autocomplete

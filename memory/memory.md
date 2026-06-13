@@ -482,3 +482,12 @@
 ## 2026-06-08 — תיקוני צד מועצה (תוך כדי בניית הודעות)
 - תווית boys_only/girls_only גולמית: subagent תיקן את policyLabel ב-app/(council)/council/page.tsx (genderMap קיבל boys_only→"רק בנים", girls_only→"רק בנות"). זה הזין את עמודת "סוג" בטבלת ניהול המכינות. שאר המקומות אומתו תקינים (GENDER_LABEL בדף הפרטים, GENDER_OPTIONS בכרטיס — כבר נכונים).
 - מודאל "שלוחה חדשה" (InviteAcademyButton): הוסר הטקסט "המיקום יאותר אוטומטית... אפשר להשאיר ריק". כל השדות חובה עכשיו (מיקום, מגדר, דתי, שם+מייל ראש השלוחה) — כדי שתמיד ייווצר משתמש לראש המכינה ותישלח הזמנה. בוררי מגדר/דתי קיבלו placeholder disabled "בחר...".
+
+## 2026-06-08 — פיצ'ר הודעות ארציות (שלב 4, חלק א) — נבנה
+- מתוכנן דרך workflow (4 readers + סינתזה) שמיפה פעמון/RLS/types/דפוסי יצירה. ultracode.
+- migration announcements_tables_and_rls (הוחל ב-Supabase + קובץ מקומי 20260608120000_announcements.sql): 3 טבלאות — announcements (title/body/target_type all|movement|selected/target_movement_id/created_by), announcement_targets (למקרה selected), announcement_reads (קבלות קריאה per-user). RLS: announcements_council_all (is_council_admin) + announcements_member_read (target_type=all / movement תואם / selected ב-targets, דרך get_user_organization_id), announcement_reads_own (auth.uid).
+- types/database.ts: 3 בלוקי טבלה + Announcement/AnnouncementTarget/AnnouncementRead + AnnouncementTargetType.
+- API: app/api/council/announcements/route.ts (POST, guard council_admin, insert + targets + audit_log action=announcement.create). שימוש ב-server client רגיל (RLS מאמת), לא admin client.
+- צד מועצה: app/(council)/council/announcements/page.tsx (רשימה + AnnouncementCreateButton — מודאל כותרת/תוכן/יעד: כל/תנועה/נבחרות). קישור "הודעות" בתפריט כבר היה קיים.
+- צד מכינה: Topbar.tsx — הפעמון טוען הודעות לא-נקראו (2 שאילתות: announcements ∖ announcement_reads, client-side, אמין יותר מ-embedded null filter), תג מספר, פתיחה מסמנת כנקרא (upsert announcement_reads). getSession (לא getUser) למזהה.
+- tsc + build נקיים. נשאר: deploy + בדיקה חיה (שליחה מהמועצה → פעמון אצל מכינה ממוקדת).
