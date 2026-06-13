@@ -494,3 +494,11 @@
 - deploy (2026-06-08): commit 5da7519 → Vercel READY (dpl_9b56aSGmhL3bnqwWZWvAzi99FpFW), חי. get_advisors security: רק אזהרות קיימות מראש (search_path בהלפרים, candidates_public_insert, leaked-password) — שום אזהרה על הטבלאות החדשות, RLS תקין. נשאר: בדיקה חיה end-to-end (מועצה שולחת → פעמון אצל מכינה ממוקדת).
 - עיצוב התראת הפעמון (Topbar): כל הודעה מציגה כעת attribution "מועצת המכינות" עם אייקון Megaphone בעיגול primary, כותרת bold, תוכן, ותאריך עם אייקון שעון (subtle, לא כתום). נראה מקצועי/רשמי.
 - הבהרה לרן (לא שינוי קוד): כרטיס "TEST · 0" בלוח הבקרה = אחד מ-3 כרטיסי המדדים שמציגים שמות שלבי קבלה (אמצעי/אחרון). יש שלב פייפליין בשם "TEST" עם 0 מועמדים. להסרה: הגדרות → ניהול שלבים.
+- מחיקת data (לבקשת רן): נמחק שלב פייפליין "TEST" (id adb60f7a..., org מכינת רעות 1111..., 0 מועמדים) שהופיע ככרטיס מדד בלוח הבקרה. נשארו: טופס הוגש/סינון/מיון פרונטלי. ללא שינוי קוד/deploy — הלוח קורא מ-DB.
+
+## 2026-06-08 — יומן פעולות (Audit, שלב 4 חלק ב') — נבנה
+- רן בחר עיצוב "ציר זמן מקובץ" (מתוך 3 אופציות עם previews) כדי שלא יהיה עמוס.
+- מסך /council/audit: app/(council)/council/audit/page.tsx (server) הופך audit_log גולמי למשפטים קריאים — actor (embed users), org name (map), movement name (map). פעולות: announcement.create→"שלח הודעה «...»", org.update/status_change/movement_change→"עדכן/שינה את {מכינה}". labels עבריים לשדות+ערכים (status/gender/religious/movement). dayHeader+time מחושבים בשרת לפי Asia/Jerusalem (נמנע hydration mismatch).
+- רכיב AuditTimeline (client): שורה אחת לכל פעולה + אייקון, קיבוץ לפי יום (היום/אתמול/תאריך), סינון (כל/הודעות/עדכוני מכינות), "טען עוד" (30), ופרטים (לפני→אחרי) נפתחים בלחיצה. אנטי-עומס.
+- תפריט המועצה: "Audit"→"יומן פעולות" (עברית).
+- tsc + build נקיים.
