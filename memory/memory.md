@@ -491,3 +491,6 @@
 - צד מועצה: app/(council)/council/announcements/page.tsx (רשימה + AnnouncementCreateButton — מודאל כותרת/תוכן/יעד: כל/תנועה/נבחרות). קישור "הודעות" בתפריט כבר היה קיים.
 - צד מכינה: Topbar.tsx — הפעמון טוען הודעות לא-נקראו (2 שאילתות: announcements ∖ announcement_reads, client-side, אמין יותר מ-embedded null filter), תג מספר, פתיחה מסמנת כנקרא (upsert announcement_reads). getSession (לא getUser) למזהה.
 - tsc + build נקיים. נשאר: deploy + בדיקה חיה (שליחה מהמועצה → פעמון אצל מכינה ממוקדת).
+- deploy (2026-06-08): commit 5da7519 → Vercel READY (dpl_9b56aSGmhL3bnqwWZWvAzi99FpFW), חי. get_advisors security: רק אזהרות קיימות מראש (search_path בהלפרים, candidates_public_insert, leaked-password) — שום אזהרה על הטבלאות החדשות, RLS תקין. נשאר: בדיקה חיה end-to-end (מועצה שולחת → פעמון אצל מכינה ממוקדת).
+- עיצוב התראת הפעמון (Topbar): כל הודעה מציגה כעת attribution "מועצת המכינות" עם אייקון Megaphone בעיגול primary, כותרת bold, תוכן, ותאריך עם אייקון שעון (subtle, לא כתום). נראה מקצועי/רשמי.
+- הבהרה לרן (לא שינוי קוד): כרטיס "TEST · 0" בלוח הבקרה = אחד מ-3 כרטיסי המדדים שמציגים שמות שלבי קבלה (אמצעי/אחרון). יש שלב פייפליין בשם "TEST" עם 0 מועמדים. להסרה: הגדרות → ניהול שלבים.

@@ -1,7 +1,7 @@
 "use client"
 
 import { ReactNode, useState, useEffect } from "react"
-import { Bell, HelpCircle, X } from "lucide-react"
+import { Bell, HelpCircle, X, Megaphone, Clock } from "lucide-react"
 import { QuickSearch } from "./QuickSearch"
 import { createClient } from "@/lib/supabase/client"
 
@@ -175,13 +175,24 @@ export function Topbar({
                   announcements.map((a) => (
                     <div
                       key={a.id}
-                      className="border-b border-[var(--line-faint)] px-4 py-3 last:border-b-0"
+                      className="border-b border-[var(--line-faint)] px-4 py-3.5 last:border-b-0"
                     >
-                      <div className="text-[13px] font-medium text-fg">{a.title}</div>
-                      <div className="mt-0.5 whitespace-pre-line text-[12px] leading-relaxed text-fg-muted">
+                      <div className="flex items-center gap-2">
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--primary-soft)] text-primary">
+                          <Megaphone className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-primary">
+                          מועצת המכינות
+                        </span>
+                      </div>
+                      <div className="mt-2 text-[13px] font-semibold leading-snug text-fg">
+                        {a.title}
+                      </div>
+                      <div className="mt-1 whitespace-pre-line text-[12px] leading-relaxed text-fg-muted">
                         {a.body}
                       </div>
-                      <div className="mt-1 font-mono text-[10.5px] text-fg-subtle">
+                      <div className="mt-2 inline-flex items-center gap-1 text-[10.5px] text-fg-subtle">
+                        <Clock className="h-3 w-3" />
                         {new Date(a.created_at).toLocaleDateString("he-IL")}
                       </div>
                     </div>
