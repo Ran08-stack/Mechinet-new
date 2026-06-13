@@ -107,11 +107,6 @@ export function ReportsControls({ orgs, currentFrom, currentTo, currentOrgIds, c
           className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-[13px] font-medium text-on-primary hover:opacity-90">
           הצג דוח
         </button>
-        {/* כפתור בדיקה זמני — מוציא PDF דמה בלי ולידציה. להסיר אחרי שהפיצ'ר מאומת. */}
-        <a href="/council/reports/export/pdf?test=1&kind=national" target="_blank" rel="noopener"
-          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-dashed border-warning bg-warning/10 px-3 text-[13px] text-warning hover:bg-warning/15">
-          <FileText className="h-3.5 w-3.5" /> PDF בדיקה (זמני)
-        </a>
         {canExport ? (
           <>
             <a href={exportHref("csv")}

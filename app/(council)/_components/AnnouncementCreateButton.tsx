@@ -166,20 +166,38 @@ export function AnnouncementCreateButton({
                   <label className="text-[13px] font-medium text-fg">
                     מכינות {orgIds.length > 0 ? `(${orgIds.length})` : ""}
                   </label>
-                  <div className="max-h-48 overflow-y-auto rounded-md border border-line p-2">
-                    {orgs.map((o) => (
-                      <label
-                        key={o.id}
-                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-[var(--bg-subtle)]"
+                  <div className="overflow-hidden rounded-md border border-line">
+                    <div className="flex items-center justify-between gap-2 border-b border-line px-2 py-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setOrgIds(orgs.map((o) => o.id))}
+                        className="rounded px-2 py-1 text-[12px] font-medium text-accent hover:bg-[var(--bg-subtle)]"
                       >
-                        <input
-                          type="checkbox"
-                          checked={orgIds.includes(o.id)}
-                          onChange={() => toggleOrg(o.id)}
-                        />
-                        <span className="text-[13px]">{o.name}</span>
-                      </label>
-                    ))}
+                        בחר הכל
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOrgIds([])}
+                        className="rounded px-2 py-1 text-[12px] text-fg-muted hover:bg-[var(--bg-subtle)]"
+                      >
+                        נקה הכל
+                      </button>
+                    </div>
+                    <div className="max-h-44 overflow-y-auto p-2">
+                      {orgs.map((o) => (
+                        <label
+                          key={o.id}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-[var(--bg-subtle)]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={orgIds.includes(o.id)}
+                            onChange={() => toggleOrg(o.id)}
+                          />
+                          <span className="text-[13px]">{o.name}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
