@@ -69,17 +69,25 @@ export function ReportsControls({ orgs, currentFrom, currentTo, currentOrgIds, c
             <summary className="flex h-9 cursor-pointer items-center rounded-md border border-line bg-bg px-2 text-[13px] text-fg-muted">
               {orgIds.length === 0 ? "בחר מכינות" : `${orgIds.length} נבחרו`}
             </summary>
-            <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface p-2 shadow-md">
-              <button type="button" onClick={() => setOrgIds([])}
-                className="mb-1 block w-full rounded px-2 py-1 text-start text-[12px] text-fg-muted hover:bg-[var(--bg-subtle)]">
-                נקה הכל
-              </button>
-              {orgs.map((o) => (
-                <label key={o.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-[var(--bg-subtle)]">
-                  <input type="checkbox" checked={orgIds.includes(o.id)} onChange={() => toggleOrg(o.id)} />
-                  <span className="text-[13px]">{o.name}</span>
-                </label>
-              ))}
+            <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-line bg-surface shadow-md">
+              <div className="flex items-center justify-between gap-2 border-b border-line px-2 py-1.5">
+                <button type="button" onClick={() => setOrgIds(orgs.map((o) => o.id))}
+                  className="rounded px-2 py-1 text-[12px] font-medium text-accent hover:bg-[var(--bg-subtle)]">
+                  בחר הכל
+                </button>
+                <button type="button" onClick={() => setOrgIds([])}
+                  className="rounded px-2 py-1 text-[12px] text-fg-muted hover:bg-[var(--bg-subtle)]">
+                  נקה הכל
+                </button>
+              </div>
+              <div className="max-h-56 overflow-y-auto p-2">
+                {orgs.map((o) => (
+                  <label key={o.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-[var(--bg-subtle)]">
+                    <input type="checkbox" checked={orgIds.includes(o.id)} onChange={() => toggleOrg(o.id)} />
+                    <span className="text-[13px]">{o.name}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </details>
         </div>
