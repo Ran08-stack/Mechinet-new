@@ -77,10 +77,10 @@ export function AuditTimeline({ entries }: { entries: AuditEntry[] }) {
               setFilter(f.key)
               setLimit(PAGE)
             }}
-            className={`h-8 rounded-md px-3 text-[12.5px] font-medium transition-colors ${
+            className={`h-8 rounded-md border px-3 text-[12.5px] font-medium transition-colors ${
               filter === f.key
-                ? "bg-primary text-on-primary"
-                : "border border-line bg-surface text-fg-muted hover:bg-[var(--bg-subtle)]"
+                ? "border-[var(--primary-line)] bg-[var(--primary-soft)] text-primary"
+                : "border-line bg-surface text-fg-muted hover:bg-[var(--bg-subtle)]"
             }`}
           >
             {f.label}
