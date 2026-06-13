@@ -86,6 +86,8 @@ const s = StyleSheet.create({
   kpiLabel: { fontSize: 8, color: C.inkSubtle, letterSpacing: 0.4, textAlign: "right" },
   kpiValue: { fontSize: 21, fontWeight: 700, color: C.navy, marginTop: 4, textAlign: "right", letterSpacing: -0.4 },
   kpiSub: { fontSize: 10, color: C.inkMuted, fontWeight: 400 },
+  kpiLeaderName: { fontSize: 13, fontWeight: 700, color: C.navy, marginTop: 5, textAlign: "right", lineHeight: 1.15 },
+  kpiLeaderSub: { fontSize: 9, color: C.inkMuted, marginTop: 2, textAlign: "right" },
 
   // Section
   sectionLabel: { flexDirection: "row-reverse", alignItems: "center", gap: 7, marginTop: 22, marginBottom: 9 },
@@ -137,6 +139,11 @@ function fmtDate(d: string): string {
   const parts = d.split("-")
   if (parts.length !== 3) return d
   return `${parts[2]}/${parts[1]}/${parts[0]}`
+}
+
+// שם המקור ב-DB הוא לרוב שם מקום (שלוחה). מציגים "מכינת X" אם אין כבר קידומת.
+function academyLabel(name: string): string {
+  return /^מכינ/.test(name) ? name : `מכינת ${name}`
 }
 
 function statusInfo(st: string | null): { label: string; color: string } {
@@ -239,10 +246,14 @@ export function ReportPDF({
           </View>
           <View style={s.kpiCell}>
             <Text style={s.kpiLabel}>מכינה מובילה</Text>
-            <Text style={s.kpiValue}>
-              {leader ? leader.orgName : "—"}
-              {leader ? <Text style={s.kpiSub}> · {leader.total}</Text> : null}
-            </Text>
+            {leader ? (
+              <>
+                <Text style={s.kpiLeaderName}>{academyLabel(leader.orgName)}</Text>
+                <Text style={s.kpiLeaderSub}>{leader.total} מועמדים</Text>
+              </>
+            ) : (
+              <Text style={s.kpiValue}>—</Text>
+            )}
           </View>
           <View style={s.kpiCell}>
             <Text style={s.kpiLabel}>ממוצע למכינה</Text>
@@ -266,7 +277,7 @@ export function ReportPDF({
                 <View key={i} style={s.tRow}>
                   <View style={[s.orgWrap, { flex: 2.6 }]}>
                     <View style={s.rankBadge}><Text style={s.rankText}>{i + 1}</Text></View>
-                    <Text style={s.orgName}>{r.orgName}</Text>
+                    <Text style={s.orgName}>{academyLabel(r.orgName)}</Text>
                   </View>
                   <Text style={[s.mvText, { flex: 1.5 }]}>{r.movementName}</Text>
                   <View style={[s.barWrap, { flex: 2.4 }]}>
@@ -289,7 +300,7 @@ export function ReportPDF({
             <Section title="טבלת השוואה">
               <GenericTable
                 head={["סטטוס", "% בנות", "% בנים", "התקדמות", "סה״כ", "מכינה"]}
-                rows={r.rows.map((x) => [statusInfo(x.status).label, `${x.femalePct}%`, `${x.malePct}%`, `${x.progressPct}%`, x.total, x.orgName])}
+                rows={r.rows.map((x) => [statusInfo(x.status).label, `${x.femalePct}%`, `${x.malePct}%`, `${x.progressPct}%`, x.total, academyLabel(x.orgName)])}
               />
             </Section>
           )
@@ -301,7 +312,7 @@ export function ReportPDF({
           const rows = r.rows.map((x) => [
             x.total,
             ...r.stageNames.slice().reverse().map((n) => x.counts[n] ?? 0),
-            x.orgName,
+            academyLabel(x.orgName),
           ])
           return (
             <Section title="מטריצת שלבים">

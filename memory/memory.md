@@ -516,3 +516,4 @@
 - אומת: smoke-test רינדר PDF אמיתי (font+logo+bars+RTL) → נקרא ויזואלית, הלוגו והפריסה תקינים. הוסר "←" (Rubik חסר גליף → נקודה).
 - לוגו הועתק ל-lib/reports/council-logo.png (נארז כמו הפונטים) + public/council-logo.png.
 - tsc + build נקיים.
+- תיקוני PDF (לבקשת רן): (1) KPI "מכינה מובילה" נשבר (שם ארוך בפונט 21) → שם ב-13px + "X מועמדים" מתחת. (2) academyLabel — שמות שהם רק מקום (אופקים) מוצגים "מכינת אופקים" (אם אין כבר קידומת מכינ). הוחל בטבלאות national/compare/stages + ב-KPI. (3) מכינת רעות הייתה status=archived (מבדיקות) → הוחזרה ל-active ב-DB. אומת ב-smoke render.
