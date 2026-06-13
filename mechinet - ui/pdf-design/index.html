@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>דוח מועצה — 3 אופציות עיצוב PDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#222e3c;          /* off-black navy — לא שחור טהור */
+    --ink-soft:#56657a;
+    --ink-faint:#8a97a8;
+    --line:#e6eaf0;
+    --line-soft:#eef1f6;
+    --bg:#f4f6f9;
+    --navy:#243049;         /* primary brand ink */
+    --blue:#1f8fd0;         /* accent (מהלוגו) */
+    --blue-soft:#eaf4fb;
+    --green:#7cb342;        /* accent משני — שימוש מדוד */
+    --green-soft:#eef6e6;
+    --amber:#c98a1b;
+    --paper:#ffffff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Heebo',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}
+  .num{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+
+  /* ===== Toolbar (לא מודפס) ===== */
+  .toolbar{
+    max-width:850px;margin:24px auto 8px;padding:18px 22px;
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;
+  }
+  .toolbar h1{margin:0 0 6px;font-size:18px;font-weight:800;letter-spacing:-.01em;color:var(--navy)}
+  .toolbar p{margin:0;font-size:13.5px;color:var(--ink-soft);line-height:1.6}
+  .toolbar .note{margin-top:10px;font-size:12px;color:var(--ink-faint)}
+
+  /* ===== Page (A4) ===== */
+  .page{
+    width:210mm;min-height:297mm;background:var(--paper);
+    margin:26px auto;padding:18mm 16mm 14mm;
+    box-shadow:0 18px 50px -22px rgba(20,30,50,.28);
+    position:relative;display:flex;flex-direction:column;
+  }
+  .opt-tag{
+    position:absolute;top:-12px;inset-inline-start:18mm;
+    background:var(--navy);color:#fff;font-size:11px;font-weight:600;
+    padding:4px 12px;border-radius:999px;letter-spacing:.02em;
+  }
+  .page .content{flex:1}
+
+  /* ===== Shared table base ===== */
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:start;padding:9px 10px;font-size:12.5px;vertical-align:middle}
+  thead th{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--ink-faint);text-transform:none}
+  .cell-num{text-align:start}
+  .status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600}
+  .dot{width:7px;height:7px;border-radius:999px;display:inline-block}
+  .st-active{color:var(--green)} .st-active .dot{background:var(--green)}
+  .st-susp{color:var(--amber)} .st-susp .dot{background:var(--amber)}
+
+  /* ===== Footer base ===== */
+  .foot{
+    margin-top:14px;padding-top:9px;border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:10.5px;color:var(--ink-faint);letter-spacing:.02em;
+  }
+  .foot .mid{font-family:'Roboto Mono',monospace}
+
+  /* ============================================================= */
+  /* OPTION 1 — מסמך רשמי נקי (Editorial / hairlines)              */
+  /* ============================================================= */
+  .o1 .head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+  .o1 .logo{height:52px}
+  .o1 .head .meta{text-align:start;font-size:11px;color:var(--ink-faint);line-height:1.7;padding-top:4px}
+  .o1 .head .meta b{display:block;color:var(--ink-soft);font-size:11px;font-weight:700;letter-spacing:.06em}
+  .o1 .title-block{margin-top:26px}
+  .o1 .eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--blue);margin-bottom:7px}
+  .o1 h2{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em;color:var(--navy);line-height:1.05}
+  .o1 .rule{height:2px;width:64px;background:var(--navy);margin:14px 0 0;border-radius:2px}
+  .o1 .period{margin-top:14px;font-size:13px;color:var(--ink-soft)}
+  .o1 .period b{color:var(--ink);font-weight:600}
+  .o1 .period .sep{color:var(--ink-faint);margin:0 9px}
+  .o1 .stats{display:flex;gap:0;margin-top:26px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .o1 .stat{flex:1;padding:14px 16px;border-inline-start:1px solid var(--line-soft)}
+  .o1 .stat:first-child{border-inline-start:0;padding-inline-start:0}
+  .o1 .stat .k{font-size:10.5px;color:var(--ink-faint);font-weight:600;letter-spacing:.03em}
+  .o1 .stat .v{font-size:24px;font-weight:800;color:var(--navy);margin-top:4px;letter-spacing:-.01em}
+  .o1 .stat .v small{font-size:12px;font-weight:600;color:var(--ink-soft);margin-inline-start:4px}
+  .o1 table{margin-top:24px}
+  .o1 thead th{border-bottom:1.5px solid var(--navy);padding-bottom:8px}
+  .o1 tbody td{border-bottom:1px solid var(--line-soft)}
+  .o1 tbody tr:last-child td{border-bottom:1.5px solid var(--line)}
+  .o1 .org{font-weight:600;color:var(--ink)}
+  .o1 .mv{color:var(--ink-soft)}
+  .o1 .share{color:var(--ink-soft)}
+  .o1 .total-row td{font-weight:800;color:var(--navy);border-bottom:0;padding-top:11px}
+
+  /* ============================================================= */
+  /* OPTION 2 — ממותג רשמי (letterhead band + KPI + zebra)         */
+  /* ============================================================= */
+  .o2{padding:0}
+  .o2 .brandbar{height:6px;background:linear-gradient(90deg,var(--navy),var(--blue) 70%,var(--green))}
+  .o2 .inner{padding:14mm 16mm 0}
+  .o2 .head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .o2 .logo{height:56px}
+  .o2 .titlewrap{text-align:start}
+  .o2 .titlewrap .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;color:var(--ink-faint)}
+  .o2 .titlewrap h2{margin:5px 0 0;font-size:23px;font-weight:800;color:var(--navy);letter-spacing:-.01em}
+  .o2 .period-chip{margin-top:9px;display:inline-flex;align-items:center;gap:8px;background:var(--blue-soft);color:#15598a;font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:999px}
+  .o2 .period-chip .arrow{color:var(--blue)}
+  .o2 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
+  .o2 .kpi{border:1px solid var(--line);border-radius:11px;padding:13px 15px;background:#fcfdfe}
+  .o2 .kpi .k{font-size:10.5px;color:var(--ink-faint);font-weight:600}
+  .o2 .kpi .v{font-size:22px;font-weight:800;color:var(--navy);margin-top:5px;letter-spacing:-.01em}
+  .o2 .kpi.accent{background:var(--navy);border-color:var(--navy)}
+  .o2 .kpi.accent .k{color:#aeb9cc} .o2 .kpi.accent .v{color:#fff}
+  .o2 table{margin-top:22px;border:1px solid var(--line);border-radius:11px;overflow:hidden}
+  .o2 thead th{background:#f3f6fa;color:var(--navy);font-weight:700;border-bottom:1px solid var(--line)}
+  .o2 tbody td{border-bottom:1px solid var(--line-soft)}
+  .o2 tbody tr:nth-child(even){background:#f8fafc}
+  .o2 tbody tr:last-child td{border-bottom:0}
+  .o2 .org{font-weight:600}
+  .o2 .mv{color:var(--ink-soft)}
+  .o2 .foot{margin:18px 16mm 14mm}
+
+  /* ============================================================= */
+  /* OPTION 3 — דשבורד מודרני (share bars + big KPI, data-forward)  */
+  /* ============================================================= */
+  .o3{background:#fbfcfe}
+  .o3 .head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}
+  .o3 .logo{height:48px}
+  .o3 .head .right h2{margin:0;font-size:26px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+  .o3 .head .right .period{margin-top:8px;font-size:12px;color:var(--ink-soft);display:inline-flex;align-items:center;gap:8px}
+  .o3 .head .right .period b{color:var(--ink);font-weight:600}
+  .o3 .head .right .period .arrow{color:var(--blue);font-weight:700}
+  .o3 .kpibar{display:grid;grid-template-columns:repeat(4,1fr);margin-top:22px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+  .o3 .kpibar .cell{padding:15px 18px;border-inline-start:1px solid var(--line-soft)}
+  .o3 .kpibar .cell:first-child{border-inline-start:0}
+  .o3 .kpibar .k{font-size:10.5px;color:var(--ink-faint);font-weight:600;letter-spacing:.03em}
+  .o3 .kpibar .v{font-size:27px;font-weight:800;color:var(--navy);margin-top:3px;letter-spacing:-.02em}
+  .o3 .kpibar .v small{font-size:12px;color:var(--ink-soft);font-weight:600}
+  .o3 .tablecard{margin-top:20px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px 6px 4px}
+  .o3 thead th{color:var(--ink-faint);border-bottom:1px solid var(--line);padding:11px 12px 9px}
+  .o3 tbody td{border-bottom:1px solid var(--line-soft);padding:8px 12px}
+  .o3 tbody tr:last-child td{border-bottom:0}
+  .o3 .org{font-weight:600}
+  .o3 .mv{color:var(--ink-soft);font-size:12px}
+  .o3 .barwrap{display:flex;align-items:center;gap:9px;min-width:150px}
+  .o3 .bartrack{flex:1;height:7px;background:#eef2f7;border-radius:999px;overflow:hidden}
+  .o3 .barfill{height:100%;background:linear-gradient(90deg,var(--blue),#3fb0e6);border-radius:999px}
+  .o3 .barnum{width:34px;text-align:start;font-weight:700;color:var(--navy);font-size:12.5px}
+  .o3 .rank{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;background:var(--blue-soft);color:#15598a;font-size:11px;font-weight:700;margin-inline-end:9px}
+
+  @media print{
+    body{background:#fff}
+    .toolbar{display:none}
+    .page{margin:0;box-shadow:none;page-break-after:always}
+    .opt-tag{display:none}
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <h1>דוח מועצה — 3 אופציות עיצוב ל-PDF</h1>
+    <p>שלוש גרסאות עיצוב לאותו דוח ("גיוס ארצי"). כל עמוד הוא A4. הלוגו למעלה, התקופה ברורה (מ־ עד), טבלה עם מכינה · תנועה · מועמדים · חלק מהסה"כ · סטטוס, ו-footer מופרד שלא נכנס בתוכן. בחר אופציה ואיישם אותה ב-PDF האמיתי.</p>
+    <p class="note">הנתונים כאן הם דוגמה להמחשת העיצוב בלבד.</p>
+  </div>
+
+  <!-- ================= OPTION 1 ================= -->
+  <section class="page o1">
+    <span class="opt-tag">אופציה 1 · מסמך רשמי נקי</span>
+    <div class="content">
+      <div class="head">
+        <img class="logo" src="./logo.png" alt="מועצת המכינות הקדם-צבאיות">
+        <div class="meta">
+          <b>דוח רשמי</b>
+          הופק 13/06/2026
+        </div>
+      </div>
+
+      <div class="title-block">
+        <div class="eyebrow">מועצת המכינות הקדם-צבאיות</div>
+        <h2>דוח גיוס ארצי</h2>
+        <div class="rule"></div>
+        <div class="period">תקופה: <b>01/01/2018</b><span class="sep">עד</span><b>31/12/2026</b></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">סך מועמדים</div><div class="v">758</div></div>
+        <div class="stat"><div class="k">מכינות בדוח</div><div class="v">10</div></div>
+        <div class="stat"><div class="k">מכינה מובילה</div><div class="v">רעות<small>184</small></div></div>
+        <div class="stat"><div class="k">ממוצע למכינה</div><div class="v">76</div></div>
+      </div>
+
+      <table>
+        <thead><tr>
+          <th>מכינה</th><th>תנועה</th><th class="cell-num">מועמדים</th><th class="cell-num">חלק מהסה"כ</th><th>סטטוס</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="org">מכינת רעות</td><td class="mv">תנועת החלוץ</td><td class="cell-num num">184</td><td class="cell-num share num">24%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          <tr><td class="org">מכינת נחשון</td><td class="mv">בני עקיבא</td><td class="cell-num num">142</td><td class="cell-num share num">19%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          <tr><td class="org">מכינת נתניה</td><td class="mv">הצופים</td><td class="cell-num num">96</td><td class="cell-num share num">13%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          <tr><td class="org">אופקים</td><td class="mv">ללא תנועה</td><td class="cell-num num">73</td><td class="cell-num share num">10%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          <tr><td class="org">העיר העתיקה, ירושלים</td><td class="mv">בני עקיבא</td><td class="cell-num num">64</td><td class="cell-num share num">8%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          <tr><td class="org">באר אורה</td><td class="mv">ללא תנועה</td><td class="cell-num num">58</td><td class="cell-num share num">8%</td><td><span class="status st-susp"><span class="dot"></span>מושעית</span></td></tr>
+          <tr><td class="org">הדסה נעורים</td><td class="mv">הצופים</td><td class="cell-num num">47</td><td class="cell-num share num">6%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          <tr><td class="org">גשר הזיו</td><td class="mv">ללא תנועה</td><td class="cell-num num">39</td><td class="cell-num share num">5%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          <tr><td class="org">דלית אל כרמל</td><td class="mv">ללא תנועה</td><td class="cell-num num">31</td><td class="cell-num share num">4%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          <tr><td class="org">בית יתיר</td><td class="mv">בני עקיבא</td><td class="cell-num num">24</td><td class="cell-num share num">3%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          <tr class="total-row"><td>סה"כ</td><td></td><td class="cell-num num">758</td><td class="cell-num num">100%</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="foot">
+      <span>מועצת המכינות הקדם-צבאיות</span>
+      <span class="mid">עמוד 1 מתוך 1</span>
+      <span>הופק ב-13/06/2026</span>
+    </div>
+  </section>
+
+  <!-- ================= OPTION 2 ================= -->
+  <section class="page o2">
+    <span class="opt-tag">אופציה 2 · ממותג רשמי</span>
+    <div class="brandbar"></div>
+    <div class="content">
+      <div class="inner">
+        <div class="head">
+          <img class="logo" src="./logo.png" alt="מועצת המכינות הקדם-צבאיות">
+          <div class="titlewrap">
+            <div class="eyebrow">דוח רשמי · מועצת המכינות</div>
+            <h2>דוח גיוס ארצי</h2>
+            <div class="period-chip">מ־ <b>01/01/2018</b> <span class="arrow">←</span> עד <b>31/12/2026</b></div>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi accent"><div class="k">סך מועמדים</div><div class="v">758</div></div>
+          <div class="kpi"><div class="k">מכינות בדוח</div><div class="v">10</div></div>
+          <div class="kpi"><div class="k">מכינה מובילה</div><div class="v">רעות</div></div>
+          <div class="kpi"><div class="k">ממוצע למכינה</div><div class="v">76</div></div>
+        </div>
+
+        <table>
+          <thead><tr>
+            <th>מכינה</th><th>תנועה</th><th class="cell-num">מועמדים</th><th class="cell-num">חלק מהסה"כ</th><th>סטטוס</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="org">מכינת רעות</td><td class="mv">תנועת החלוץ</td><td class="cell-num num">184</td><td class="cell-num num">24%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org">מכינת נחשון</td><td class="mv">בני עקיבא</td><td class="cell-num num">142</td><td class="cell-num num">19%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org">מכינת נתניה</td><td class="mv">הצופים</td><td class="cell-num num">96</td><td class="cell-num num">13%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org">אופקים</td><td class="mv">ללא תנועה</td><td class="cell-num num">73</td><td class="cell-num num">10%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org">העיר העתיקה, ירושלים</td><td class="mv">בני עקיבא</td><td class="cell-num num">64</td><td class="cell-num num">8%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org">באר אורה</td><td class="mv">ללא תנועה</td><td class="cell-num num">58</td><td class="cell-num num">8%</td><td><span class="status st-susp"><span class="dot"></span>מושעית</span></td></tr>
+            <tr><td class="org">הדסה נעורים</td><td class="mv">הצופים</td><td class="cell-num num">47</td><td class="cell-num num">6%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org">גשר הזיו</td><td class="mv">ללא תנועה</td><td class="cell-num num">39</td><td class="cell-num num">5%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org">דלית אל כרמל</td><td class="mv">ללא תנועה</td><td class="cell-num num">31</td><td class="cell-num num">4%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org">בית יתיר</td><td class="mv">בני עקיבא</td><td class="cell-num num">24</td><td class="cell-num num">3%</td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="foot">
+      <span>מועצת המכינות הקדם-צבאיות</span>
+      <span class="mid">עמוד 1 מתוך 1</span>
+      <span>הופק ב-13/06/2026</span>
+    </div>
+  </section>
+
+  <!-- ================= OPTION 3 ================= -->
+  <section class="page o3">
+    <span class="opt-tag">אופציה 3 · דשבורד מודרני</span>
+    <div class="content">
+      <div class="head">
+        <div class="right">
+          <h2>דוח גיוס ארצי</h2>
+          <div class="period">תקופה: <b>01/01/2018</b> <span class="arrow">←</span> <b>31/12/2026</b></div>
+        </div>
+        <img class="logo" src="./logo.png" alt="מועצת המכינות הקדם-צבאיות">
+      </div>
+
+      <div class="kpibar">
+        <div class="cell"><div class="k">סך מועמדים</div><div class="v">758</div></div>
+        <div class="cell"><div class="k">מכינות בדוח</div><div class="v">10</div></div>
+        <div class="cell"><div class="k">מכינה מובילה</div><div class="v">רעות <small>· 184</small></div></div>
+        <div class="cell"><div class="k">ממוצע למכינה</div><div class="v">76</div></div>
+      </div>
+
+      <div class="tablecard">
+        <table>
+          <thead><tr>
+            <th>מכינה</th><th>תנועה</th><th>מועמדים · חלק מהסה"כ</th><th>סטטוס</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="org"><span class="rank">1</span>מכינת רעות</td><td class="mv">תנועת החלוץ</td><td><div class="barwrap"><span class="barnum num">184</span><span class="bartrack"><span class="barfill" style="width:100%"></span></span></div></td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org"><span class="rank">2</span>מכינת נחשון</td><td class="mv">בני עקיבא</td><td><div class="barwrap"><span class="barnum num">142</span><span class="bartrack"><span class="barfill" style="width:77%"></span></span></div></td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org"><span class="rank">3</span>מכינת נתניה</td><td class="mv">הצופים</td><td><div class="barwrap"><span class="barnum num">96</span><span class="bartrack"><span class="barfill" style="width:52%"></span></span></div></td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org"><span class="rank">4</span>אופקים</td><td class="mv">ללא תנועה</td><td><div class="barwrap"><span class="barnum num">73</span><span class="bartrack"><span class="barfill" style="width:40%"></span></span></div></td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org"><span class="rank">5</span>העיר העתיקה, ירושלים</td><td class="mv">בני עקיבא</td><td><div class="barwrap"><span class="barnum num">64</span><span class="bartrack"><span class="barfill" style="width:35%"></span></span></div></td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org"><span class="rank">6</span>באר אורה</td><td class="mv">ללא תנועה</td><td><div class="barwrap"><span class="barnum num">58</span><span class="bartrack"><span class="barfill" style="width:32%"></span></span></div></td><td><span class="status st-susp"><span class="dot"></span>מושעית</span></td></tr>
+            <tr><td class="org"><span class="rank">7</span>הדסה נעורים</td><td class="mv">הצופים</td><td><div class="barwrap"><span class="barnum num">47</span><span class="bartrack"><span class="barfill" style="width:26%"></span></span></div></td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org"><span class="rank">8</span>גשר הזיו</td><td class="mv">ללא תנועה</td><td><div class="barwrap"><span class="barnum num">39</span><span class="bartrack"><span class="barfill" style="width:21%"></span></span></div></td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org"><span class="rank">9</span>דלית אל כרמל</td><td class="mv">ללא תנועה</td><td><div class="barwrap"><span class="barnum num">31</span><span class="bartrack"><span class="barfill" style="width:17%"></span></span></div></td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+            <tr><td class="org"><span class="rank">10</span>בית יתיר</td><td class="mv">בני עקיבא</td><td><div class="barwrap"><span class="barnum num">24</span><span class="bartrack"><span class="barfill" style="width:13%"></span></span></div></td><td><span class="status st-active"><span class="dot"></span>פעילה</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="foot">
+      <span>מועצת המכינות הקדם-צבאיות</span>
+      <span class="mid">עמוד 1 מתוך 1</span>
+      <span>הופק ב-13/06/2026</span>
+    </div>
+  </section>
+
+</body>
+</html>
