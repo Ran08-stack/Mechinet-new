@@ -525,3 +525,4 @@
 - reports/page.tsx נכתב מחדש לפי הסקילים (taste/ui-ux/emil): הוסרו כל גרפי recharts. במקום — KpiStrip (4 תאים, hairline gap-px), טבלת national עשירה עם דירוג + פסי-נתונים בתוך השורה (var(--primary-3)), פילוח תנועה כפסים אופקיים, StatusPill (success/warning/faint), Card עם כותרת, empty states. compare/stages קיבלו KPI + טבלאות נקיות.
 - נמחק app/(council)/_components/reports/ReportCharts.tsx (דד-קוד, היחיד שהשתמש ב-recharts). בנדל הדף ירד 115KB→2.5KB. recharts נשאר ב-package.json (לא בשימוש, לא נארז).
 - tsc + build נקיים.
+- החלטה: דף הדוחות = דשבורד ויזואלי לחקירה; ה-PDF = הטבלה המלאה להדפסה (היו זהים מדי). reports/page.tsx נכתב מחדש: KPI strip + national: TopBars (טופ-10 פסים אופקיים) + Donut (conic-gradient CSS, פילוח תנועה) + טבלת "כל המכינות". compare: טבלה עם פסי התקדמות + status pills. stages: פס מוערם "התפלגות כללית לפי שלב" + מטריצה. הכל CSS/SVG בלי recharts (הדף נשאר 2.5KB). server component.
