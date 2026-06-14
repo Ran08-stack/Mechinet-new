@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Download, FileText } from "lucide-react"
 
@@ -15,7 +15,6 @@ export function ReportsControls({ orgs, currentFrom, currentTo, currentOrgIds, c
   currentKind: Kind
 }) {
   const router = useRouter()
-  const params = useSearchParams()
 
   const [from, setFrom] = useState(currentFrom)
   const [to, setTo] = useState(currentTo)
@@ -31,8 +30,15 @@ export function ReportsControls({ orgs, currentFrom, currentTo, currentOrgIds, c
     return sp.toString()
   }
 
-  function apply() {
-    router.push(`/council/reports?${buildQuery()}`)
+  // החלה אוטומטית — אין כפתור "הצג דוח". next מאפשר להשתמש בערך החדש לפני ש-state התעדכן.
+  function apply(next: Partial<{ from: string; to: string; orgIds: string[]; kind: Kind }> = {}) {
+    const v = { from, to, orgIds, kind, ...next }
+    const sp = new URLSearchParams()
+    if (v.from) sp.set("from", v.from)
+    if (v.to) sp.set("to", v.to)
+    if (v.orgIds.length > 0) sp.set("orgs", v.orgIds.join(","))
+    sp.set("kind", v.kind)
+    router.push(`/council/reports?${sp.toString()}`)
   }
 
   function toggleOrg(id: string) {
@@ -53,19 +59,24 @@ export function ReportsControls({ orgs, currentFrom, currentTo, currentOrgIds, c
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_1.5fr_1fr]">
         <div>
           <label className="mb-1.5 block text-[12px] font-medium text-fg-muted">מתאריך</label>
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
+          <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); apply({ from: e.target.value }) }}
             className="h-9 w-full rounded-md border border-line bg-bg px-2 text-[13px]" />
         </div>
         <div>
           <label className="mb-1.5 block text-[12px] font-medium text-fg-muted">עד תאריך</label>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+          <input type="date" value={to} onChange={(e) => { setTo(e.target.value); apply({ to: e.target.value }) }}
             className="h-9 w-full rounded-md border border-line bg-bg px-2 text-[13px]" />
         </div>
         <div>
           <label className="mb-1.5 block text-[12px] font-medium text-fg-muted">
             מכינות {orgIds.length === 0 ? "(כולן)" : `(${orgIds.length})`}
           </label>
-          <details className="relative">
+          <details
+            className="relative"
+            onToggle={(e) => {
+              if (!e.currentTarget.open && orgIds.join(",") !== currentOrgIds.join(",")) apply()
+            }}
+          >
             <summary className="flex h-9 cursor-pointer items-center rounded-md border border-line bg-bg px-2 text-[13px] text-fg-muted">
               {orgIds.length === 0 ? "בחר מכינות" : `${orgIds.length} נבחרו`}
             </summary>
@@ -93,7 +104,7 @@ export function ReportsControls({ orgs, currentFrom, currentTo, currentOrgIds, c
         </div>
         <div>
           <label className="mb-1.5 block text-[12px] font-medium text-fg-muted">סוג דוח</label>
-          <select value={kind} onChange={(e) => setKind(e.target.value as Kind)}
+          <select value={kind} onChange={(e) => { const v = e.target.value as Kind; setKind(v); apply({ kind: v }) }}
             className="h-9 w-full rounded-md border border-line bg-bg px-2 text-[13px]">
             <option value="national">גיוס ארצי</option>
             <option value="compare">השוואת מכינות</option>
@@ -103,10 +114,6 @@ export function ReportsControls({ orgs, currentFrom, currentTo, currentOrgIds, c
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button onClick={apply}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-[13px] font-medium text-white hover:opacity-90">
-          הצג דוח
-        </button>
         {canExport ? (
           <>
             <a href={exportHref("csv")}

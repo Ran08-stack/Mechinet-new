@@ -1,12 +1,13 @@
 import type { ReactNode } from "react"
 import { FileBarChart } from "lucide-react"
 import { ReportsControls } from "../../_components/reports/ReportsControls"
+import { PaginatedTable } from "../../_components/reports/PaginatedTable"
 import {
   loadReportData, nationalReport, compareReport, stagesReport,
   type ReportKind,
 } from "@/lib/reports/aggregate"
 
-// דף הדוחות = דשבורד ויזואלי לחקירה (גרפים + KPI). ה-PDF = הטבלה המלאה להדפסה.
+// דף הדוחות = דשבורד ויזואלי לחקירה (גרפים + טבלה מעומדת). ה-PDF = הטבלה המלאה להדפסה.
 
 type SearchParams = { from?: string; to?: string; orgs?: string; kind?: string }
 type Data = Awaited<ReturnType<typeof loadReportData>>
@@ -61,25 +62,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
 /* ---------- רכיבים משותפים ---------- */
 
-function KpiStrip({ items }: { items: { label: string; value: ReactNode; sub?: string }[] }) {
+function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
-      {items.map((k) => (
-        <div key={k.label} className="bg-surface px-5 py-4">
-          <div className="text-[11.5px] font-medium text-fg-subtle">{k.label}</div>
-          <div className="mt-1 truncate text-[22px] font-bold leading-tight tracking-[-0.01em] text-primary [font-variant-numeric:tabular-nums]">
-            {k.value}
-          </div>
-          {k.sub && <div className="mt-0.5 text-[11.5px] text-fg-muted">{k.sub}</div>}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function Card({ title, children, className = "" }: { title: string; children: ReactNode; className?: string }) {
-  return (
-    <section className={`overflow-hidden rounded-xl border border-line bg-surface ${className}`}>
+    <section className="overflow-hidden rounded-xl border border-line bg-surface">
       <div className="border-b border-[var(--line-faint)] px-5 py-3.5">
         <h2 className="m-0 text-[14px] font-semibold text-primary">{title}</h2>
       </div>
@@ -134,16 +119,16 @@ function Donut({ data }: { data: { name: string; total: number }[] }) {
     total > 0
       ? data
           .map((d, i) => {
-            const start = (acc / total) * 360
+            const startDeg = (acc / total) * 360
             acc += d.total
-            const end = (acc / total) * 360
-            return `${PALETTE[i % PALETTE.length]} ${start}deg ${end}deg`
+            const endDeg = (acc / total) * 360
+            return `${PALETTE[i % PALETTE.length]} ${startDeg}deg ${endDeg}deg`
           })
           .join(", ")
       : "var(--bg-muted) 0deg 360deg"
 
   return (
-    <div className="flex flex-col items-center gap-5 p-5 sm:flex-row sm:items-center">
+    <div className="flex flex-col items-center gap-5 p-5 sm:flex-row">
       <div className="relative h-32 w-32 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops})` }}>
         <div className="absolute inset-[20%] grid place-items-center rounded-full bg-surface">
           <div className="text-center">
@@ -168,29 +153,17 @@ function Donut({ data }: { data: { name: string; total: number }[] }) {
   )
 }
 
-const TH = "border-b border-line bg-[var(--bg-subtle)] px-4 py-2.5 text-start text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-subtle"
-const TD = "px-4 py-2.5 text-[13px]"
+const numCell = (key: string, v: ReactNode) => <span key={key} className="font-semibold text-primary [font-variant-numeric:tabular-nums]">{v}</span>
 
 /* ---------- גיוס ארצי ---------- */
 
 function NationalSection({ data }: { data: Data }) {
   const r = nationalReport(data)
-  const leader = r.rows[0]
-  const avg = r.rows.length ? Math.round(r.total / r.rows.length) : 0
 
   return (
     <>
-      <KpiStrip
-        items={[
-          { label: "סך מועמדים", value: r.total.toLocaleString() },
-          { label: "מכינות בדוח", value: r.rows.length },
-          { label: "מכינה מובילה", value: leader ? leader.orgName : "—", sub: leader ? `${leader.total} מועמדים` : undefined },
-          { label: "ממוצע למכינה", value: avg },
-        ]}
-      />
-
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.3fr_1fr]">
-        <Card title="מכינות מובילות · טופ 10">
+        <Card title="מכינות מובילות לפי מספר מועמדים · טופ 10">
           <TopBars rows={r.rows} />
         </Card>
         <Card title="פילוח לפי תנועה">
@@ -198,28 +171,15 @@ function NationalSection({ data }: { data: Data }) {
         </Card>
       </div>
 
-      <Card title={`כל המכינות (${r.rows.length})`}>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className={TH}>מכינה</th>
-                <th className={TH}>תנועה</th>
-                <th className={TH}>מועמדים</th>
-              </tr>
-            </thead>
-            <tbody>
-              {r.rows.map((row) => (
-                <tr key={row.orgName} className="border-b border-[var(--line-faint)] last:border-b-0 hover:bg-[var(--bg-subtle)]">
-                  <td className={`${TD} font-medium text-fg`}>{row.orgName}</td>
-                  <td className={`${TD} text-fg-muted`}>{row.movementName}</td>
-                  <td className={`${TD} font-semibold text-primary [font-variant-numeric:tabular-nums]`}>{row.total.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <PaginatedTable
+        title={`כל המכינות (${r.rows.length})`}
+        headers={["מכינה", "תנועה", "מועמדים"]}
+        rows={r.rows.map((row) => [
+          <span key="n" className="font-medium text-fg">{row.orgName}</span>,
+          <span key="m" className="text-fg-muted">{row.movementName}</span>,
+          numCell("t", row.total.toLocaleString()),
+        ])}
+      />
     </>
   )
 }
@@ -228,52 +188,22 @@ function NationalSection({ data }: { data: Data }) {
 
 function CompareSection({ data }: { data: Data }) {
   const r = compareReport(data)
-  const totalCandidates = r.rows.reduce((s, x) => s + x.total, 0)
-  const avgProgress = r.rows.length ? Math.round(r.rows.reduce((s, x) => s + x.progressPct, 0) / r.rows.length) : 0
-
   return (
-    <>
-      <KpiStrip
-        items={[
-          { label: "סך מועמדים", value: totalCandidates.toLocaleString() },
-          { label: "מכינות בהשוואה", value: r.rows.length },
-          { label: "ממוצע התקדמות", value: `${avgProgress}%` },
-        ]}
-      />
-      <Card title="השוואת מכינות">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className={TH}>מכינה</th>
-                <th className={TH}>מועמדים</th>
-                <th className={`${TH} w-[26%]`}>התקדמות</th>
-                <th className={TH}>בנים</th>
-                <th className={TH}>בנות</th>
-                <th className={TH}>סטטוס</th>
-              </tr>
-            </thead>
-            <tbody>
-              {r.rows.map((row) => (
-                <tr key={row.orgName} className="border-b border-[var(--line-faint)] last:border-b-0 hover:bg-[var(--bg-subtle)]">
-                  <td className={`${TD} font-medium text-fg`}>{row.orgName}</td>
-                  <td className={`${TD} font-semibold text-primary [font-variant-numeric:tabular-nums]`}>{row.total}</td>
-                  <td className={TD}>
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-9 text-end text-fg [font-variant-numeric:tabular-nums]">{row.progressPct}%</span>
-                      <HBar value={row.progressPct} max={100} />
-                    </div>
-                  </td>
-                  <td className={`${TD} text-fg-muted [font-variant-numeric:tabular-nums]`}>{row.malePct}%</td>
-                  <td className={`${TD} text-fg-muted [font-variant-numeric:tabular-nums]`}>{row.femalePct}%</td>
-                  <td className={TD}><StatusPill status={row.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </>
+    <PaginatedTable
+      title={`השוואת מכינות (${r.rows.length})`}
+      headers={["מכינה", "מועמדים", "התקדמות", "בנים", "בנות", "סטטוס"]}
+      rows={r.rows.map((row) => [
+        <span key="n" className="font-medium text-fg">{row.orgName}</span>,
+        numCell("t", row.total),
+        <div key="p" className="flex items-center gap-2.5">
+          <span className="w-9 shrink-0 text-end text-fg [font-variant-numeric:tabular-nums]">{row.progressPct}%</span>
+          <HBar value={row.progressPct} max={100} />
+        </div>,
+        <span key="b" className="text-fg-muted [font-variant-numeric:tabular-nums]">{row.malePct}%</span>,
+        <span key="g" className="text-fg-muted [font-variant-numeric:tabular-nums]">{row.femalePct}%</span>,
+        <StatusPill key="s" status={row.status} />,
+      ])}
+    />
   )
 }
 
@@ -286,14 +216,6 @@ function StagesSection({ data }: { data: Data }) {
 
   return (
     <>
-      <KpiStrip
-        items={[
-          { label: "סך מועמדים", value: grand.toLocaleString() },
-          { label: "מכינות בדוח", value: r.rows.length },
-          { label: "שלבים", value: r.stageNames.length },
-        ]}
-      />
-
       <Card title="התפלגות כללית לפי שלב">
         <div className="p-5">
           <div className="flex h-4 overflow-hidden rounded-full bg-[var(--bg-muted)]">
@@ -317,30 +239,17 @@ function StagesSection({ data }: { data: Data }) {
         </div>
       </Card>
 
-      <Card title="מטריצת שלבים · לפי מכינה">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className={TH}>מכינה</th>
-                {r.stageNames.map((s) => <th key={s} className={TH}>{s}</th>)}
-                <th className={TH}>סה&quot;כ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {r.rows.map((row) => (
-                <tr key={row.orgName} className="border-b border-[var(--line-faint)] last:border-b-0 hover:bg-[var(--bg-subtle)]">
-                  <td className={`${TD} font-medium text-fg`}>{row.orgName}</td>
-                  {r.stageNames.map((s) => (
-                    <td key={s} className={`${TD} text-fg-muted [font-variant-numeric:tabular-nums]`}>{row.counts[s] ?? 0}</td>
-                  ))}
-                  <td className={`${TD} font-semibold text-primary [font-variant-numeric:tabular-nums]`}>{row.total}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <PaginatedTable
+        title={`מטריצת שלבים · לפי מכינה (${r.rows.length})`}
+        headers={["מכינה", ...r.stageNames, "סה\"כ"]}
+        rows={r.rows.map((row) => [
+          <span key="n" className="font-medium text-fg">{row.orgName}</span>,
+          ...r.stageNames.map((s) => (
+            <span key={s} className="text-fg-muted [font-variant-numeric:tabular-nums]">{row.counts[s] ?? 0}</span>
+          )),
+          numCell("t", row.total),
+        ])}
+      />
     </>
   )
 }

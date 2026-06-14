@@ -526,3 +526,10 @@
 - נמחק app/(council)/_components/reports/ReportCharts.tsx (דד-קוד, היחיד שהשתמש ב-recharts). בנדל הדף ירד 115KB→2.5KB. recharts נשאר ב-package.json (לא בשימוש, לא נארז).
 - tsc + build נקיים.
 - החלטה: דף הדוחות = דשבורד ויזואלי לחקירה; ה-PDF = הטבלה המלאה להדפסה (היו זהים מדי). reports/page.tsx נכתב מחדש: KPI strip + national: TopBars (טופ-10 פסים אופקיים) + Donut (conic-gradient CSS, פילוח תנועה) + טבלת "כל המכינות". compare: טבלה עם פסי התקדמות + status pills. stages: פס מוערם "התפלגות כללית לפי שלב" + מטריצה. הכל CSS/SVG בלי recharts (הדף נשאר 2.5KB). server component.
+
+## 2026-06-14 — דוחות מועצה: 4 תיקוני UX (לבקשת רן)
+1. כותרת טופ-10 הובהרה → "מכינות מובילות לפי מספר מועמדים · טופ 10".
+2. הוסר KPI strip מהדף (כל סוגי הדוחות).
+3. PaginatedTable חדש (client): בורר כמות-לעמוד (10/25/50/הכל, ברירת מחדל 25) + ניווט עמודים, לטבלאות הארוכות (כל המכינות/השוואה/מטריצת שלבים). תאים מועברים כ-ReactNode[][] מה-server (עם keys בגלל react/jsx-key).
+4. ReportsControls: הוסר כפתור "הצג דוח" — הסינונים חלים אוטומטית (תאריך/סוג מיד דרך apply(override), מכינות בסגירת ה-details עם guard לשינוי). הוסרו useSearchParams/params לא בשימוש.
+- tsc + build נקיים.
