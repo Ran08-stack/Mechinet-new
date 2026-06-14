@@ -30,7 +30,7 @@ export function CouncilSidebar() {
 
   return (
     <aside className="sticky top-0 flex h-screen w-[248px] flex-col border-s border-line bg-[var(--surface-2)]">
-      <div className="flex h-14 items-center gap-2.5 border-b border-line px-4">
+      <div className="flex h-[60px] flex-shrink-0 items-center gap-2.5 border-b border-line px-4">
         <div className="grid h-7 w-7 place-items-center rounded-md bg-primary font-mono text-[13px] font-bold text-white">
           מ
         </div>

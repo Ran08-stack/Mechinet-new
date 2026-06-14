@@ -533,3 +533,4 @@
 3. PaginatedTable חדש (client): בורר כמות-לעמוד (10/25/50/הכל, ברירת מחדל 25) + ניווט עמודים, לטבלאות הארוכות (כל המכינות/השוואה/מטריצת שלבים). תאים מועברים כ-ReactNode[][] מה-server (עם keys בגלל react/jsx-key).
 4. ReportsControls: הוסר כפתור "הצג דוח" — הסינונים חלים אוטומטית (תאריך/סוג מיד דרך apply(override), מכינות בסגירת ה-details עם guard לשינוי). הוסרו useSearchParams/params לא בשימוש.
 - tsc + build נקיים.
+- תיקון יישור: כותרת CouncilSidebar הייתה h-14 (56px) בעוד CouncilTopbar h-[60px] → הקווים התחתונים לא התיישרו (מדרגה 4px). תוקן ל-h-[60px]+flex-shrink-0 (כמו צד מכינה).
