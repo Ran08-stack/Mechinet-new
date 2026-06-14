@@ -164,17 +164,25 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
+// השם הוא האיבר האחרון בכל שורה (מופיע מימין ב-row-reverse). נותנים לו עמודה רחבה
+// יותר; שאר העמודות (סטטיסטיקות) שוות לשמאלו. wrap=false מונע שבירת שורה בין עמודים.
 function GenericTable({ head, rows }: { head: string[]; rows: (string | number)[][] }) {
+  const nameFlex = 2.4
   return (
     <View>
       <View style={s.gHead}>
-        {head.map((h, i) => <Text key={i} style={s.gHeadCell}>{h}</Text>)}
+        {head.map((h, i) => (
+          <Text key={i} style={[s.gHeadCell, { flex: i === head.length - 1 ? nameFlex : 1 }]}>{h}</Text>
+        ))}
       </View>
       {rows.map((r, ri) => (
-        <View key={ri} style={ri % 2 === 1 ? s.gRowOdd : s.gRowEven}>
-          {r.map((c, ci) => (
-            <Text key={ci} style={ci === r.length - 1 ? s.gCellEmph : s.gCell}>{String(c)}</Text>
-          ))}
+        <View key={ri} style={ri % 2 === 1 ? s.gRowOdd : s.gRowEven} wrap={false}>
+          {r.map((c, ci) => {
+            const isName = ci === r.length - 1
+            return (
+              <Text key={ci} style={[isName ? s.gCellEmph : s.gCell, { flex: isName ? nameFlex : 1 }]}>{String(c)}</Text>
+            )
+          })}
         </View>
       ))}
     </View>
@@ -274,7 +282,7 @@ export function ReportPDF({
               const st = statusInfo(statusByName.get(r.orgName) ?? null)
               const pct = Math.round((r.total / maxTotal) * 100)
               return (
-                <View key={i} style={s.tRow}>
+                <View key={i} style={s.tRow} wrap={false}>
                   <View style={[s.orgWrap, { flex: 2.6 }]}>
                     <View style={s.rankBadge}><Text style={s.rankText}>{i + 1}</Text></View>
                     <Text style={s.orgName}>{academyLabel(r.orgName)}</Text>
