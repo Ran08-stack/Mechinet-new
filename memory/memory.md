@@ -517,3 +517,4 @@
 - לוגו הועתק ל-lib/reports/council-logo.png (נארז כמו הפונטים) + public/council-logo.png.
 - tsc + build נקיים.
 - תיקוני PDF (לבקשת רן): (1) KPI "מכינה מובילה" נשבר (שם ארוך בפונט 21) → שם ב-13px + "X מועמדים" מתחת. (2) academyLabel — שמות שהם רק מקום (אופקים) מוצגים "מכינת אופקים" (אם אין כבר קידומת מכינ). הוחל בטבלאות national/compare/stages + ב-KPI. (3) מכינת רעות הייתה status=archived (מבדיקות) → הוחזרה ל-active ב-DB. אומת ב-smoke render.
+- באג: כפתור "הצג דוח" בדוחות מועצה נראה ריק (כהה בלי טקסט). הסיבה: text-on-primary — הצבע on-primary לא רשום ב-tailwind.config (רק primary), אז המחלקה לא-תקפה והטקסט ירש צבע כהה על navy. תוקן ל-text-white (--on-primary=#fff ממילא). שימוש יחיד בפרויקט.

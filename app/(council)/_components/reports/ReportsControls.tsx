@@ -104,7 +104,7 @@ export function ReportsControls({ orgs, currentFrom, currentTo, currentOrgIds, c
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button onClick={apply}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-[13px] font-medium text-on-primary hover:opacity-90">
+          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-[13px] font-medium text-white hover:opacity-90">
           הצג דוח
         </button>
         {canExport ? (
