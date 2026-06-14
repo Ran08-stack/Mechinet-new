@@ -1,23 +1,25 @@
+import type { ReactNode } from "react"
 import { FileBarChart } from "lucide-react"
 import { ReportsControls } from "../../_components/reports/ReportsControls"
-import { NationalCharts, StagesChart } from "../../_components/reports/ReportCharts"
 import {
   loadReportData, nationalReport, compareReport, stagesReport,
   type ReportKind,
 } from "@/lib/reports/aggregate"
 
 type SearchParams = { from?: string; to?: string; orgs?: string; kind?: string }
+type Data = Awaited<ReturnType<typeof loadReportData>>
 
 function parseFilters(sp: SearchParams) {
   const orgs = (sp.orgs ?? "").split(",").map((s) => s.trim()).filter(Boolean)
   const allowedKinds: ReportKind[] = ["national", "compare", "stages"]
   const kind: ReportKind = allowedKinds.includes(sp.kind as ReportKind) ? (sp.kind as ReportKind) : "national"
-  return {
-    from: sp.from || null,
-    to: sp.to || null,
-    orgIds: orgs,
-    kind,
-  }
+  return { from: sp.from || null, to: sp.to || null, orgIds: orgs, kind }
+}
+
+const STATUS: Record<string, { label: string; color: string }> = {
+  active: { label: "פעילה", color: "var(--success)" },
+  suspended: { label: "מושעית", color: "var(--warning)" },
+  archived: { label: "בארכיון", color: "var(--fg-faint)" },
 }
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
@@ -33,7 +35,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           דוחות מועצה
         </h1>
         <p className="mt-1.5 max-w-[65ch] text-[14px] text-fg-muted">
-          דוחות אגרגטיביים. אין כאן נתונים פרטניים על מועמדים — רק סכומים והשוואות.
+          דוחות אגרגטיביים — סכומים והשוואות בלבד, ללא נתונים פרטניים על מועמדים.
         </p>
       </div>
 
@@ -45,7 +47,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         currentKind={f.kind}
       />
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-6 flex flex-col gap-5">
         {f.kind === "national" && <NationalSection data={data} />}
         {f.kind === "compare" && <CompareSection data={data} />}
         {f.kind === "stages" && <StagesSection data={data} />}
@@ -54,104 +56,232 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   )
 }
 
-function NationalSection({ data }: { data: Awaited<ReturnType<typeof loadReportData>> }) {
-  const r = nationalReport(data)
-  return (
-    <>
-      <div className="rounded-lg border border-line bg-surface p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="m-0 text-[15px] font-semibold text-primary">גיוס ארצי · סה&quot;כ {r.total.toLocaleString()} מועמדים</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-[13px]">
-            <thead>
-              <tr>
-                {["מכינה", "תנועה", "מועמדים"].map((h) => (
-                  <th key={h} className="border-b border-line bg-[var(--bg-subtle)] px-4 py-2.5 text-start font-mono text-[11px] uppercase text-fg-subtle">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {r.rows.map((row) => (
-                <tr key={row.orgName} className="border-b border-[var(--line-faint)] last:border-b-0">
-                  <td className="px-4 py-2.5 font-medium text-fg">{row.orgName}</td>
-                  <td className="px-4 py-2.5 text-fg-muted">{row.movementName}</td>
-                  <td className="px-4 py-2.5 font-mono font-semibold text-primary [font-variant-numeric:tabular-nums]">{row.total.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <NationalCharts rows={r.rows} byMovement={r.byMovement} />
-    </>
-  )
-}
+/* ---------- רכיבים משותפים ---------- */
 
-function CompareSection({ data }: { data: Awaited<ReturnType<typeof loadReportData>> }) {
-  const r = compareReport(data)
+function KpiStrip({ items }: { items: { label: string; value: ReactNode; sub?: string }[] }) {
   return (
-    <div className="rounded-lg border border-line bg-surface p-4">
-      <h2 className="m-0 mb-3 text-[15px] font-semibold text-primary">השוואת מכינות</h2>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[13px]">
-          <thead>
-            <tr>
-              {["מכינה", "סה\"כ מועמדים", "ממוצע התקדמות", "בנים", "בנות", "סטטוס"].map((h) => (
-                <th key={h} className="border-b border-line bg-[var(--bg-subtle)] px-4 py-2.5 text-start font-mono text-[11px] uppercase text-fg-subtle">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {r.rows.map((row) => (
-              <tr key={row.orgName} className="border-b border-[var(--line-faint)] last:border-b-0">
-                <td className="px-4 py-2.5 font-medium text-fg">{row.orgName}</td>
-                <td className="px-4 py-2.5 font-mono font-semibold text-primary">{row.total}</td>
-                <td className="px-4 py-2.5 font-mono text-fg">{row.progressPct}%</td>
-                <td className="px-4 py-2.5 font-mono text-fg-muted">{row.malePct}%</td>
-                <td className="px-4 py-2.5 font-mono text-fg-muted">{row.femalePct}%</td>
-                <td className="px-4 py-2.5 text-fg-muted">{row.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+      {items.map((k) => (
+        <div key={k.label} className="bg-surface px-5 py-4">
+          <div className="text-[11.5px] font-medium text-fg-subtle">{k.label}</div>
+          <div className="mt-1 truncate text-[21px] font-bold leading-tight tracking-[-0.01em] text-primary [font-variant-numeric:tabular-nums]">
+            {k.value}
+          </div>
+          {k.sub && <div className="mt-0.5 text-[11.5px] text-fg-muted">{k.sub}</div>}
+        </div>
+      ))}
     </div>
   )
 }
 
-function StagesSection({ data }: { data: Awaited<ReturnType<typeof loadReportData>> }) {
-  const r = stagesReport(data)
+function Bar({ value, max }: { value: number; max: number }) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0
+  return (
+    <div className="h-2 min-w-[60px] flex-1 overflow-hidden rounded-full bg-[var(--bg-muted)]">
+      <div className="h-full rounded-full bg-[var(--primary-3)]" style={{ width: `${pct}%` }} />
+    </div>
+  )
+}
+
+function StatusPill({ status }: { status: string }) {
+  const st = STATUS[status] ?? STATUS.active
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[12px] font-medium" style={{ color: st.color }}>
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: st.color }} />
+      {st.label}
+    </span>
+  )
+}
+
+function Card({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="overflow-hidden rounded-xl border border-line bg-surface">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--line-faint)] px-5 py-3.5">
+        <h2 className="m-0 text-[14px] font-semibold text-primary">{title}</h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+const TH = "border-b border-line bg-[var(--bg-subtle)] px-4 py-2.5 text-start text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-subtle"
+const TD = "px-4 py-2.5 text-[13px]"
+
+/* ---------- גיוס ארצי ---------- */
+
+function NationalSection({ data }: { data: Data }) {
+  const r = nationalReport(data)
+  const maxTotal = Math.max(1, ...r.rows.map((x) => x.total))
+  const maxMove = Math.max(1, ...r.byMovement.map((m) => m.total))
+  const leader = r.rows[0]
+  const avg = r.rows.length ? Math.round(r.total / r.rows.length) : 0
+
   return (
     <>
-      <div className="rounded-lg border border-line bg-surface p-4">
-        <h2 className="m-0 mb-3 text-[15px] font-semibold text-primary">התקדמות שלבים · matrix</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-[13px]">
-            <thead>
-              <tr>
-                <th className="border-b border-line bg-[var(--bg-subtle)] px-4 py-2.5 text-start font-mono text-[11px] uppercase text-fg-subtle">מכינה</th>
-                {r.stageNames.map((s) => (
-                  <th key={s} className="border-b border-line bg-[var(--bg-subtle)] px-4 py-2.5 text-start font-mono text-[11px] uppercase text-fg-subtle">{s}</th>
-                ))}
-                <th className="border-b border-line bg-[var(--bg-subtle)] px-4 py-2.5 text-start font-mono text-[11px] uppercase text-fg-subtle">סה&quot;כ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {r.rows.map((row) => (
-                <tr key={row.orgName} className="border-b border-[var(--line-faint)] last:border-b-0">
-                  <td className="px-4 py-2.5 font-medium text-fg">{row.orgName}</td>
-                  {r.stageNames.map((s) => (
-                    <td key={s} className="px-4 py-2.5 font-mono text-fg-muted">{row.counts[s] ?? 0}</td>
-                  ))}
-                  <td className="px-4 py-2.5 font-mono font-semibold text-primary">{row.total}</td>
+      <KpiStrip
+        items={[
+          { label: "סך מועמדים", value: r.total.toLocaleString() },
+          { label: "מכינות בדוח", value: r.rows.length },
+          { label: "מכינה מובילה", value: leader ? leader.orgName : "—", sub: leader ? `${leader.total} מועמדים` : undefined },
+          { label: "ממוצע למכינה", value: avg },
+        ]}
+      />
+
+      <Card title="פירוט לפי מכינה">
+        {r.rows.length === 0 ? (
+          <Empty />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className={TH}>מכינה</th>
+                  <th className={TH}>תנועה</th>
+                  <th className={`${TH} w-[42%]`}>מועמדים</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <StagesChart stageNames={r.stageNames} rows={r.rows} />
+              </thead>
+              <tbody>
+                {r.rows.map((row, i) => (
+                  <tr key={row.orgName} className="border-b border-[var(--line-faint)] last:border-b-0 hover:bg-[var(--bg-subtle)]">
+                    <td className={`${TD} font-medium text-fg`}>
+                      <span className="me-2.5 inline-grid h-5 w-5 place-items-center rounded-md bg-[var(--primary-soft)] text-[11px] font-semibold text-primary [font-variant-numeric:tabular-nums]">
+                        {i + 1}
+                      </span>
+                      {row.orgName}
+                    </td>
+                    <td className={`${TD} text-fg-muted`}>{row.movementName}</td>
+                    <td className={TD}>
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 text-end font-semibold text-primary [font-variant-numeric:tabular-nums]">{row.total}</span>
+                        <Bar value={row.total} max={maxTotal} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {r.byMovement.length > 0 && (
+        <Card title="פילוח לפי תנועה">
+          <div className="flex flex-col gap-3 p-5">
+            {r.byMovement.map((m) => (
+              <div key={m.name} className="flex items-center gap-3 text-[13px]">
+                <span className="w-36 shrink-0 truncate text-fg">{m.name}</span>
+                <Bar value={m.total} max={maxMove} />
+                <span className="w-10 shrink-0 text-end font-semibold text-primary [font-variant-numeric:tabular-nums]">{m.total}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </>
+  )
+}
+
+/* ---------- השוואת מכינות ---------- */
+
+function CompareSection({ data }: { data: Data }) {
+  const r = compareReport(data)
+  const totalCandidates = r.rows.reduce((s, x) => s + x.total, 0)
+  const avgProgress = r.rows.length ? Math.round(r.rows.reduce((s, x) => s + x.progressPct, 0) / r.rows.length) : 0
+
+  return (
+    <>
+      <KpiStrip
+        items={[
+          { label: "סך מועמדים", value: totalCandidates.toLocaleString() },
+          { label: "מכינות בהשוואה", value: r.rows.length },
+          { label: "ממוצע התקדמות", value: `${avgProgress}%` },
+        ]}
+      />
+      <Card title="השוואת מכינות">
+        {r.rows.length === 0 ? (
+          <Empty />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  {["מכינה", "מועמדים", "התקדמות", "בנים", "בנות", "סטטוס"].map((h) => (
+                    <th key={h} className={TH}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {r.rows.map((row) => (
+                  <tr key={row.orgName} className="border-b border-[var(--line-faint)] last:border-b-0 hover:bg-[var(--bg-subtle)]">
+                    <td className={`${TD} font-medium text-fg`}>{row.orgName}</td>
+                    <td className={`${TD} font-semibold text-primary [font-variant-numeric:tabular-nums]`}>{row.total}</td>
+                    <td className={`${TD} text-fg [font-variant-numeric:tabular-nums]`}>{row.progressPct}%</td>
+                    <td className={`${TD} text-fg-muted [font-variant-numeric:tabular-nums]`}>{row.malePct}%</td>
+                    <td className={`${TD} text-fg-muted [font-variant-numeric:tabular-nums]`}>{row.femalePct}%</td>
+                    <td className={TD}><StatusPill status={row.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </>
+  )
+}
+
+/* ---------- התקדמות שלבים ---------- */
+
+function StagesSection({ data }: { data: Data }) {
+  const r = stagesReport(data)
+  const grandTotal = r.rows.reduce((s, x) => s + x.total, 0)
+
+  return (
+    <>
+      <KpiStrip
+        items={[
+          { label: "סך מועמדים", value: grandTotal.toLocaleString() },
+          { label: "מכינות בדוח", value: r.rows.length },
+          { label: "שלבים", value: r.stageNames.length },
+        ]}
+      />
+      <Card title="מטריצת שלבים">
+        {r.rows.length === 0 ? (
+          <Empty />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className={TH}>מכינה</th>
+                  {r.stageNames.map((s) => <th key={s} className={TH}>{s}</th>)}
+                  <th className={TH}>סה&quot;כ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {r.rows.map((row) => (
+                  <tr key={row.orgName} className="border-b border-[var(--line-faint)] last:border-b-0 hover:bg-[var(--bg-subtle)]">
+                    <td className={`${TD} font-medium text-fg`}>{row.orgName}</td>
+                    {r.stageNames.map((s) => (
+                      <td key={s} className={`${TD} text-fg-muted [font-variant-numeric:tabular-nums]`}>{row.counts[s] ?? 0}</td>
+                    ))}
+                    <td className={`${TD} font-semibold text-primary [font-variant-numeric:tabular-nums]`}>{row.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </>
+  )
+}
+
+function Empty() {
+  return (
+    <p className="m-0 px-5 py-12 text-center text-[13px] text-fg-muted">
+      אין נתונים לתקופה ולמכינות שנבחרו.
+    </p>
   )
 }

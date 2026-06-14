@@ -519,3 +519,9 @@
 - תיקוני PDF (לבקשת רן): (1) KPI "מכינה מובילה" נשבר (שם ארוך בפונט 21) → שם ב-13px + "X מועמדים" מתחת. (2) academyLabel — שמות שהם רק מקום (אופקים) מוצגים "מכינת אופקים" (אם אין כבר קידומת מכינ). הוחל בטבלאות national/compare/stages + ב-KPI. (3) מכינת רעות הייתה status=archived (מבדיקות) → הוחזרה ל-active ב-DB. אומת ב-smoke render.
 - באג: כפתור "הצג דוח" בדוחות מועצה נראה ריק (כהה בלי טקסט). הסיבה: text-on-primary — הצבע on-primary לא רשום ב-tailwind.config (רק primary), אז המחלקה לא-תקפה והטקסט ירש צבע כהה על navy. תוקן ל-text-white (--on-primary=#fff ממילא). שימוש יחיד בפרויקט.
 - תיקוני PDF רב-עמודי (לבקשת רן): (1) שורה נשברה בין עמודים (דירוג לחוד בתחתית עמוד, השם בעמוד הבא) → wrap={false} על כל שורה (national + GenericTable). אומת ב-smoke render 45 שורות: שורות שלמות, footer לא חופף. (2) GenericTable (השוואה/שלבים): עמודת השם (אחרונה=ימין ב-row-reverse) קיבלה flex 2.4 רחב יותר, שאר העמודות flex 1 — שם מימין, סטטיסטיקות לשמאל, מרווח אחיד.
+
+## 2026-06-14 — עיצוב מחדש של עמוד דוחות המועצה
+- רן: העיצוב לא טוב + להסיר גרף "מועמדים לפי מכינה" (recharts עמוס/ריק).
+- reports/page.tsx נכתב מחדש לפי הסקילים (taste/ui-ux/emil): הוסרו כל גרפי recharts. במקום — KpiStrip (4 תאים, hairline gap-px), טבלת national עשירה עם דירוג + פסי-נתונים בתוך השורה (var(--primary-3)), פילוח תנועה כפסים אופקיים, StatusPill (success/warning/faint), Card עם כותרת, empty states. compare/stages קיבלו KPI + טבלאות נקיות.
+- נמחק app/(council)/_components/reports/ReportCharts.tsx (דד-קוד, היחיד שהשתמש ב-recharts). בנדל הדף ירד 115KB→2.5KB. recharts נשאר ב-package.json (לא בשימוש, לא נארז).
+- tsc + build נקיים.
