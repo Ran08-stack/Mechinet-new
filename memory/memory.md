@@ -534,3 +534,4 @@
 4. ReportsControls: הוסר כפתור "הצג דוח" — הסינונים חלים אוטומטית (תאריך/סוג מיד דרך apply(override), מכינות בסגירת ה-details עם guard לשינוי). הוסרו useSearchParams/params לא בשימוש.
 - tsc + build נקיים.
 - תיקון יישור: כותרת CouncilSidebar הייתה h-14 (56px) בעוד CouncilTopbar h-[60px] → הקווים התחתונים לא התיישרו (מדרגה 4px). תוקן ל-h-[60px]+flex-shrink-0 (כמו צד מכינה).
+- מועצה: הוסר כרטיס "תובנה ארצית · רישום תשפ"ו" (CouncilInsight) מ-/council (לבקשת רן — לא הוסיף ערך, כפתורי AI/אישור). הקבצים CouncilInsight.tsx + CouncilInsightActions.tsx + council-actions.ts נשארו (יוכלו לחזור בעתיד); רק ה-import וה-usage הוסרו מ-page.tsx.

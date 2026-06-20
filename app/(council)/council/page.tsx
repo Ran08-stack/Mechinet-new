@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server"
 import {
   Building2, Users, ChevronUp, MapPin, BarChart3,
 } from "lucide-react"
-import { CouncilInsight } from "../_components/CouncilInsight"
 import { AcademiesOverviewTable, type AcademyRow } from "../_components/AcademiesOverviewTable"
 import { BranchMapClient } from "@/components/council/BranchMapClient"
 import type { BranchPoint } from "@/components/council/BranchMap"
@@ -302,15 +301,6 @@ export default async function CouncilDashboardPage() {
 
         {/* Academies table */}
         <AcademiesOverviewTable rows={rows} totalAcademies={totalAcademies} />
-
-        {/* AI insight — server component עם cache */}
-        <CouncilInsight
-          totalCandidates={totalCandidates}
-          totalAcademies={totalAcademies}
-          avgProgress={avgProgress}
-          breakdown={breakdown as unknown as Record<string, number>}
-          hebrewYear={hebrewYear}
-        />
       </div>
     </div>
   )
