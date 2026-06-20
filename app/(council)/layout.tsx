@@ -26,12 +26,21 @@ export default async function CouncilLayout({
     redirect("/dashboard")
   }
 
+  const { data: profileRow } = await supabase
+    .from("council_settings")
+    .select("value")
+    .eq("key", "council_profile")
+    .maybeSingle()
+  const profile = (profileRow?.value ?? {}) as { name?: string; logo_url?: string | null }
+  const brandName = profile.name?.trim() || "מועצת המכינות"
+  const brandLogoUrl = typeof profile.logo_url === "string" && profile.logo_url ? profile.logo_url : null
+
   return (
     <div
       className="grid min-h-screen grid-cols-[248px_1fr] bg-bg font-sans text-fg"
       dir="rtl"
     >
-      <CouncilSidebar />
+      <CouncilSidebar brandName={brandName} brandLogoUrl={brandLogoUrl} />
       <main className="flex min-h-screen flex-col overflow-auto">
         <CouncilTopbar />
         {children}

@@ -555,3 +555,5 @@
 - **מחיקה רכה של שלוחה**: POST /api/council/organizations/[id]/archive (status='archived'). guard council_admin + audit_log (org.archive). UI: ArchiveAcademyButton — כרטיס "אזור מסוכן" אדום בתחתית דף המכינה, modal confirm עם הסבר ששחזור אפשרי דרך פעולות הניהול (status חזרה ל-active). מוסתר אם השלוחה כבר archived.
 - שניהם משתמשים ב-lib/council/guard.ts הקיים. אין migration חדש.
 - tsc + build נקיים. צד המועצה גמור 100%.
+- מועצה: הלוגו ושם המועצה בסיידבר עכשיו נקראים מ-council_settings (key=council_profile) דרך layout (server). השינוי בהגדרות → רענון = מתעדכן בסיידבר. CouncilSidebar קיבל props brandName+brandLogoUrl, fallback למחרוזת/אות פותחת.
+- מועצה: הוסרה עמודת "סטטוס חיבור" + רכיב ConnectionStatusPill (נמחק) מטבלת ניהול מכינות. הסיבה: מבלבל ("לא מחובר" אדום לא תאם את "פעילה" בדף המכינה — אלה דברים שונים). lastLogin/adminUsers הוסרו גם מ-page.tsx ומ-AcademyRow.

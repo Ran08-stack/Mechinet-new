@@ -6,7 +6,6 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { ChevronRight, ChevronLeft, Download, Search } from "lucide-react"
-import { ConnectionStatusPill } from "./ConnectionStatusPill"
 
 export type AcademyRow = {
   id: string
@@ -17,7 +16,6 @@ export type AcademyRow = {
   contactPerson: string | null
   contactPhone: string | null
   count: number
-  lastLogin: string | null
   lat: number | null
   badge: string
 }
@@ -184,7 +182,7 @@ export function AcademiesOverviewTable({
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr>
-                {["שם המכינה", "סוג", "איש קשר", "טלפון", "מועמדים", "סטטוס חיבור", ""].map((h) => (
+                {["שם המכינה", "סוג", "איש קשר", "טלפון", "מועמדים", ""].map((h) => (
                   <th
                     key={h}
                     className="whitespace-nowrap border-b border-line bg-[var(--bg-subtle)] px-4 py-2.5 text-start font-mono text-[11px] font-medium uppercase tracking-[var(--tracking-caps)] text-fg-subtle"
@@ -220,9 +218,6 @@ export function AcademiesOverviewTable({
                     <td className="px-4 py-3.5 text-[12.5px] leading-tight text-fg-muted">{org.contactPerson || "—"}</td>
                     <td className="px-4 py-3.5 font-mono text-[12px] text-fg-muted [font-variant-numeric:tabular-nums]">{org.contactPhone || "—"}</td>
                     <td className="px-4 py-3.5 font-mono text-[14px] font-semibold text-primary [font-variant-numeric:tabular-nums]">{org.count}</td>
-                    <td className="px-4 py-3.5">
-                      <ConnectionStatusPill last={org.lastLogin} />
-                    </td>
                     <td className="px-4 py-3.5">
                       <Link
                         href={`/council/academies/${org.id}`}

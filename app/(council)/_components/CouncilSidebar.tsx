@@ -23,18 +23,34 @@ const nav = [
   { href: "/council/settings",      icon: Settings,        label: "הגדרות" },
 ]
 
-export function CouncilSidebar() {
+export function CouncilSidebar({
+  brandName = "מועצת המכינות",
+  brandLogoUrl = null,
+}: {
+  brandName?: string
+  brandLogoUrl?: string | null
+}) {
   const pathname = usePathname()
+  const initial = brandName.trim().charAt(0) || "מ"
 
   return (
     <aside className="sticky top-0 flex h-screen w-[248px] flex-col border-s border-line bg-[var(--surface-2)]">
       <div className="flex h-[60px] flex-shrink-0 items-center gap-2.5 border-b border-line px-4">
-        <div className="grid h-7 w-7 place-items-center rounded-md bg-primary font-mono text-[13px] font-bold text-white">
-          מ
-        </div>
+        {brandLogoUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={brandLogoUrl}
+            alt={brandName}
+            className="h-8 w-8 flex-shrink-0 rounded-md border border-line bg-surface object-contain"
+          />
+        ) : (
+          <div className="grid h-7 w-7 place-items-center rounded-md bg-primary font-mono text-[13px] font-bold text-white">
+            {initial}
+          </div>
+        )}
         <div className="flex min-w-0 flex-col leading-tight">
           <b className="truncate text-[15px] font-semibold tracking-tight">
-            מועצת המכינות
+            {brandName}
           </b>
           <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-fg-subtle">
             mechinet · council

@@ -55,12 +55,10 @@ export default async function CouncilDashboardPage() {
     { data: orgs },
     { data: academiesData },
     { data: stats },
-    { data: adminUsers },
   ] = await Promise.all([
     supabase.from("organizations").select("*").order("created_at"),
     supabase.from("academies").select("id, name"),
     supabase.rpc("council_dashboard_stats"),
-    supabase.from("users").select("organization_id, last_login_at, role").eq("role", "admin"),
   ])
 
   const organizations = (orgs ?? []) as Org[]
@@ -77,15 +75,6 @@ export default async function CouncilDashboardPage() {
     totalCandidates += s.total
   }
 
-  // אחרון התחברות לכל מכינה (max על admin users)
-  const lastLoginByOrg: Record<string, string | null> = {}
-  for (const u of (adminUsers ?? []) as Array<{ organization_id: string | null; last_login_at: string | null }>) {
-    if (!u.organization_id) continue
-    const prev = lastLoginByOrg[u.organization_id]
-    if (!prev || (u.last_login_at && u.last_login_at > prev)) {
-      lastLoginByOrg[u.organization_id] = u.last_login_at
-    }
-  }
 
   // שמות מכינות + ספירת שלוחות לכל מכינה (לקביעת multi)
   const academyNameById: Record<string, string> = {}
@@ -159,7 +148,6 @@ export default async function CouncilDashboardPage() {
     contactPerson: org.contact_person ?? null,
     contactPhone: org.contact_phone ?? null,
     count: countByOrg[org.id] ?? 0,
-    lastLogin: lastLoginByOrg[org.id] ?? null,
     lat: org.lat ?? null,
     badge: BADGE_GRADIENTS[i % BADGE_GRADIENTS.length],
   }))
