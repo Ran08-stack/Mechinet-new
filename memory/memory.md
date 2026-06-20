@@ -535,3 +535,16 @@
 - tsc + build נקיים.
 - תיקון יישור: כותרת CouncilSidebar הייתה h-14 (56px) בעוד CouncilTopbar h-[60px] → הקווים התחתונים לא התיישרו (מדרגה 4px). תוקן ל-h-[60px]+flex-shrink-0 (כמו צד מכינה).
 - מועצה: הוסר כרטיס "תובנה ארצית · רישום תשפ"ו" (CouncilInsight) מ-/council (לבקשת רן — לא הוסיף ערך, כפתורי AI/אישור). הקבצים CouncilInsight.tsx + CouncilInsightActions.tsx + council-actions.ts נשארו (יוכלו לחזור בעתיד); רק ה-import וה-usage הוסרו מ-page.tsx.
+
+## 2026-06-14 — שלב 5 (חלקי): הגדרות מועצה + הסרת "טפסים"
+- "טפסים" הוסר מ-CouncilSidebar (לפי המלצה לרן — הטפסים הם פר מכינה, "תבנית משותפת" דורש החלטה תפעולית, ובינתיים לא היה לזה דף). FileText import נוקה.
+- נבנה /council/settings (CouncilSettingsPage server) + 3 כרטיסים: CouncilProfileCard (שם+לוגו URL), MovementsCard (CRUD תנועות + ספירת שלוחות לכל אחת), InfraCostsCard (4 שירותים + סה"כ מחושב). 
+- API חדש:
+  - PUT /api/council/settings/profile (key=council_profile)
+  - PUT /api/council/settings/infra-costs (key=infra_costs)
+  - POST /api/council/settings/movements (slug אוטומטי עם dedupe)
+  - PATCH/DELETE /api/council/settings/movements/[id]
+- כל ה-routes משתמשים ב-lib/council/guard.ts (requireCouncil — מאמת council_admin), כל שינוי נכנס ל-audit_log.
+- מחיקת תנועה: FK ON DELETE SET NULL → השלוחות נשארות, movement_id מתאפס. ה-UI מציג confirm עם ספירה.
+- אין migration חדש (council_settings ו-movements כבר קיימים).
+- tsc + build נקיים.

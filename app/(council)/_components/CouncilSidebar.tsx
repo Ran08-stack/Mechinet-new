@@ -7,7 +7,6 @@ import {
   Building2,
   FileBarChart,
   Megaphone,
-  FileText,
   ScrollText,
   Settings,
   ChevronsUpDown,
@@ -20,7 +19,6 @@ const nav = [
   { href: "/council/academies",     icon: Building2,       label: "מכינות" },
   { href: "/council/reports",       icon: FileBarChart,    label: "דוחות" },
   { href: "/council/announcements", icon: Megaphone,       label: "הודעות" },
-  { href: "/council/forms",         icon: FileText,        label: "טפסים" },
   { href: "/council/audit",         icon: ScrollText,      label: "יומן פעולות" },
   { href: "/council/settings",      icon: Settings,        label: "הגדרות" },
 ]
