@@ -548,3 +548,10 @@
 - מחיקת תנועה: FK ON DELETE SET NULL → השלוחות נשארות, movement_id מתאפס. ה-UI מציג confirm עם ספירה.
 - אין migration חדש (council_settings ו-movements כבר קיימים).
 - tsc + build נקיים.
+
+## 2026-06-20 — סגירת זנבות דף המכינה
+- שני זנבות שלב 1 (drill-down) נסגרו:
+- **איפוס סיסמה לאדמין שלוחה**: POST /api/council/users/[id]/reset-password (admin.auth.generateLink type=recovery). guard council_admin, חסום על חשבון מועצה ועל חשבון עם הזמנה ממתינה (שם יש "שלח שוב"). נרשם ל-audit_log (user.reset_password). UI: ResetPasswordButton — מופיע בכרטיס "חשבונות כניסה" רק לחשבונות פעילים (במקום הריווח של ResendInviteButton).
+- **מחיקה רכה של שלוחה**: POST /api/council/organizations/[id]/archive (status='archived'). guard council_admin + audit_log (org.archive). UI: ArchiveAcademyButton — כרטיס "אזור מסוכן" אדום בתחתית דף המכינה, modal confirm עם הסבר ששחזור אפשרי דרך פעולות הניהול (status חזרה ל-active). מוסתר אם השלוחה כבר archived.
+- שניהם משתמשים ב-lib/council/guard.ts הקיים. אין migration חדש.
+- tsc + build נקיים. צד המועצה גמור 100%.

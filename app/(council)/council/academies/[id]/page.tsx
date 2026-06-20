@@ -4,6 +4,8 @@ import { Building2, ChevronRight, MapPin, Phone, User2, Flag } from "lucide-reac
 import { createClient } from "@/lib/supabase/server"
 import { AcademyActionsCard } from "../../../_components/AcademyActionsCard"
 import { ResendInviteButton } from "../../../_components/ResendInviteButton"
+import { ResetPasswordButton } from "../../../_components/ResetPasswordButton"
+import { ArchiveAcademyButton } from "../../../_components/ArchiveAcademyButton"
 
 // דף מכינה פרטני לצד המועצה — אגרגציה בלבד, אסור להציג שמות מועמדים.
 
@@ -285,7 +287,11 @@ export default async function AcademyDetailPage(
                             <span className={`h-1.5 w-1.5 rounded-full ${pending ? "bg-[var(--warning)]" : "bg-[var(--success)]"}`} />
                             {pending ? "הוזמן · טרם הופעל" : "פעיל"}
                           </span>
-                          {pending && <ResendInviteButton userId={a.id} />}
+                          {pending ? (
+                            <ResendInviteButton userId={a.id} />
+                          ) : (
+                            <ResetPasswordButton userId={a.id} />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -314,6 +320,10 @@ export default async function AcademyDetailPage(
           movements={movements ?? []}
           accounts={orgAccounts.map((a) => ({ full_name: a.full_name, email: a.email }))}
         />
+      </div>
+
+      <div className="px-7 pt-5">
+        <ArchiveAcademyButton orgId={org.id} orgName={org.name} currentStatus={org.status} />
       </div>
     </div>
   )
