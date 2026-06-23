@@ -571,3 +571,4 @@
   - app/accessibility/page.tsx — הצהרת נגישות מלאה (רמת נגישות/מה זמין/לא הושלם/יצירת קשר). מורשה נגישות = support@mechinet.app (placeholder לרן להחליף).
   - שולב ב-app/layout.tsx (root) → מופיע בכל הדפים אוטומטית, גם בדפים ציבוריים (apply, login). יושב ליד AccountSwitcher אבל בצד הנגדי (end-4 vs start-4).
 - tsc + build נקיים. /accessibility נוסף ל-routes.
+- נגישות: הוספה למוצר — מרווחי טקסט מוגדלים (toggle נוסף בתפריט + class a11y-spacing ב-globals.css). מסייע לדיסלקציה (line-height 1.8 + letter/word-spacing). הצהרת הנגישות עודכנה בהתאם.

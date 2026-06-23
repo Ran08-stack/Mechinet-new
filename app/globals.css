@@ -569,3 +569,20 @@ html.a11y-emphasize-links :focus-visible {
   outline: 3px solid #0033cc !important;
   outline-offset: 2px;
 }
+
+/* מרווחי טקסט מוגדלים — עזרה לדיסלקציה (line-height + letter/word-spacing) */
+html.a11y-spacing p,
+html.a11y-spacing li,
+html.a11y-spacing span,
+html.a11y-spacing a,
+html.a11y-spacing label,
+html.a11y-spacing button,
+html.a11y-spacing td,
+html.a11y-spacing th,
+html.a11y-spacing h1,
+html.a11y-spacing h2,
+html.a11y-spacing h3 {
+  line-height: 1.8 !important;
+  letter-spacing: 0.04em !important;
+  word-spacing: 0.06em !important;
+}

@@ -11,6 +11,7 @@ import {
   WandSparkles,
   RotateCcw,
   FileText,
+  AlignVerticalSpaceAround,
 } from "lucide-react"
 
 // תפריט נגישות אחיד לכל האתר — נטען ב-root layout, מופיע בכל הדפים.
@@ -25,6 +26,7 @@ type Settings = {
   highContrast: boolean
   emphasizeLinks: boolean
   noMotion: boolean
+  spacing: boolean
 }
 
 const DEFAULT: Settings = {
@@ -32,6 +34,7 @@ const DEFAULT: Settings = {
   highContrast: false,
   emphasizeLinks: false,
   noMotion: false,
+  spacing: false,
 }
 
 function applySettings(s: Settings) {
@@ -42,6 +45,7 @@ function applySettings(s: Settings) {
   root.classList.toggle("a11y-high-contrast", s.highContrast)
   root.classList.toggle("a11y-emphasize-links", s.emphasizeLinks)
   root.classList.toggle("a11y-no-motion", s.noMotion)
+  root.classList.toggle("a11y-spacing", s.spacing)
 }
 
 export function AccessibilityMenu() {
@@ -187,6 +191,12 @@ export function AccessibilityMenu() {
               label="ביטול אנימציות"
               checked={settings.noMotion}
               onChange={(v) => update("noMotion", v)}
+            />
+            <Toggle
+              icon={<AlignVerticalSpaceAround className="h-3.5 w-3.5" />}
+              label="מרווחי טקסט מוגדלים"
+              checked={settings.spacing}
+              onChange={(v) => update("spacing", v)}
             />
 
             <div className="flex items-center justify-between gap-2 border-t border-[var(--line-faint)] pt-3">
