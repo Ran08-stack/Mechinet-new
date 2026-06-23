@@ -515,3 +515,57 @@ body {
 .mf-ai-vote button.down:hover { color: var(--danger); border-color: #f4b8a8; background: #fde7e2; }
 .mf-ai-vote button.is-on.up { color: var(--ai); border-color: var(--ai-line); background: var(--ai-soft); }
 .mf-ai-vote button.is-on.down { color: var(--danger); border-color: #f4b8a8; background: #fde7e2; }
+
+/* ============================================================
+   נגישות — מצבים שמוחלים על <html> ע"י components/accessibility/AccessibilityMenu.tsx
+   ============================================================ */
+
+/* גודל טקסט — מתבסס על rem; כל ה-px בקוד יישארו, רק הסקייל הכללי משתנה */
+html.a11y-text-large { font-size: 112.5%; }
+html.a11y-text-xlarge { font-size: 125%; }
+
+/* ניגודיות גבוהה — דורסים tokens מרכזיים */
+html.a11y-high-contrast {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #ffffff;
+  --bg-subtle: #f0f0f0;
+  --bg-muted: #e0e0e0;
+  --fg: #000000;
+  --fg-muted: #000000;
+  --fg-subtle: #1a1a1a;
+  --fg-faint: #333333;
+  --line: #000000;
+  --line-strong: #000000;
+  --line-faint: #555555;
+  --primary: #000000;
+  --primary-soft: #e8e8e8;
+  --accent: #0033cc;
+  --accent-hover: #0033cc;
+}
+html.a11y-high-contrast img:not([alt=""]) { filter: contrast(1.1); }
+
+/* הדגשת קישורים — כל הקישורים מקבלים קו תחתון ומשקל */
+html.a11y-emphasize-links a:not([role="button"]) {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+  font-weight: 600 !important;
+}
+
+/* ביטול אנימציות/מעברים */
+html.a11y-no-motion,
+html.a11y-no-motion *,
+html.a11y-no-motion *::before,
+html.a11y-no-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* focus visible תמיד נראה */
+html.a11y-high-contrast :focus-visible,
+html.a11y-emphasize-links :focus-visible {
+  outline: 3px solid #0033cc !important;
+  outline-offset: 2px;
+}

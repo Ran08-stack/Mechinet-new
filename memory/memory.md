@@ -560,3 +560,14 @@
 - מועצה (לבקשת רן): הוסר אייקון ChevronsUpDown מכותרת הסיידבר (נראה כמו workspace switcher אבל לא היה לו onClick — מבלבל). גם ה-import נוקה.
 - מועצה (לבקשת רן): CouncilProfileCard עבר משדה URL להעלאת קובץ. אותה תבנית כמו OrgSettings — bucket=attachments, path=logos/council.<ext>, upsert, getPublicUrl + cache-buster. עד 2MB, image/* בלבד. שינוי לוגו נשמר אוטומטית (PUT /api/council/settings/profile) + router.refresh — מעדכן את הסיידבר מיידית. כפתור "שמור" ההפך ל"שמור שם" (disabled עד שינוי). יש גם כפתור "הסר" (trash).
 - הגדרות מועצה (לבקשת רן: "לא פרופורציונלי"): max-w-3xl על דף ההגדרות (היה תופס את כל רוחב המסך). CouncilProfileCard עוצב מחדש: layout אנכי — שם בשורה מלאה, לוגו בשורה משלו עם preview 16x16, כפתורים, ועזרת text — תוך box משני (bg-subtle border) כדי לסגנן את האזור כיחידה אחת. הרבה יותר מאוזן.
+
+## 2026-06-23 — תפריט נגישות אחיד באתר
+- MovementsCard: הוסר ה-slug באנגלית (bnei-akiva וכו') ליד שם התנועה — לבקשת רן.
+- נבנה תפריט נגישות גלובלי לפי תקנות שוויון זכויות לאנשים עם מוגבלות (התאמות נגישות לשירות), תשע"ג-2013 + תקן ת"י 5568 (WCAG 2.1 AA):
+  - components/accessibility/AccessibilityMenu.tsx — client, כפתור צף שמאל למטה (bottom-4 end-4) ב-z-100, פאנל עם: גודל טקסט (רגיל/גדול/גדול-מאוד), ניגודיות גבוהה, הדגשת קישורים, ביטול אנימציות, איפוס, לינק להצהרה.
+  - שמירה ב-localStorage (mechinet-a11y-v1) → אותו state בכל הצדדים (מכינה+מועצה+ציבורי). חלות classes על <html>: a11y-text-large/xlarge, a11y-high-contrast (דריסת tokens), a11y-emphasize-links, a11y-no-motion.
+  - CSS נוסף בסוף app/globals.css.
+  - נגישות פנימית: aria-label, aria-expanded, aria-haspopup, role=dialog, role=switch+aria-checked, Escape לסגירה+focus חזרה, click-outside, focus-visible outline במצבי a11y.
+  - app/accessibility/page.tsx — הצהרת נגישות מלאה (רמת נגישות/מה זמין/לא הושלם/יצירת קשר). מורשה נגישות = support@mechinet.app (placeholder לרן להחליף).
+  - שולב ב-app/layout.tsx (root) → מופיע בכל הדפים אוטומטית, גם בדפים ציבוריים (apply, login). יושב ליד AccountSwitcher אבל בצד הנגדי (end-4 vs start-4).
+- tsc + build נקיים. /accessibility נוסף ל-routes.

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { createClient } from "@/lib/supabase/server"
 import AccountSwitcher from "@/components/dev/AccountSwitcher"
+import { AccessibilityMenu } from "@/components/accessibility/AccessibilityMenu"
 
 export const metadata: Metadata = {
   title: "מכינט",
@@ -43,6 +44,7 @@ export default async function RootLayout({
     <html lang="he" dir="rtl">
       <body className="font-sans">
         {children}
+        <AccessibilityMenu />
         {showSwitcher && role && <AccountSwitcher currentRole={role} />}
       </body>
     </html>

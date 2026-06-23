@@ -102,7 +102,6 @@ export function MovementsCard({ movements }: { movements: Row[] }) {
               ) : (
                 <div className="flex-1">
                   <span className="text-[13px] font-medium text-fg">{m.name}</span>
-                  <span className="ms-2 font-mono text-[11px] text-fg-subtle">{m.slug}</span>
                 </div>
               )}
               <span className="text-[11.5px] text-fg-muted">{m.branchCount} שלוחות</span>
