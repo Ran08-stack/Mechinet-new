@@ -557,3 +557,4 @@
 - tsc + build נקיים. צד המועצה גמור 100%.
 - מועצה: הלוגו ושם המועצה בסיידבר עכשיו נקראים מ-council_settings (key=council_profile) דרך layout (server). השינוי בהגדרות → רענון = מתעדכן בסיידבר. CouncilSidebar קיבל props brandName+brandLogoUrl, fallback למחרוזת/אות פותחת.
 - מועצה: הוסרה עמודת "סטטוס חיבור" + רכיב ConnectionStatusPill (נמחק) מטבלת ניהול מכינות. הסיבה: מבלבל ("לא מחובר" אדום לא תאם את "פעילה" בדף המכינה — אלה דברים שונים). lastLogin/adminUsers הוסרו גם מ-page.tsx ומ-AcademyRow.
+- מועצה (לבקשת רן): הוסר אייקון ChevronsUpDown מכותרת הסיידבר (נראה כמו workspace switcher אבל לא היה לו onClick — מבלבל). גם ה-import נוקה.

@@ -9,7 +9,6 @@ import {
   Megaphone,
   ScrollText,
   Settings,
-  ChevronsUpDown,
   MoreHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -56,9 +55,6 @@ export function CouncilSidebar({
             mechinet · council
           </span>
         </div>
-        <button className="ms-auto grid h-6 w-6 place-items-center rounded text-[var(--fg-faint)] hover:bg-[var(--bg-muted)] hover:text-fg-muted">
-          <ChevronsUpDown className="h-4 w-4" />
-        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2.5 py-3.5">
