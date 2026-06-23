@@ -558,3 +558,4 @@
 - מועצה: הלוגו ושם המועצה בסיידבר עכשיו נקראים מ-council_settings (key=council_profile) דרך layout (server). השינוי בהגדרות → רענון = מתעדכן בסיידבר. CouncilSidebar קיבל props brandName+brandLogoUrl, fallback למחרוזת/אות פותחת.
 - מועצה: הוסרה עמודת "סטטוס חיבור" + רכיב ConnectionStatusPill (נמחק) מטבלת ניהול מכינות. הסיבה: מבלבל ("לא מחובר" אדום לא תאם את "פעילה" בדף המכינה — אלה דברים שונים). lastLogin/adminUsers הוסרו גם מ-page.tsx ומ-AcademyRow.
 - מועצה (לבקשת רן): הוסר אייקון ChevronsUpDown מכותרת הסיידבר (נראה כמו workspace switcher אבל לא היה לו onClick — מבלבל). גם ה-import נוקה.
+- מועצה (לבקשת רן): CouncilProfileCard עבר משדה URL להעלאת קובץ. אותה תבנית כמו OrgSettings — bucket=attachments, path=logos/council.<ext>, upsert, getPublicUrl + cache-buster. עד 2MB, image/* בלבד. שינוי לוגו נשמר אוטומטית (PUT /api/council/settings/profile) + router.refresh — מעדכן את הסיידבר מיידית. כפתור "שמור" ההפך ל"שמור שם" (disabled עד שינוי). יש גם כפתור "הסר" (trash).
