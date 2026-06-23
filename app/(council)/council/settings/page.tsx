@@ -30,7 +30,7 @@ export default async function CouncilSettingsPage() {
   }
 
   return (
-    <div className="px-3 pb-14 pt-5 md:px-7 md:pt-7">
+    <div className="mx-auto w-full max-w-3xl px-3 pb-14 pt-5 md:px-7 md:pt-7">
       <div className="mb-5">
         <h1 className="m-0 inline-flex items-center gap-2.5 text-[22px] font-semibold tracking-[-0.01em] text-primary md:text-[28px]">
           <SettingsIcon className="h-6 w-6 text-fg-faint" />

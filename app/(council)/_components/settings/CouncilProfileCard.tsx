@@ -110,7 +110,7 @@ export function CouncilProfileCard({ initial }: Props) {
         <p className="m-0 mt-0.5 text-[12px] text-fg-muted">השם והלוגו שמופיעים בסיידבר ובהודעות.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 p-5 md:grid-cols-[1fr_auto] md:items-start">
+      <div className="flex flex-col gap-5 p-5">
         <label className="flex flex-col gap-1.5">
           <span className="text-[12px] font-medium text-fg-muted">שם המועצה</span>
           <input
@@ -121,48 +121,44 @@ export function CouncilProfileCard({ initial }: Props) {
           />
         </label>
 
-        <div className="flex items-center gap-3">
-          <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-[var(--bg-subtle)]">
-            {logoUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={logoUrl} alt="לוגו" className="h-full w-full object-contain" />
-            ) : (
-              <Building2 className="h-6 w-6 text-fg-faint" />
-            )}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-medium text-fg-muted">לוגו</span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[13px] text-fg hover:bg-[var(--bg-subtle)] disabled:opacity-60"
-              >
-                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                {logoUrl ? "החלף" : "העלה תמונה"}
-              </button>
-              {logoUrl && (
-                <button
-                  type="button"
-                  onClick={removeLogo}
-                  disabled={uploading}
-                  className="inline-grid h-9 w-9 place-items-center rounded-md border border-line bg-surface text-fg-muted hover:bg-[var(--bg-subtle)] hover:text-[var(--danger)] disabled:opacity-60"
-                  aria-label="הסר לוגו"
-                  title="הסר לוגו"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[12px] font-medium text-fg-muted">לוגו</span>
+          <div className="flex items-center gap-4 rounded-md border border-line bg-[var(--bg-subtle)] p-3">
+            <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-surface">
+              {logoUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={logoUrl} alt="לוגו" className="h-full w-full object-contain" />
+              ) : (
+                <Building2 className="h-7 w-7 text-fg-faint" />
               )}
             </div>
-            <span className="text-[11px] text-fg-subtle">PNG/JPG/SVG · עד 2MB</span>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={uploadLogo}
-            />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[13px] text-fg hover:bg-[var(--bg-subtle)] disabled:opacity-60"
+                >
+                  {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                  {logoUrl ? "החלף תמונה" : "העלה תמונה"}
+                </button>
+                {logoUrl && (
+                  <button
+                    type="button"
+                    onClick={removeLogo}
+                    disabled={uploading}
+                    className="inline-grid h-9 w-9 place-items-center rounded-md border border-line bg-surface text-fg-muted hover:bg-[var(--bg-subtle)] hover:text-[var(--danger)] disabled:opacity-60"
+                    aria-label="הסר לוגו"
+                    title="הסר לוגו"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <span className="text-[11px] text-fg-subtle">PNG / JPG / SVG · עד 2MB</span>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadLogo} />
           </div>
         </div>
       </div>
