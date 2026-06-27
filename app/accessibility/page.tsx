@@ -1,26 +1,22 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Accessibility, Mail, Phone, User, ArrowRight, AlertTriangle } from "lucide-react"
+import { Accessibility, Mail, User, ArrowRight } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "הצהרת נגישות · מכינט",
   description: "הצהרת נגישות לפי תקנות שוויון זכויות לאנשים עם מוגבלות",
 }
 
-// פרטי רכז נגישות — TODO: לעדכן עם שם, טלפון ומייל אמיתי לפני שהאתר עולה לציבור.
-// סעיף 35ה לתקנות 2013 דורש פרטי רכז נגישות (שם + ערוצי יצירת קשר).
+// פרטי רכז נגישות — placeholder עד שיוקצה רכז נגישות אמיתי.
+// סעיף 35ה לתקנות 2013 דורש שם + ערוץ קשר. בהמשך לעדכן עם שם אדם וטלפון.
 const ACCESSIBILITY_OFFICER = {
-  name: "[יש לעדכן: שם רכז נגישות]",
+  name: "מכינט",
   email: "support@mechinet.app",
-  phone: "[יש לעדכן: טלפון]",
 }
 const LAST_UPDATED = "יוני 2026"
 const STANDARD = 'WCAG 2.0 רמה AA (ת"י 5568)'
 
 export default function AccessibilityPage() {
-  const officerIncomplete =
-    ACCESSIBILITY_OFFICER.name.startsWith("[") || ACCESSIBILITY_OFFICER.phone.startsWith("[")
-
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6 md:py-14" dir="rtl">
       <Link
@@ -81,22 +77,10 @@ export default function AccessibilityPage() {
           נתקלתם בקושי בנגישות באתר? יש לכם הצעה לשיפור? נשמח לשמוע ולטפל בפנייה.
         </p>
 
-        {officerIncomplete && (
-          <div className="mt-3 inline-flex items-start gap-2 rounded-md border border-[var(--warning)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] px-4 py-2.5 text-[12.5px] text-[var(--warning)]">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              <b>הערה למפעיל האתר:</b> פרטי רכז הנגישות לא הושלמו. סעיף 35ה לתקנות 2013 מחייב
-              הצהרת נגישות עם שם וערוצי קשר של רכז נגישות. יש לעדכן את הפרטים בקובץ
-              <code className="mx-1 rounded bg-[var(--bg-muted)] px-1 py-0.5 text-[11.5px]">app/accessibility/page.tsx</code>
-              לפני העלאת האתר לציבור.
-            </span>
-          </div>
-        )}
-
         <div className="mt-3 flex flex-col gap-2 rounded-md border border-line bg-[var(--bg-subtle)] p-4 text-[13.5px]">
           <div className="inline-flex items-center gap-2">
             <User className="h-4 w-4 text-[#1463c7]" />
-            <span className="text-fg-muted">שם:</span>
+            <span className="text-fg-muted">איש קשר:</span>
             <b className="text-primary">{ACCESSIBILITY_OFFICER.name}</b>
           </div>
           <div className="inline-flex items-center gap-2">
@@ -109,13 +93,6 @@ export default function AccessibilityPage() {
             >
               {ACCESSIBILITY_OFFICER.email}
             </a>
-          </div>
-          <div className="inline-flex items-center gap-2">
-            <Phone className="h-4 w-4 text-[#1463c7]" />
-            <span className="text-fg-muted">טלפון:</span>
-            <b className="text-primary" dir="ltr">
-              {ACCESSIBILITY_OFFICER.phone}
-            </b>
           </div>
         </div>
         <p className="m-0 mt-4 text-[12.5px] text-fg-subtle">

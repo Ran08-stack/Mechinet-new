@@ -585,3 +585,4 @@
   6. app/accessibility/page.tsx: עוצב מחדש. פרטי רכז נגישות מובנה (שם/אימייל/טלפון) עם warning בולט אם הפרטים placeholder. STANDARD ל-WCAG 2.0 AA. נוספו ההתאמות החדשות. הוחלשו הצהרות שלא נבדקו ("תיוג ARIA ברכיבים מרכזיים" במקום "תמיכה בקוראי מסך"; "ניווט מקלדת... מצבי focus נראים" במקום "ניווט מלא").
 - TODO לרן (משפטי): למלא שם רכז נגישות אמיתי + טלפון בקובץ app/accessibility/page.tsx (קבוע ACCESSIBILITY_OFFICER, שורות 11-15) לפני שהאתר נגיש לציבור.
 - tsc + build נקיים.
+- נגישות (placeholder ביניים לבקשת רן): רכז נגישות = "מכינט" (שם הפרויקט) + support@mechinet.app. הוסר שדה טלפון לגמרי + ה-Phone import + ה-warning הצהוב + הלוגיקה של officerIncomplete. כשיוקצה רכז נגישות אמיתי — לעדכן ACCESSIBILITY_OFFICER ב-app/accessibility/page.tsx (שורות 11-14).
