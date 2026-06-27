@@ -12,6 +12,8 @@ import {
   RotateCcw,
   FileText,
   AlignVerticalSpaceAround,
+  BookOpenText,
+  MousePointer2,
 } from "lucide-react"
 
 // תפריט נגישות אחיד לכל האתר — נטען ב-root layout, מופיע בכל הדפים.
@@ -27,6 +29,8 @@ type Settings = {
   emphasizeLinks: boolean
   noMotion: boolean
   spacing: boolean
+  dyslexiaFont: boolean
+  bigCursor: boolean
 }
 
 const DEFAULT: Settings = {
@@ -35,6 +39,8 @@ const DEFAULT: Settings = {
   emphasizeLinks: false,
   noMotion: false,
   spacing: false,
+  dyslexiaFont: false,
+  bigCursor: false,
 }
 
 function applySettings(s: Settings) {
@@ -46,6 +52,8 @@ function applySettings(s: Settings) {
   root.classList.toggle("a11y-emphasize-links", s.emphasizeLinks)
   root.classList.toggle("a11y-no-motion", s.noMotion)
   root.classList.toggle("a11y-spacing", s.spacing)
+  root.classList.toggle("a11y-dyslexia-font", s.dyslexiaFont)
+  root.classList.toggle("a11y-big-cursor", s.bigCursor)
 }
 
 export function AccessibilityMenu() {
@@ -77,13 +85,35 @@ export function AccessibilityMenu() {
     applySettings(settings)
   }, [settings, mounted])
 
-  // Escape לסגירה + סגירה בלחיצה מחוץ
+  // Escape לסגירה + סגירה בלחיצה מחוץ + focus trap (Tab במעגל סגור בתוך הפאנל)
   useEffect(() => {
     if (!open) return
+    // הזזת focus אוטומטית לאלמנט הראשון בפאנל כשנפתח
+    const focusables = panelRef.current?.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    focusables?.[0]?.focus()
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setOpen(false)
         buttonRef.current?.focus()
+        return
+      }
+      if (e.key === "Tab" && panelRef.current) {
+        const list = panelRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (list.length === 0) return
+        const first = list[0]
+        const last = list[list.length - 1]
+        const active = document.activeElement as HTMLElement | null
+        if (e.shiftKey && active === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault()
+          first.focus()
+        }
       }
     }
     function onClick(e: MouseEvent) {
@@ -123,6 +153,7 @@ export function AccessibilityMenu() {
         <div
           ref={panelRef}
           role="dialog"
+          aria-modal="true"
           aria-labelledby="a11y-title"
           dir="rtl"
           className="fixed bottom-20 end-4 z-[100] w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-line bg-surface shadow-[0_20px_50px_-12px_rgba(15,20,35,0.35)]"
@@ -197,6 +228,18 @@ export function AccessibilityMenu() {
               label="מרווחי טקסט מוגדלים"
               checked={settings.spacing}
               onChange={(v) => update("spacing", v)}
+            />
+            <Toggle
+              icon={<BookOpenText className="h-3.5 w-3.5" />}
+              label="גופן ידידותי לדיסלקציה"
+              checked={settings.dyslexiaFont}
+              onChange={(v) => update("dyslexiaFont", v)}
+            />
+            <Toggle
+              icon={<MousePointer2 className="h-3.5 w-3.5" />}
+              label="סמן עכבר גדול"
+              checked={settings.bigCursor}
+              onChange={(v) => update("bigCursor", v)}
             />
 
             <div className="flex items-center justify-between gap-2 border-t border-[var(--line-faint)] pt-3">

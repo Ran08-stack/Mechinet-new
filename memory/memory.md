@@ -572,3 +572,16 @@
   - שולב ב-app/layout.tsx (root) → מופיע בכל הדפים אוטומטית, גם בדפים ציבוריים (apply, login). יושב ליד AccountSwitcher אבל בצד הנגדי (end-4 vs start-4).
 - tsc + build נקיים. /accessibility נוסף ל-routes.
 - נגישות: הוספה למוצר — מרווחי טקסט מוגדלים (toggle נוסף בתפריט + class a11y-spacing ב-globals.css). מסייע לדיסלקציה (line-height 1.8 + letter/word-spacing). הצהרת הנגישות עודכנה בהתאם.
+
+## 2026-06-27 — audit נגישות + סגירת פערים
+- בוצע audit מקיף (workflow ultracode, 4 חוקרים מקבילים + verify יריבי) של תפריט הנגישות מול תקנות ישראל 2013 + ת"י 5568.
+- שורה תחתונה: עומדים בעיקר ב-WCAG AA. החוסר המשפטי הישיר היחיד: שם רכז נגישות + טלפון בעמוד ההצהרה. שאר הפערים הם ציפיות שוק.
+- שינויים שבוצעו:
+  1. globals.css: STANDARD שונה ל-WCAG 2.0 רמה AA (החוק מחייב 2.0, לא 2.1). הוסר filter:contrast(1.1) על תמונות במצב ניגודיות גבוהה (עיוות גרפים/צילומים).
+  2. globals.css: נוסף @import של Atkinson Hyperlegible מ-Google Fonts (פונט פתוח של Braille Institute, מוכח לדיסלקציה).
+  3. globals.css: נוספו classes a11y-dyslexia-font (החלפת font-family) + a11y-big-cursor (SVG inline, גרסת default + pointer).
+  4. AccessibilityMenu.tsx: 2 toggles חדשים — "גופן ידידותי לדיסלקציה" + "סמן עכבר גדול". סה"כ 7 התאמות + איפוס.
+  5. AccessibilityMenu.tsx: aria-modal="true" על role="dialog". focus-trap בפאנל (Tab במעגל סגור) + auto-focus לאלמנט הראשון בפתיחה. עומד ב-WCAG 2.4.3.
+  6. app/accessibility/page.tsx: עוצב מחדש. פרטי רכז נגישות מובנה (שם/אימייל/טלפון) עם warning בולט אם הפרטים placeholder. STANDARD ל-WCAG 2.0 AA. נוספו ההתאמות החדשות. הוחלשו הצהרות שלא נבדקו ("תיוג ARIA ברכיבים מרכזיים" במקום "תמיכה בקוראי מסך"; "ניווט מקלדת... מצבי focus נראים" במקום "ניווט מלא").
+- TODO לרן (משפטי): למלא שם רכז נגישות אמיתי + טלפון בקובץ app/accessibility/page.tsx (קבוע ACCESSIBILITY_OFFICER, שורות 11-15) לפני שהאתר נגיש לציבור.
+- tsc + build נקיים.

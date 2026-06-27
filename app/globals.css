@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Atkinson+Hyperlegible:wght@400;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -543,7 +543,7 @@ html.a11y-high-contrast {
   --accent: #0033cc;
   --accent-hover: #0033cc;
 }
-html.a11y-high-contrast img:not([alt=""]) { filter: contrast(1.1); }
+/* הוסר: filter: contrast(1.1) על תמונות עיוות גרפים/צילומי-מסך ופגע בנגישות */
 
 /* הדגשת קישורים — כל הקישורים מקבלים קו תחתון ומשקל */
 html.a11y-emphasize-links a:not([role="button"]) {
@@ -585,4 +585,32 @@ html.a11y-spacing h3 {
   line-height: 1.8 !important;
   letter-spacing: 0.04em !important;
   word-spacing: 0.06em !important;
+}
+
+/* גופן ידידותי לדיסלקציה — Atkinson Hyperlegible פותח ע"י Braille Institute לקריאות גבוהה */
+html.a11y-dyslexia-font,
+html.a11y-dyslexia-font body,
+html.a11y-dyslexia-font * {
+  font-family: "Atkinson Hyperlegible", "Rubik", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+/* פונט מונו (קוד/מספרים) נשאר מונו כדי לא לשבור tabular-nums */
+html.a11y-dyslexia-font code,
+html.a11y-dyslexia-font pre,
+html.a11y-dyslexia-font [class*="font-mono"] {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace !important;
+}
+
+/* סמן גדול — SVG inline, 32x32, מנוגד */
+html.a11y-big-cursor,
+html.a11y-big-cursor * {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 2 L4 26 L10 20 L14 28 L18 26 L14 18 L22 18 Z' fill='%23000' stroke='%23fff' stroke-width='1.5'/></svg>") 2 2, auto !important;
+}
+html.a11y-big-cursor a,
+html.a11y-big-cursor button,
+html.a11y-big-cursor [role="button"],
+html.a11y-big-cursor input,
+html.a11y-big-cursor select,
+html.a11y-big-cursor textarea,
+html.a11y-big-cursor label {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M11 4 L11 18 L7 18 L7 22 L11 22 L11 26 L15 26 L15 22 L21 22 L21 18 L15 18 L15 14 L25 14 L25 10 L15 10 L15 4 Z' fill='%23000' stroke='%23fff' stroke-width='1.5'/></svg>") 16 16, pointer !important;
 }
